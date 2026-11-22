@@ -4,6 +4,20 @@ Versions are `MAJOR.MINOR.PATCH`; the number lives in `project.godot`
 (`config/version`) and shows on the title screen and next to the FPS counter.
 Bump MINOR for a phase or batch of features, PATCH for fixes.
 
+## 0.1.2: Breakable arena
+
+- Most cover in Blockout Yard can be smashed: crates and crate stacks,
+  stone pillars, the edge railings (smash a segment and that stretch of edge
+  is open for ring-outs) and explosive barrels.
+- Blades break what they pass through (harder with faster swings and the
+  spin), thrown swords smash crates and fly on through, and fighters knocked
+  or ragdolled into scenery break it (credited to whoever sent them flying).
+- Barrels blow up: big knockback and damage around them, chain reactions,
+  the kill goes to whoever set it off. Bots throw at barrels next to you.
+- Pieces burst into physics debris (pooled, fades after 5 s) and rebuild
+  after 30-40 s; bots' paths update as things break; bots smash what blocks them.
+- New sounds: wood and stone crashes, explosions.
+
 ## 0.1.1: Playtest fixes
 
 - Fixed: after a jump, landing or dodge roll the body could stay frozen on

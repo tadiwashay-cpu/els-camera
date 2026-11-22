@@ -91,6 +91,9 @@ func _build() -> void:
 	_add("tick", [_chirp(0.025, 3000.0, 2600.0, 0.3, false)])
 	_add("buzzer", [_buzz(0.9, 196.0)])
 	_add("respawn", [_chirp(0.3, 300.0, 1000.0, 0.4, false)])
+	_add("crash_wood", [_crash(0.45, 900.0, 0.8, true), _crash(0.4, 1100.0, 0.75, true)])
+	_add("crash_stone", [_crash(0.6, 500.0, 0.9, false)])
+	_add("boom", [_boom(1.1)])
 	# Recorded replacements win where present.
 	for sound_name: String in _streams.keys():
 		for ext in ["ogg", "wav"]:
@@ -214,4 +217,44 @@ func _buzz(length: float, f: float) -> PackedFloat32Array:
 		var v := f * (1.0 + 0.02 * sin(TAU * 6.0 * t))
 		var s := signf(sin(TAU * v * t)) * 0.5 + sin(TAU * v * 2.0 * t) * 0.3
 		out[i] = s * 0.35 * _env(t, length, 0.01)
+	return out
+
+
+## Something smashing: a burst of filtered noise, with wood clacks or a stony rumble.
+func _crash(length: float, cutoff: float, gain: float, wood: bool) -> PackedFloat32Array:
+	var n := int(length * RATE)
+	var out := PackedFloat32Array()
+	out.resize(n)
+	var lp := 0.0
+	var a := clampf(TAU * cutoff / RATE, 0.0, 1.0)
+	var clack_at: Array[int] = []
+	if wood:
+		for k in 5:
+			clack_at.append(int(_rng.randf_range(0.0, length * 0.6) * RATE))
+	for i in n:
+		var t := float(i) / RATE
+		lp += a * (_rng.randf_range(-1.0, 1.0) - lp)
+		var s := lp * 2.2 * exp(-t * (7.0 if wood else 5.0))
+		s += sin(TAU * (70.0 if wood else 45.0) * t) * exp(-t * 18.0) * 0.6
+		for c in clack_at:
+			var dt := i - c
+			if dt >= 0 and dt < 400:
+				s += sin(TAU * 1400.0 * float(dt) / RATE) * exp(-float(dt) / 60.0) * 0.5
+		out[i] = tanh(s * 1.4) * gain
+	return out
+
+
+## An explosion: deep thump plus a long noisy roar.
+func _boom(length: float) -> PackedFloat32Array:
+	var n := int(length * RATE)
+	var out := PackedFloat32Array()
+	out.resize(n)
+	var lp := 0.0
+	var phase := 0.0
+	for i in n:
+		var t := float(i) / RATE
+		lp += 0.08 * (_rng.randf_range(-1.0, 1.0) - lp)
+		phase += TAU * lerpf(60.0, 28.0, minf(t * 2.0, 1.0)) / RATE
+		var s := sin(phase) * exp(-t * 4.0) * 1.2 + lp * 3.0 * exp(-t * 3.0)
+		out[i] = tanh(s * 1.8) * 0.9
 	return out

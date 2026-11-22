@@ -5,6 +5,8 @@ extends Node3D
 ## and sky. Subclasses build their layout in build().
 
 signal nav_ready
+## A barrel went off: the match applies the blast (fighters, other pieces).
+signal explosion(at: Vector3, by: Fighter)
 
 const GRID_SHADER := preload("res://src/arenas/grid.gdshader")
 
@@ -15,7 +17,12 @@ var bounds := 34.0                 # half-size of the play area (camera, bots)
 var nav: NavigationRegion3D
 var sun: DirectionalLight3D
 var env: Environment
+var debris: DebrisPool
+var breakables: Array[Breakable] = []
 var _materials: Dictionary = {}
+var _baking := false
+var _rebake_due := -1.0
+var _clock := 0.0
 
 
 func _ready() -> void:
@@ -32,6 +39,9 @@ func _ready() -> void:
 	nm.cell_height = 0.25
 	nav.navigation_mesh = nm
 	add_child(nav)
+	debris = DebrisPool.new()
+	debris.name = "Debris"
+	add_child(debris)
 	_sky()
 	build()
 
@@ -43,8 +53,55 @@ func build() -> void:
 
 ## Bakes the bot navigation mesh on a thread; emits nav_ready.
 func bake_navigation() -> void:
-	nav.bake_finished.connect(func() -> void: nav_ready.emit(), CONNECT_ONE_SHOT)
+	_baking = true
+	nav.bake_finished.connect(func() -> void:
+		_baking = false
+		nav_ready.emit(), CONNECT_ONE_SHOT)
 	nav.bake_navigation_mesh(true)
+
+
+## Something broke or rebuilt: rebake the nav mesh soon (batched, on a thread).
+func request_rebake() -> void:
+	if _rebake_due < 0.0:
+		_rebake_due = _clock + 0.6
+
+
+func _physics_process(delta: float) -> void:
+	_clock += delta
+	if _rebake_due > 0.0 and _clock >= _rebake_due and not _baking:
+		_rebake_due = -1.0
+		bake_navigation()
+
+
+## A breakable box (crate, pillar, rail, barrel) that is also a nav obstacle.
+func breakable(kind: Breakable.Kind, size: Vector3, centre: Vector3, color: Color) -> Breakable:
+	var b := Breakable.new()
+	b.position = centre
+	nav.add_child(b)
+	b.setup(kind, size, color, self)
+	if kind == Breakable.Kind.BARREL:
+		b.broken.connect(func(piece: Breakable, by: Fighter) -> void: explosion.emit(piece.global_position, by))
+	breakables.append(b)
+	return b
+
+
+## Pieces whose box a segment passes within `radius` of.
+func breakables_on_segment(a: Vector3, b: Vector3, radius: float) -> Array[Breakable]:
+	var out: Array[Breakable] = []
+	for piece in breakables:
+		if piece.is_broken:
+			continue
+		var box := piece.bounds().grow(radius)
+		if box.has_point(a) or box.has_point(b) or box.intersects_segment(a, b) != null:
+			out.append(piece)
+	return out
+
+
+func breakable_near(pos: Vector3, radius: float) -> Breakable:
+	for piece in breakables:
+		if not piece.is_broken and piece.bounds().grow(radius).has_point(pos):
+			return piece
+	return null
 
 
 func grid_material(color: Color, cell: float = 1.0) -> ShaderMaterial:

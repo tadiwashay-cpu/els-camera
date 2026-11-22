@@ -4,7 +4,7 @@ A third-person arena fighter for Android. Block fighters with swords race for
 kills against the clock: swing, throw your sword, catch theirs out of the air
 and send it back faster, knock them off the edge.
 
-**Version 0.1.0: Phase 1 playtest (first playable kill race).**
+**Version 0.1.2: Phase 1 playtest + fixes, new jumps, breakable arena.**
 Made with Godot 4.7.2 (Mobile renderer, Jolt physics). Built for a 4 GB
 tablet (Redmi Pad 2) and up.
 
@@ -32,8 +32,9 @@ Android editor app) and press Play.
   one flies at you to catch it and send it back 1.5x faster.
 - **Killcam**: when you're killed, a slow-motion replay of the finishing blow
   (an exact replay, ragdoll included). The match ends on a replay of the final kill.
-- **Blockout Yard** arena: three height levels, a bridge, cover, 6 sword
-  spawners and an edge you can be knocked off.
+- **Blockout Yard** arena: three height levels, a bridge, 6 sword spawners
+  and an edge you can be knocked off. Crates, pillars, edge railings and
+  explosive barrels break (physics debris, chain explosions) and rebuild.
 - Touch controls (Godot 4.7's virtual joystick + buttons), keyboard/mouse and gamepad.
 - Loading screen with real progress, tips and shader warm-up; title, match
   setup and settings (graphics preset, look speed, aim assist, button size/opacity).

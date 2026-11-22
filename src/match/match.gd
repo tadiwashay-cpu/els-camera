@@ -67,6 +67,7 @@ func _ready() -> void:
 	player_input.camera = camera
 	player_input.touch = touch
 	add_child(player_input)
+	arena.explosion.connect(_on_explosion)
 	hud.pause_pressed.connect(toggle_pause)
 	hud.resume_pressed.connect(toggle_pause)
 	hud.rematch_pressed.connect(func() -> void: Game.start_match())
@@ -263,6 +264,36 @@ func _replay(victim: Fighter, killer: Fighter, before: float, after: float, spee
 	hud.visible = true
 	if not paused:
 		get_tree().paused = false
+
+
+## A barrel went off: blast everyone and everything nearby (the kill goes
+## to whoever set it off; nearby barrels chain).
+func _on_explosion(at: Vector3, by: Fighter) -> void:
+	const RADIUS := 5.0
+	Fx.explosion(self, at, RADIUS)
+	Game.hit_stop(60)
+	var to_cam := camera.global_position.distance_to(at)
+	camera.shake(clampf(1.2 - to_cam / 25.0, 0.2, 1.0))
+	Game.vibrate(60)
+	for f in fighters:
+		if not f.alive:
+			continue
+		var c := f.global_position + Vector3.UP
+		var d := c.distance_to(at)
+		if d > RADIUS:
+			continue
+		var k := 1.0 - d / RADIUS
+		var dir := f.global_position - at
+		dir.y = 0.0
+		f.take_hit(48.0 * k + 8.0, dir.normalized(), by, true, c, 9.0 * k + 5.0)
+	for piece in arena.breakables:
+		if piece.is_broken:
+			continue
+		var d := piece.global_position.distance_to(at)
+		if d < RADIUS:
+			# A short fuse so chains ripple instead of all popping at once.
+			get_tree().create_timer(0.08 + d * 0.03).timeout.connect(func() -> void:
+				piece.hit(80.0 * (1.0 - d / RADIUS) + 10.0, piece.global_position, (piece.global_position - at).normalized() * 6.0, by))
 
 
 func _respawn(f: Fighter) -> void:

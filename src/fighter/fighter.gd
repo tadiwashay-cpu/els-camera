@@ -69,6 +69,7 @@ var _combo := 0
 var _combo_window := 0.0
 var _queued_attack := false
 var _attack_hits: Array[Fighter] = []
+var _attack_pieces: Array[Breakable] = []
 var _attack_clip := &""
 var _attack_upper := false
 var _attack_damage_mult := 1.0
@@ -205,7 +206,10 @@ func _physics_process(delta: float) -> void:
 				body.stop_action(0.15)
 				_set_state(State.MOVE)
 	var was_floor := is_on_floor()
+	var pre_speed := velocity.length()
 	move_and_slide()
+	if pre_speed > 7.0 and state != State.MOVE and world:
+		_smash_into_scenery(pre_speed)
 	if is_on_floor():
 		if not was_floor and _air_time > 0.25:
 			_landed()
@@ -349,11 +353,25 @@ func _armed_clip(clip: StringName) -> StringName:
 	return StringName(String(clip) + "_Sword") if armed() else clip
 
 
+## Knocked flying into a crate or a railing: it takes the hit (credited to
+## whoever sent us flying).
+func _smash_into_scenery(speed: float) -> void:
+	for i in get_slide_collision_count():
+		var piece := get_slide_collision(i).get_collider() as Breakable
+		if piece:
+			piece.hit(speed * 3.5, get_slide_collision(i).get_position(), velocity, last_hitter)
+
+
 func _follow_ragdoll() -> void:
 	# The fighter's root rides along under the limp body, so the camera and
 	# the respawn/get-up logic know where it is.
 	var h := ragdoll.hips_position()
 	global_position = Vector3(h.x, h.y - 0.3, h.z)
+	# A flying body smashes through scenery too.
+	if world and ragdoll.active and ragdoll.speed() > 5.0:
+		var piece := world.arena.breakable_near(h, 0.45)
+		if piece:
+			piece.hit(ragdoll.speed() * 4.0, h, (ragdoll.bodies[&"Hips"] as PhysicalBone3D).linear_velocity, last_hitter)
 
 
 # ---------------------------------------------------------------- attacking
@@ -409,6 +427,7 @@ func _start_attack(clip: StringName, damage_mult: float, s: State) -> void:
 	_attack_damage_mult = damage_mult
 	_attack_clip = clip
 	_attack_hits.clear()
+	_attack_pieces.clear()
 	_have_prev = false
 	_queued_attack = false
 	_set_state(s)
@@ -538,6 +557,16 @@ func _strike(clip: StringName, delta: float) -> void:
 				var heavy := _attack_knockdown or state == State.HEAVY
 				f.take_hit(dmg, dir.normalized(), self, heavy, at, weapon_data.knockback * (1.6 if heavy else 1.0))
 				hit_landed.emit(self, f, dmg)
+		# Scenery in the blade's path takes the same blow.
+		for piece in world.arena.breakables_on_segment((a + _prev_a) * 0.5, (b + _prev_b) * 0.5, weapon_data.hit_radius) \
+				+ world.arena.breakables_on_segment(a, b, weapon_data.hit_radius):
+			if _attack_pieces.has(piece):
+				continue
+			_attack_pieces.append(piece)
+			var dmg := WeaponData.speed_damage(weapon_data.base_damage, tip_speed, weapon_data.ref_speed) * _attack_damage_mult
+			var push := piece.global_position - global_position
+			push.y = 0.0
+			piece.hit(dmg * (1.5 if state == State.HEAVY else 1.0), (a + b) * 0.5, push.normalized() * 4.0, self)
 	_prev_a = a
 	_prev_b = b
 
@@ -595,6 +624,11 @@ func _state_throw(delta: float) -> void:
 
 
 func _aim_direction(origin: Vector3, speed: float) -> Vector3:
+	if input.aim_point is Vector3:
+		var spot: Vector3 = input.aim_point
+		input.aim_point = null
+		var tt := origin.distance_to(spot) / maxf(speed, 1.0)
+		return (spot + Vector3.UP * 0.5 * ThrownWeapon.GRAVITY * tt * tt - origin).normalized()
 	var target := locked_target()
 	if target == null and world:
 		target = world.aim_assist_target(self, float(Save.setting("aim_assist")) if is_player else 0.8)

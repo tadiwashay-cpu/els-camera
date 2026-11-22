@@ -33,6 +33,7 @@ var _stuck_t := 0.0
 var _decided_catch: Dictionary = {}       # projectile id -> bool
 var _react := 0.0
 var _pickup: WeaponPickup
+var _barrel: Breakable
 
 
 func _init(fighter: Fighter, match_node: Match, difficulty: int) -> void:
@@ -75,6 +76,17 @@ func update(delta: float) -> void:
 				inp.press(&"throw")
 				_throw_cd = 4.0 + _rng.randf() * 3.0
 				goal = "chase"
+		"barrel":
+			# Throw the sword at a barrel the target is standing next to.
+			_face_and_stop()
+			if _barrel and is_instance_valid(_barrel) and not _barrel.is_broken and me.state == Fighter.State.MOVE:
+				me.input.target = null
+				var to := _barrel.global_position - me.global_position
+				me.rotation.y = atan2(to.x, to.z)
+				me.input.aim_point = _barrel.global_position
+				me.input.press(&"throw")
+				_throw_cd = 6.0 + _rng.randf() * 3.0
+			goal = "chase"
 		"backoff":
 			if target:
 				var away := me.global_position - target.global_position
@@ -108,6 +120,11 @@ func _decide() -> void:
 	elif d > 6.0 and d < 17.0 and _throw_cd <= 0.0 and _clear_line(target) \
 			and _rng.randf() < float(level["aggression"]) * 0.35:
 		scores["throw"] = 0.9
+	if me.armed() and _throw_cd <= 0.0:
+		var barrel := _barrel_near(target)
+		if barrel:
+			_barrel = barrel
+			scores["barrel"] = 1.0 * float(level["aggression"]) + 0.2
 	if me.health < me.max_health * 0.3 and target.armed() and d < 5.0:
 		scores["backoff"] = 0.75 * (1.0 - float(level["aggression"]))
 	var best := "chase"
@@ -117,6 +134,26 @@ func _decide() -> void:
 			best_s = scores[k]
 			best = k
 	goal = best
+
+
+## An intact barrel `f` is standing next to that we can hit from here
+## without being in the blast.
+func _barrel_near(f: Fighter) -> Breakable:
+	for piece in world.arena.breakables:
+		if piece.kind != Breakable.Kind.BARREL or piece.is_broken:
+			continue
+		var p := piece.global_position
+		var them := f.global_position.distance_to(p)
+		var us := me.global_position.distance_to(p)
+		if them < 3.2 and us > 6.0 and us < 17.0 and _clear_line_to(p):
+			return piece
+	return null
+
+
+func _clear_line_to(p: Vector3) -> bool:
+	var from := me.global_position + Vector3.UP * 1.4
+	var hit := me.get_world_3d().direct_space_state.intersect_ray(PhysicsRayQueryParameters3D.create(from, p, Game.L_WORLD))
+	return hit.is_empty() or hit["collider"] is Breakable and (hit["collider"] as Breakable).kind == Breakable.Kind.BARREL
 
 
 func _nearest_enemy() -> Fighter:
@@ -171,9 +208,15 @@ func _go_to(pos: Vector3, amount: float, delta: float) -> void:
 	# Unstick: moving but not getting anywhere -> jump.
 	if me.hspeed() < 0.8 and me.input.move.length() > 0.5:
 		_stuck_t += delta
-		if _stuck_t > 0.6:
-			me.input.press(&"jump")
+		if _stuck_t > 0.5:
 			_stuck_t = 0.0
+			# Blocked by a crate or railing? Smash it. Otherwise hop.
+			var ahead := me.global_position + Vector3(dir.x, 0, dir.z).normalized() * 0.9 + Vector3.UP
+			if world.arena.breakable_near(ahead, 0.5) and me.state == Fighter.State.MOVE:
+				me.input.attack_held = true
+				_hold = 0.03
+			else:
+				me.input.press(&"jump")
 	else:
 		_stuck_t = 0.0
 

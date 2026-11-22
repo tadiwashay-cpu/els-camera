@@ -69,6 +69,14 @@ func _physics_process(delta: float) -> void:
 	if not hit.is_empty():
 		var n: Vector3 = hit["normal"]
 		var p: Vector3 = hit["position"]
+		var piece := hit["collider"] as Breakable
+		if piece and harmful:
+			piece.hit(data.throw_damage * (1.5 if boosted else 1.0), p, velocity * 0.3, thrower)
+			if piece.is_broken:
+				# Smashed straight through: keep flying.
+				velocity *= 0.75
+				global_position = to
+				return
 		if harmful:
 			Fx.sparks(get_parent(), p, Color(1, 0.9, 0.6), 10)
 			Audio.play(&"clang", p, -2.0)

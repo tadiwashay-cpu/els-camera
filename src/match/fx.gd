@@ -124,3 +124,37 @@ static func damage_number(parent: Node, at: Vector3, amount: float, color: Color
 	tw.tween_property(l, "global_position", l.global_position + Vector3.UP * 1.0, 0.7).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
 	tw.tween_property(l, "modulate:a", 0.0, 0.7).set_delay(0.25)
 	tw.chain().tween_callback(func() -> void: l.visible = false)
+
+
+## A barrel going off: fireball flash, smoke and chunks.
+static func explosion(parent: Node, at: Vector3, radius: float) -> void:
+	if parent == null:
+		return
+	burst(parent, at, Color(1.0, 0.55, 0.12))
+	dust(parent, at, 2.0)
+	sparks(parent, at + Vector3.UP * 0.4, Color(1.0, 0.85, 0.3), 24)
+	var ball := _take("blast", parent, func() -> Node:
+		var mi := MeshInstance3D.new()
+		mi.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
+		var sm := SphereMesh.new()
+		sm.radius = 1.0
+		sm.height = 2.0
+		sm.radial_segments = 16
+		sm.rings = 8
+		var m := StandardMaterial3D.new()
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		m.albedo_color = Color(1.0, 0.6, 0.2, 0.55)
+		sm.material = m
+		mi.mesh = sm
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		return mi) as MeshInstance3D
+	ball.global_position = at
+	ball.scale = Vector3.ONE * 0.3
+	ball.visible = true
+	ball.transparency = 0.0
+	var tw := ball.create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(ball, "scale", Vector3.ONE * radius, 0.28).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	tw.tween_property(ball, "transparency", 1.0, 0.32)
+	tw.chain().tween_callback(func() -> void: ball.visible = false)
