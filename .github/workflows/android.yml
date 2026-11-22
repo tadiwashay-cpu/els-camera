@@ -12,6 +12,11 @@ on:
 permissions:
   contents: write
 
+# A newer push to the same branch replaces a build still running.
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     runs-on: ubuntu-latest

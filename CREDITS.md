@@ -5,7 +5,7 @@
   Blender with `tools/blender/` scripts.
 - **Fighters, weapons, arena**: built from boxes in code (`src/`).
 - **Sound effects**: synthesised at startup by `src/autoload/audio.gd`.
-- **Icon and splash**: placeholders drawn in code.
+- **Icon and splash**: rendered from a block fighter by `tools/capture/icon_render.tscn`.
 
 ## Engine and tools
 - **Godot Engine** 4.7.2, MIT licence. https://godotengine.org

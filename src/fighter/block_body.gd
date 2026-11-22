@@ -153,8 +153,8 @@ func _build_mesh() -> void:
 	var front := 0.01 + 0.15 + 0.008
 	b.box(Vector3(0.055, 0.075, 0.018) * hs, h.call(Vector3(0.07, 0.16, front)), skin.eyes, head)
 	b.box(Vector3(0.055, 0.075, 0.018) * hs, h.call(Vector3(-0.07, 0.16, front)), skin.eyes, head)
-	b.box(Vector3(0.085, 0.02, 0.018) * hs, h.call(Vector3(0.072, 0.215, front)), skin.eyes, head, Basis(Vector3.BACK, -0.32))
-	b.box(Vector3(0.085, 0.02, 0.018) * hs, h.call(Vector3(-0.072, 0.215, front)), skin.eyes, head, Basis(Vector3.BACK, 0.32))
+	b.box(Vector3(0.085, 0.02, 0.018) * hs, h.call(Vector3(0.072, 0.215, front)), skin.eyes, head, Basis(Vector3.BACK, 0.32))
+	b.box(Vector3(0.085, 0.02, 0.018) * hs, h.call(Vector3(-0.072, 0.215, front)), skin.eyes, head, Basis(Vector3.BACK, -0.32))
 	b.box(Vector3(0.1, 0.022, 0.018) * hs, h.call(Vector3(0, 0.07, front)), skin.eyes, head)
 	b.box(Vector3(0.32, 0.07, 0.32) * hs, h.call(Vector3(0, 0.29, 0.0)), skin.shirt.darkened(0.35), head)   # headband / hair block
 	material = BoxBuilder.vertex_color_material(0.7)
