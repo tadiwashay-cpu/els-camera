@@ -14,7 +14,7 @@ const STATS := {
 	Kind.CRATE: {"hp": 30.0, "chunks": 7, "respawn": 30.0, "sound": &"crash_wood", "chip": Color(0.86, 0.7, 0.45)},
 	Kind.PILLAR: {"hp": 70.0, "chunks": 9, "respawn": 40.0, "sound": &"crash_stone", "chip": Color(0.75, 0.76, 0.8)},
 	Kind.RAIL: {"hp": 40.0, "chunks": 6, "respawn": 35.0, "sound": &"crash_stone", "chip": Color(0.7, 0.72, 0.78)},
-	Kind.BARREL: {"hp": 12.0, "chunks": 6, "respawn": 40.0, "sound": &"boom", "chip": Color(1.0, 0.4, 0.2)},
+	Kind.BARREL: {"hp": 12.0, "chunks": 6, "respawn": 40.0, "sound": &"crash_stone", "chip": Color(1.0, 0.4, 0.2)},
 }
 
 var kind := Kind.CRATE
@@ -23,6 +23,8 @@ var color := Color.WHITE
 var max_hp := 30.0
 var hp := 30.0
 var is_broken := false
+## false: gone for good once broken (the mystery crate).
+var rebuilds := true
 var last_hitter: Fighter
 var arena: Arena
 var _mesh: MeshInstance3D
@@ -108,8 +110,12 @@ func shatter(dir: Vector3 = Vector3.ZERO) -> void:
 	if arena:
 		arena.debris.burst(global_position, size, color, int(stats["chunks"]), dir)
 		arena.request_rebake()
-	_respawn_at = _clock + float(stats["respawn"])
+	_respawn_at = _clock + float(stats["respawn"]) if rebuilds else -1.0
 	broken.emit(self, last_hitter)
+	if not rebuilds:
+		if arena:
+			arena.breakables.erase(self)
+		get_tree().create_timer(0.1).timeout.connect(queue_free)
 
 
 func _physics_process(delta: float) -> void:

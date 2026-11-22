@@ -626,3 +626,173 @@ for _armed, _sfx in ((False, ""), (True, "_Sword")):
                      _g((0.0, 0.7, -0.7))), "snap"),
         (0.3, merge(RESET, _base), "smooth"),
     ]), 0.3, events={"power": 0.08})
+
+# Weapon families (Phase 2) -----------------------------------------------------
+# Two-handed weapons: the left hand sits on the handle below the right.
+
+def two_hand(hand_r, grip, gap=0.22):
+    g = Vector(grip).normalized()
+    h = Vector(hand_r) - g * gap
+    return {"hand_r": tuple(hand_r), "grip_r": tuple(grip), "hand_l": (h.x, h.y, h.z), "grip_l": None,
+            "elbow_l": (0.7, 0.2, -0.7), "elbow_r": (-0.7, 0.2, -0.7)}
+
+
+def front_hand(hand_r, grip, gap=0.42):
+    """Polearms: the left hand forward on the shaft."""
+    g = Vector(grip).normalized()
+    h = Vector(hand_r) + g * gap
+    return {"hand_r": tuple(hand_r), "grip_r": tuple(grip), "hand_l": (h.x, h.y, h.z),
+            "elbow_l": (0.6, 0.4, -0.7), "elbow_r": (-0.6, 0.5, -0.7)}
+
+
+_HEAVY_BASE = merge(STANCE, {"hips": (0.0, 0.03, -0.1), "foot_l": (0.2, -0.16, ANKLE_Z), "foot_r": (-0.2, 0.2, ANKLE_Z)},
+                    two_hand((-0.2, -0.28, 1.25), (-0.2, 0.55, 0.81)))
+move("Heavy_Idle", loop_idle(_HEAVY_BASE), 2.0, loop=True)
+move("Smash_A", Keys(_HEAVY_BASE, [     # two-handed horizontal swing
+    (0.0, {}),
+    (0.25, merge({"hips_rot": (4, 0, -46), "upper": (2, 0, -18), "hips": (-0.03, 0.06, -0.12), "head": (-4, 0, 30)},
+                 two_hand((-0.46, 0.14, 1.18), (0.2, 0.9, 0.3))), "smooth"),
+    (0.36, merge({"hips_rot": (6, 0, 6), "upper": (3, 0, 14), "hips": (0.0, -0.06, -0.14), "head": (-4, 0, -4)},
+                 two_hand((-0.1, -0.52, 1.16), (0.9, -0.42, 0.05))), "snap"),
+    (0.48, merge({"hips_rot": (8, 0, 34), "upper": (3, 0, 22), "hips": (0.03, -0.08, -0.15), "head": (-4, 0, -24)},
+                 two_hand((0.3, -0.2, 1.1), (0.6, 0.75, -0.2))), "out"),
+    (0.75, merge(RESET, _HEAVY_BASE), "smooth"),
+]), 0.75, events={"hit": [0.3, 0.46]})
+move("Smash_B", Keys(_HEAVY_BASE, [     # two-handed overhead slam
+    (0.0, {}),
+    (0.3, merge({"hips": (0.0, 0.08, 0.0), "hips_rot": (-8, 0, -4), "spine": (-8, 0, 0), "head": (-12, 0, 0)},
+                two_hand((-0.1, 0.05, 1.86), (0.0, 0.6, 0.8))), "smooth"),
+    (0.42, merge({"hips": (0.0, -0.12, -0.26), "hips_rot": (14, 0, -4), "spine": (10, 0, 0), "head": (6, 0, 0)},
+                 two_hand((-0.05, -0.5, 1.02), (0.0, -0.55, -0.84))), "snap"),
+    (0.58, {"hips": (0.0, -0.13, -0.27)}, "lin"),
+    (0.85, merge(RESET, _HEAVY_BASE), "smooth"),
+]), 0.85, events={"hit": [0.34, 0.5]})
+_SMASH_COIL = merge({"hips": (0.0, 0.06, -0.2), "hips_rot": (10, 0, -10), "spine": (6, 0, 0), "head": (-8, 0, 6)},
+                    two_hand((-0.14, 0.14, 1.82), (0.1, 0.8, 0.6)))
+
+
+def _smash_charge(t):
+    P = Keys(_HEAVY_BASE, [(0.0, _SMASH_COIL)])(0.0)
+    w = math.sin(2 * math.pi * t / 0.15) * 0.006
+    P["hips"] = add(P["hips"], (0.0, 0.0, w))
+    return P
+
+
+move("Smash_Charge", _smash_charge, 0.6, loop=True)
+move("Smash_Release", Keys(merge(_HEAVY_BASE, _SMASH_COIL), [   # leaping slam
+    (0.0, {}),
+    (0.16, merge({"hips": (0.0, 0.0, 0.12), "hips_rot": (-10, 0, 0), "spine": (-8, 0, 0), "head": (-14, 0, 0),
+                  "foot_l": (0.16, -0.1, 0.3), "foot_r": (-0.16, 0.12, 0.24), "foot_l_rot": (30, 0, 0), "foot_r_rot": (30, 0, 0)},
+                 two_hand((-0.1, 0.1, 1.9), (0.0, 0.5, 0.86))), "out"),
+    (0.32, merge({"hips": (0.0, -0.14, -0.32), "hips_rot": (20, 0, 0), "spine": (12, 0, 0), "head": (4, 0, 0),
+                  "foot_l": (0.2, -0.22, ANKLE_Z), "foot_r": (-0.18, 0.2, ANKLE_Z), "foot_l_rot": (0, 0, 0), "foot_r_rot": (0, 0, -20)},
+                 two_hand((-0.05, -0.52, 0.98), (0.0, -0.5, -0.86))), "snap"),
+    (0.5, {"hips": (0.0, -0.15, -0.33)}, "lin"),
+    (0.9, merge(RESET, _HEAVY_BASE), "smooth"),
+]), 0.9, events={"hit": [0.26, 0.42], "slam": 0.32})
+
+_SPEAR_BASE = merge(STANCE, {"hips_rot": (4, 0, -24), "upper": (2, 0, 10)}, front_hand((-0.18, -0.16, 1.12), (0.05, -0.95, 0.22)))
+move("Spear_Idle", loop_idle(_SPEAR_BASE), 2.0, loop=True)
+move("Spear_Thrust_A", Keys(_SPEAR_BASE, [
+    (0.0, {}),
+    (0.12, merge({"hips": (0.0, 0.06, -0.1)}, front_hand((-0.2, 0.08, 1.12), (0.05, -0.95, 0.22))), "smooth"),
+    (0.2, merge({"hips": (0.0, -0.1, -0.12), "hips_rot": (6, 0, -14), "foot_l": (0.18, -0.34, ANKLE_Z)},
+                front_hand((-0.12, -0.5, 1.2), (0.04, -0.97, 0.2))), "snap"),
+    (0.5, merge(RESET, _SPEAR_BASE), "smooth"),
+]), 0.5, events={"hit": [0.14, 0.27]})
+move("Spear_Thrust_B", Keys(_SPEAR_BASE, [
+    (0.0, {}),
+    (0.12, merge({"hips": (0.0, 0.06, -0.14)}, front_hand((-0.22, 0.06, 1.0), (0.05, -0.85, 0.5))), "smooth"),
+    (0.21, merge({"hips": (0.0, -0.12, -0.08), "hips_rot": (2, 0, -10), "foot_l": (0.18, -0.34, ANKLE_Z), "head": (-10, 0, 0)},
+                 front_hand((-0.12, -0.46, 1.42), (0.04, -0.82, 0.57))), "snap"),
+    (0.55, merge(RESET, _SPEAR_BASE), "smooth"),
+]), 0.55, events={"hit": [0.15, 0.29]})
+move("Spear_Sweep", Keys(_SPEAR_BASE, [
+    (0.0, {}),
+    (0.18, merge({"hips_rot": (4, 0, -50), "upper": (2, 0, -16)}, front_hand((-0.3, 0.0, 1.15), (-0.75, -0.62, 0.1))), "smooth"),
+    (0.3, merge({"hips_rot": (6, 0, 0), "upper": (2, 0, 10)}, front_hand((-0.1, -0.36, 1.15), (0.1, -0.99, 0.05))), "snap"),
+    (0.42, merge({"hips_rot": (8, 0, 40), "upper": (2, 0, 22)}, front_hand((0.1, -0.2, 1.12), (0.85, -0.5, 0.0))), "out"),
+    (0.72, merge(RESET, _SPEAR_BASE), "smooth"),
+]), 0.72, events={"hit": [0.22, 0.44]})
+move("Spear_Lunge", Keys(_SPEAR_BASE, [   # heavy: long running lunge
+    (0.0, {}),
+    (0.16, merge({"hips": (0.0, 0.1, -0.2), "hips_rot": (10, 0, -20), "foot_l": (0.18, -0.1, ANKLE_Z), "foot_r": (-0.16, 0.3, ANKLE_Z)},
+                 front_hand((-0.24, 0.14, 1.1), (0.05, -0.95, 0.15))), "smooth"),
+    (0.3, merge({"hips": (0.0, -0.22, -0.2), "hips_rot": (12, 0, -10), "spine": (10, 0, 0),
+                 "foot_l": (0.2, -0.6, ANKLE_Z), "foot_r": (-0.16, 0.36, ANKLE_Z), "foot_r_rot": (30, 0, -30), "toe_r": -30.0},
+                front_hand((-0.1, -0.56, 1.2), (0.03, -0.98, 0.12))), "snap"),
+    (0.5, {}, "lin"),
+    (0.82, merge(RESET, _SPEAR_BASE), "smooth"),
+]), 0.82, events={"hit": [0.24, 0.48]})
+
+# Dagger and rapier
+move("Stab_A", Keys(STANCE, [
+    (0.0, {}),
+    (0.07, {"hand_r": (-0.2, -0.1, 1.3), "grip_r": (0.0, -0.9, 0.3), "hips_rot": (4, 0, -26)}, "smooth"),
+    (0.13, {"hand_r": (-0.08, -0.58, 1.34), "grip_r": (0.05, -0.98, 0.1), "elbow_r": (-0.6, 0.3, -0.8), "hips_rot": (6, 0, 6),
+            "hips": (0, -0.05, -0.1)}, "snap"),
+    (0.3, merge(RESET, STANCE), "smooth"),
+]), 0.3, events={"hit": [0.09, 0.17]})
+move("Stab_B", Keys(STANCE, [
+    (0.0, {}),
+    (0.07, {"hand_r": (-0.3, -0.1, 1.0), "grip_r": (0.2, -0.6, 0.77), "hips_rot": (6, 0, -8)}, "smooth"),
+    (0.14, {"hand_r": (-0.1, -0.5, 1.5), "grip_r": (0.1, -0.5, 0.86), "elbow_r": (-0.6, 0.3, -0.6), "hips_rot": (2, 0, 14),
+            "hips": (0, -0.04, -0.06), "head": (-10, 0, 0)}, "snap"),
+    (0.32, merge(RESET, STANCE), "smooth"),
+]), 0.32, events={"hit": [0.09, 0.18]})
+move("Stab_C", Keys(STANCE, [   # overhead ice-pick stab
+    (0.0, {}),
+    (0.12, {"hand_r": (-0.18, 0.0, 1.8), "grip_r": (0.0, -0.3, -0.95), "elbow_r": (-0.9, -0.1, 0.2), "hips": (0, 0.04, 0.0)}, "smooth"),
+    (0.2, {"hand_r": (-0.1, -0.5, 1.1), "grip_r": (0.0, -0.2, -0.98), "hips": (0, -0.08, -0.16), "hips_rot": (12, 0, 0), "spine": (8, 0, 0)}, "snap"),
+    (0.45, merge(RESET, STANCE), "smooth"),
+]), 0.45, events={"hit": [0.14, 0.24]})
+_FENCE = merge(STANCE, {"hips_rot": (2, 0, -62), "upper": (0, 0, 18), "head": (-2, 0, 40), "foot_l": (0.2, -0.24, ANKLE_Z),
+                        "foot_r": (-0.16, 0.24, ANKLE_Z), "foot_r_rot": (0, 0, -80),
+                        "hand_r": (-0.24, -0.34, 1.32), "grip_r": (0.15, -0.95, 0.2), "hand_l": (0.3, 0.2, 1.6), "elbow_l": (0.5, 0.5, -0.4)})
+move("Thrust", Keys(_FENCE, [
+    (0.0, {}),
+    (0.06, {"hand_r": (-0.26, -0.18, 1.32)}, "smooth"),
+    (0.14, {"hand_r": (-0.12, -0.62, 1.36), "grip_r": (0.05, -0.99, 0.1), "hips": (0, -0.16, -0.14), "foot_l": (0.22, -0.5, ANKLE_Z)}, "snap"),
+    (0.4, merge(RESET, _FENCE), "smooth"),
+]), 0.4, events={"hit": [0.08, 0.2]})
+move("Thrust_B", Keys(_FENCE, [
+    (0.0, {}),
+    (0.07, {"hand_r": (-0.28, -0.16, 1.2), "grip_r": (0.1, -0.85, 0.5)}, "smooth"),
+    (0.15, {"hand_r": (-0.14, -0.6, 1.55), "grip_r": (0.05, -0.9, 0.42), "hips": (0, -0.14, -0.1), "foot_l": (0.22, -0.48, ANKLE_Z),
+            "head": (-10, 0, 40)}, "snap"),
+    (0.44, merge(RESET, _FENCE), "smooth"),
+]), 0.44, events={"hit": [0.09, 0.21]})
+
+# Thrown weapons and guns
+move("Toss", Keys(STANCE, [
+    (0.0, {"grip_r": None}),
+    (0.1, {"hand_r": (-0.4, 0.12, 1.52), "elbow_r": (-0.6, 0.6, -0.4), "hips_rot": (4, 0, -30), "upper": (0, 0, -10), "grip_r": None}, "smooth"),
+    (0.17, {"hand_r": (-0.08, -0.56, 1.42), "elbow_r": (-0.7, 0.3, -0.6), "hips_rot": (6, 0, 18), "upper": (2, 0, 10), "wrist_r": (20, 0, 0)}, "snap"),
+    (0.4, merge(RESET, STANCE, {"grip_r": None, "hand_r": (-0.25, -0.12, 1.1)}), "smooth"),
+]), 0.4, events={"release": 0.16})
+move("Bomb_Lob", Keys(STANCE, [
+    (0.0, {"grip_r": None}),
+    (0.18, {"hand_r": (-0.28, 0.32, 0.98), "elbow_r": (-0.3, 0.8, -0.3), "hips_rot": (8, 0, -12), "spine": (8, 0, 0), "grip_r": None,
+            "hips": (0, 0.04, -0.12)}, "smooth"),
+    (0.3, {"hand_r": (-0.18, -0.5, 1.5), "elbow_r": (-0.6, 0.2, -0.7), "hips_rot": (-4, 0, 8), "spine": (-6, 0, 0), "head": (-12, 0, 0),
+           "hips": (0, -0.04, -0.04)}, "snap"),
+    (0.55, merge(RESET, STANCE, {"grip_r": None, "hand_r": (-0.25, -0.12, 1.1)}), "smooth"),
+]), 0.55, events={"release": 0.28})
+_AIM = {"hand_r": (-0.1, -0.56, 1.42), "grip_r": (0.0, -1.0, 0.04), "elbow_r": (-0.6, 0.4, -0.7),
+        "hand_l": (-0.02, -0.5, 1.36), "elbow_l": (0.6, 0.4, -0.7), "hips_rot": (2, 0, -14), "upper": (0, 0, 12), "head": (-2, 0, 2)}
+move("Aim", _breathing(merge(STANCE, _AIM), 1.2), 1.2, loop=True)
+move("Shoot", Keys(merge(STANCE, _AIM), [
+    (0.0, {}),
+    (0.04, {"hand_r": (-0.1, -0.48, 1.5), "grip_r": (0.0, -0.9, 0.42), "hand_l": (-0.02, -0.44, 1.42)}, "snap"),
+    (0.22, merge(STANCE, _AIM), "smooth"),
+]), 0.22, events={"fire": 0.01})
+_BOW = {"hips_rot": (2, 0, -70), "upper": (0, 0, 22), "head": (-2, 0, 46),
+        "hand_l": (0.06, -0.62, 1.44), "grip_l": (0.0, 0.1, 1.0), "elbow_l": (0.5, 0.3, -0.8),
+        "hand_r": (-0.12, -0.02, 1.48), "grip_r": None, "elbow_r": (-0.9, 0.2, 0.0), "wrist_r": (0, 0, 30),
+        "foot_l": (0.2, -0.22, ANKLE_Z), "foot_r": (-0.18, 0.22, ANKLE_Z), "foot_r_rot": (0, 0, -80)}
+move("Bow_Draw", _breathing(merge(STANCE, _BOW), 1.0), 1.0, loop=True)
+move("Bow_Release", Keys(merge(STANCE, _BOW), [
+    (0.0, {}),
+    (0.05, {"hand_r": (-0.2, 0.18, 1.5), "wrist_r": (0, 0, 60)}, "snap"),
+    (0.32, merge(STANCE, _BOW), "smooth"),
+]), 0.32, events={"fire": 0.01})

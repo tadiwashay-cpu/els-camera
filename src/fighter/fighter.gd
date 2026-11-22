@@ -55,6 +55,16 @@ var body: BlockBody
 var ragdoll: Ragdoll
 var weapon_data: WeaponData
 var weapon_visual: MeshInstance3D
+## Throws or shots left for thrown/ranged weapons.
+var ammo := 0
+var _weapon_visuals: Array[MeshInstance3D] = []
+var _tossing := false
+var _shooting := false
+var _fired := false
+var _shot_charge := 0.0
+var _throw_clip := &"Throw"
+var _slammed := false
+var _dropped_ammo := -1
 var trail: BladeTrail
 var world: Match
 
@@ -152,15 +162,24 @@ func armed() -> bool:
 	return weapon_data != null and not weapon_data.is_fists()
 
 
-func equip(data: WeaponData) -> void:
+## Holds a weapon (`ammo_left` -1 = a full stack/magazine).
+func equip(data: WeaponData, ammo_left: int = -1) -> void:
 	weapon_data = data if data else Registry.weapon(&"fists")
-	if weapon_visual:
-		weapon_visual.queue_free()
-		weapon_visual = null
+	ammo = weapon_data.ammo if ammo_left < 0 else ammo_left
+	for v in _weapon_visuals:
+		v.queue_free()
+	_weapon_visuals.clear()
+	weapon_visual = null
 	if armed():
-		weapon_visual = MeshInstance3D.new()
-		weapon_visual.mesh = weapon_data.mesh()
-		body.socket_r.add_child(weapon_visual)
+		var sockets: Array[BoneAttachment3D] = [body.socket_l if weapon_data.hand == &"left" else body.socket_r]
+		if weapon_data.both_hands:
+			sockets = [body.socket_r, body.socket_l]
+		for sock in sockets:
+			var mi := MeshInstance3D.new()
+			mi.mesh = weapon_data.mesh()
+			sock.add_child(mi)
+			_weapon_visuals.append(mi)
+		weapon_visual = _weapon_visuals[0]
 	_combo = 0
 
 
@@ -169,11 +188,14 @@ func unequip() -> WeaponData:
 	if not armed():
 		return null
 	var d := weapon_data
+	_dropped_ammo = ammo if d.uses_ammo() else -1
 	equip(null)
 	return d
 
 
 func socket_transform() -> Transform3D:
+	if weapon_data and weapon_data.hand == &"left":
+		return body.socket_l.global_transform
 	return body.socket_r.global_transform
 
 
@@ -328,7 +350,7 @@ func _state_move(delta: float) -> void:
 			speed = run_speed
 		if target and not sprinting:
 			speed = minf(speed, run_speed * 0.8)
-		speed *= powers.speed_mult()
+		speed *= powers.speed_mult() * weapon_data.move_speed
 	# Holding block: walk only, guard up; release to do anything else.
 	var want_block := input.block_held and is_on_floor() and _block_lock <= 0.0
 	if want_block and not blocking:
@@ -366,10 +388,13 @@ func _state_move(delta: float) -> void:
 	if _attack_down_at >= 0.0 and _clock - _attack_down_at >= charge_threshold:
 		_start_charge()
 		return
-	if not armed() and world:
+	if world:
 		var pick := world.pickup_near(global_position, 1.3)
 		if pick:
-			world.take_pickup(pick, self)
+			if not armed():
+				world.take_pickup(pick, self)
+			elif input.consume(&"swap"):
+				world.swap_pickup(pick, self)
 
 
 func _jump() -> void:
@@ -482,6 +507,12 @@ func _soft_aim() -> void:
 
 
 func _light_attack() -> void:
+	if weapon_data.kind == &"thrown":
+		_start_toss()
+		return
+	if weapon_data.kind == &"ranged":
+		_start_shot(0.0)
+		return
 	var moves := weapon_data.light_moves
 	if moves.is_empty():
 		return
@@ -499,6 +530,7 @@ func _start_attack(clip: StringName, damage_mult: float, s: State) -> void:
 	_attack_upper = (hspeed() > 3.5 or not is_on_floor()) and s == State.ATTACK
 	_attack_damage_mult = damage_mult
 	_attack_clip = clip
+	_slammed = false
 	_attack_hits.clear()
 	_attack_pieces.clear()
 	_have_prev = false
@@ -506,7 +538,7 @@ func _start_attack(clip: StringName, damage_mult: float, s: State) -> void:
 	_set_state(s)
 	body.play(clip, _attack_upper, weapon_data.attack_speed, 0.07)
 	if not _attack_upper and is_on_floor():
-		var lunge := forward() * (3.5 if s == State.ATTACK else 2.0)
+		var lunge := forward() * (weapon_data.lunge if s == State.ATTACK else weapon_data.heavy_lunge)
 		velocity.x = lunge.x
 		velocity.z = lunge.z
 	var w := BlockBody.hit_window(clip)
@@ -534,9 +566,14 @@ func _state_attack(delta: float) -> void:
 		_strike(clip, delta)
 	else:
 		_have_prev = false
+	if state == State.HEAVY and weapon_data.slam_radius > 0.0 and not _slammed:
+		var slam_t := BlockBody.event_time(clip, "slam")
+		if slam_t >= 0.0 and t >= slam_t:
+			_slammed = true
+			_slam()
 	if state == State.HEAVY and t < w.y:
-		# The spin carries forward a little.
-		var f := forward() * 3.0
+		# The spin (or lunge) carries forward.
+		var f := forward() * maxf(3.0, weapon_data.heavy_lunge * 0.8)
 		velocity.x = lerpf(velocity.x, f.x, 0.2)
 		velocity.z = lerpf(velocity.z, f.z, 0.2)
 	if state == State.ATTACK and t > w.x and _light_requested():
@@ -559,6 +596,15 @@ func _state_attack(delta: float) -> void:
 
 
 func _start_charge() -> void:
+	if weapon_data.kind == &"thrown":
+		_attack_down_at = -1.0
+		_start_toss()
+		return
+	if weapon_data.kind == &"ranged" and weapon_data.heavy_charge == &"":
+		# Holding the trigger keeps firing.
+		_attack_down_at = _clock
+		_start_shot(0.0)
+		return
 	if weapon_data.heavy_charge == &"":
 		_attack_down_at = -1.0
 		_attack_knockdown = true
@@ -585,6 +631,9 @@ func _state_charge(delta: float) -> void:
 
 func _release_heavy() -> void:
 	if state != State.CHARGE:
+		return
+	if weapon_data.kind == &"ranged":
+		_start_shot(maxf(_charge, 0.05))
 		return
 	_attack_knockdown = true
 	_start_attack(weapon_data.heavy_move, weapon_data.heavy_multiplier * (0.6 + 0.4 * _charge), State.HEAVY)
@@ -659,21 +708,99 @@ func _throw_or_catch() -> bool:
 			return true
 		return false          # wait for it (the press stays buffered for the window)
 	if input.consume(&"throw") and armed() and weapon_data.throwable:
+		if weapon_data.kind == &"thrown":
+			_start_toss()
+			return true
 		protect = 0.0
 		_soft_aim()
 		_threw = false
+		_tossing = false
+		_shooting = false
+		_throw_clip = &"Throw"
 		_set_state(State.THROW)
 		body.play(&"Throw", hspeed() > 3.0, 1.0, 0.06)
 		return true
 	return false
 
 
+## Thrown weapons: one from the stack.
+func _start_toss() -> void:
+	protect = 0.0
+	_soft_aim()
+	_threw = false
+	_tossing = true
+	_shooting = false
+	_throw_clip = weapon_data.light_moves[0] if not weapon_data.light_moves.is_empty() else &"Toss"
+	_set_state(State.THROW)
+	body.play(_throw_clip, hspeed() > 3.0, 1.0, 0.05)
+
+
+## Guns and bows: fire (a charged bow shot hits harder and flies faster).
+func _start_shot(charge: float) -> void:
+	protect = 0.0
+	_soft_aim()
+	_fired = false
+	_shooting = true
+	_tossing = false
+	_shot_charge = charge
+	_throw_clip = weapon_data.heavy_move if charge > 0.0 else weapon_data.light_moves[0]
+	_set_state(State.THROW)
+	body.play(_throw_clip, true, 1.0, 0.04)
+
+
+func _fire() -> void:
+	_fired = true
+	if world == null or ammo <= 0:
+		return
+	var bow := weapon_data.hand == &"left"
+	var sock := socket_transform()
+	var origin := sock * Vector3(0, 0.38, 0) if not bow else sock.origin + forward() * 0.35
+	var speed := weapon_data.projectile_speed * (0.7 + 0.5 * _shot_charge if bow else 1.0)
+	var dmg := weapon_data.projectile_damage * (1.0 + 1.3 * _shot_charge if bow else 1.0)
+	world.spawn_bolt(self, origin, _aim_direction(origin, speed), speed, dmg, bow)
+	Audio.play(&"throw" if bow else &"tick", origin, 2.0, 1.6 if not bow else 1.2)
+	ammo -= 1
+	if ammo <= 0:
+		Fx.dust(get_parent(), origin, 0.5)
+		equip(null)
+		world.callout_for(self, "OUT OF AMMO", Color(1, 0.6, 0.4))
+
+
+## Heavy weapons' charged slam: everyone near the impact flies.
+func _slam() -> void:
+	var at := global_position + forward() * 1.6
+	var r := weapon_data.slam_radius
+	Fx.shockwave(get_parent(), at, r, Color(0.9, 0.85, 0.7))
+	Fx.dust(get_parent(), at, 1.6)
+	Audio.play(&"hit_heavy", at, 3.0, 0.7)
+	if world == null:
+		return
+	if is_player:
+		world.camera.shake(0.35)
+	for f in world.fighters:
+		if f == self or not f.alive:
+			continue
+		var d := f.global_position.distance_to(at)
+		if d < r:
+			var dir := f.global_position - at
+			dir.y = 0.0
+			var dealt := f.take_hit(12.0 * powers.damage_dealt_mult(), dir.normalized(), self, true, f.global_position + Vector3.UP, 7.0)
+			powers.dealt(dealt)
+	for piece in world.arena.breakables:
+		if not piece.is_broken and piece.global_position.distance_to(at) < r + 0.5:
+			piece.hit(35.0, piece.global_position, (piece.global_position - at).normalized() * 4.0, self)
+
+
 func _catch(p: ThrownWeapon) -> void:
-	var old := unequip()
-	if old and world:
-		world.drop_pickup(old, global_position + forward() * 0.6 + Vector3.UP, Vector3.UP * 2.0)
-	world.catch_projectile(p, self)
-	equip(p.data)
+	if armed() and weapon_data == p.data and weapon_data.uses_ammo():
+		ammo += 1                     # one more for the stack
+		world.catch_projectile(p, self)
+	else:
+		var old := unequip()
+		if old and world:
+			world.drop_pickup(old, global_position + forward() * 0.6 + Vector3.UP, Vector3.UP * 2.0, _dropped_ammo)
+		world.catch_projectile(p, self)
+		equip(p.data, 1 if p.data.uses_ammo() else -1)
 	_boost_until = _clock + 4.0
 	_set_state(State.CATCH)
 	body.play(&"Catch", hspeed() > 3.0, 1.0, 0.04)
@@ -684,15 +811,35 @@ func _catch(p: ThrownWeapon) -> void:
 
 func _state_throw(delta: float) -> void:
 	var done := body.action_over()
-	_brake(delta, 10.0 if not body.action_upper else 4.0)
-	if state == State.THROW and not _threw and body.action_time >= BlockBody.event_time(&"Throw", "release"):
+	if _shooting or _tossing:
+		# Shots and tosses are upper-body: keep moving.
+		var want := input.world_move() * run_speed * 0.75
+		velocity.x = move_toward(velocity.x, want.x, accel * delta)
+		velocity.z = move_toward(velocity.z, want.z, accel * delta)
+		if locked_target():
+			_face(locked_target().global_position - global_position, delta)
+	else:
+		_brake(delta, 10.0 if not body.action_upper else 4.0)
+	if _shooting:
+		if not _fired and body.action_time >= maxf(BlockBody.event_time(_throw_clip, "fire"), 0.0):
+			_fire()
+	elif state == State.THROW and not _threw and body.action_time >= BlockBody.event_time(_throw_clip, "release"):
 		_threw = true
-		var data := unequip()
-		if data and world:
-			var boost := 1.5 if _clock < _boost_until else 1.0
+		if _tossing and armed():
 			var origin := socket_transform().origin
-			world.spawn_projectile(self, data, origin, _aim_direction(origin, data.throw_speed * boost), data.throw_speed * boost, boost > 1.0)
-			Audio.play(&"throw", origin, 0.0, 1.1 if boost > 1.0 else 1.0)
+			var speed := weapon_data.throw_speed * (1.5 if _clock < _boost_until else 1.0)
+			world.spawn_projectile(self, weapon_data, origin, _aim_direction(origin, speed), speed, _clock < _boost_until, 1)
+			Audio.play(&"throw", origin, -2.0, 1.3)
+			ammo -= 1
+			if ammo <= 0:
+				equip(null)
+		else:
+			var data := unequip()
+			if data and world:
+				var boost := 1.5 if _clock < _boost_until else 1.0
+				var origin := socket_transform().origin
+				world.spawn_projectile(self, data, origin, _aim_direction(origin, data.throw_speed * boost), data.throw_speed * boost, boost > 1.0, _dropped_ammo)
+				Audio.play(&"throw", origin, 0.0, 1.1 if boost > 1.0 else 1.0)
 	if done or state_time > 0.9:
 		body.stop_action(0.15)
 		_set_state(State.MOVE)
@@ -829,6 +976,23 @@ func parried(by: Fighter) -> void:
 	_set_state(State.HURT)
 	state_time = -0.35        # a longer stagger than a normal flinch
 	body.play(&"Stagger", false, 1.0, 0.04)
+
+
+## A shot reaches us while blocking: parry sends it back, a block stops it.
+func try_deflect_bolt(b: Bolt) -> bool:
+	if not blocking or not alive:
+		return false
+	var dir := Vector3(b.velocity.x, 0, b.velocity.z).normalized()
+	if forward().dot(-dir) <= 0.25:
+		return false
+	if _clock - _block_since <= parry_window * 1.5:
+		count("returns")
+		b.reflect(self)
+		Audio.play(&"clang", b.global_position, 2.0, 1.4)
+		return true
+	_blocked(b.damage, dir, b.owner_fighter, false, b.global_position, 1.5)
+	b.queue_free()
+	return true
 
 
 ## A thrown weapon reaches us while blocking: parry sends it back,
@@ -1044,7 +1208,7 @@ func respawn(at: Vector3, yaw: float) -> void:
 	body.stop_action(0.0)
 	_set_state(State.MOVE)
 	if world:
-		equip(Registry.weapon(world.config.start_weapon))
+		equip(world.start_weapon())
 	Audio.play(&"respawn", at + Vector3.UP, -4.0)
 
 
@@ -1071,13 +1235,13 @@ func _animate() -> void:
 	var sfx := "_Sword" if sword else ""
 	var hs := hspeed()
 	if state == State.CHARGE:
-		body.set_loco(&"Heavy_Charge", 1.0)
+		body.set_loco(weapon_data.heavy_charge if weapon_data.heavy_charge != &"" else &"Heavy_Charge", 1.0)
 		return
 	if not is_on_floor() and _air_time > 0.08:
 		body.set_loco(_armed_clip(&"Jump_Rise" if velocity.y > 1.0 else &"Fall"), 1.0)
 		return
 	if hs < 0.35:
-		body.set_loco(&"Sword_Idle" if sword else &"Idle", 1.0)
+		body.set_loco(weapon_data.idle_clip if sword and weapon_data.idle_clip != &"" else (&"Sword_Idle" if sword else &"Idle"), 1.0)
 		return
 	var target := locked_target()
 	var clip: StringName

@@ -5,6 +5,7 @@ extends Node3D
 
 var data: WeaponData
 var spawner := -1                 # index of the spawner that made it, or -1
+var ammo := -1                    # throws/shots left (-1 = full)
 var velocity := Vector3.ZERO
 var settled := false
 var age := 0.0
@@ -14,8 +15,9 @@ var _ring: MeshInstance3D
 var _ground_y := 0.0
 
 
-func setup(weapon: WeaponData, at: Vector3, vel: Vector3 = Vector3.ZERO) -> void:
+func setup(weapon: WeaponData, at: Vector3, vel: Vector3 = Vector3.ZERO, ammo_left: int = -1) -> void:
 	data = weapon
+	ammo = ammo_left
 	global_position = at
 	velocity = vel
 	_visual = MeshInstance3D.new()

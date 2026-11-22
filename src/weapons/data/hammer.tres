@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/weapons/weapon_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"hammer"
+display_name = "Hammer"
+family = "heavy"
+kind = &"melee"
+rarity = &"common"
+light_moves = Array[StringName]([&"Smash_A", &"Smash_B"])
+knockdown_move = &"Smash_B"
+heavy_charge = &"Smash_Charge"
+heavy_move = &"Smash_Release"
+idle_clip = &"Heavy_Idle"
+strikers = {}
+hit_from = 0.45
+hit_to = 0.85
+hit_radius = 0.2
+slam_radius = 2.6
+move_speed = 0.88
+attack_speed = 0.95
+base_damage = 22
+ref_speed = 8
+knockback = 9
+throw_damage = 30
+throw_speed = 20
+part_sizes = PackedVector3Array(0.06, 1.0, 0.06, 0.34, 0.2, 0.2, 0.36, 0.04, 0.22)
+part_centres = PackedVector3Array(0, 0.2, 0, 0, 0.72, 0, 0, 0.72, 0)
+part_colors = PackedColorArray(0.45, 0.3, 0.16, 1.0, 0.32, 0.34, 0.38, 1.0, 0.5, 0.52, 0.56, 1.0)
+part_yaws = PackedFloat32Array(0.0, 0.0, 0.0)

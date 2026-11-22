@@ -4,6 +4,30 @@ Versions are `MAJOR.MINOR.PATCH`; the number lives in `project.godot`
 (`config/version`) and shows on the title screen and next to the FPS counter.
 Bump MINOR for a phase or batch of features, PATCH for fixes.
 
+## 0.1.4: Phase 2 increment B (24 weapons)
+
+- **24 weapons** (+ fists) in 7 families, each family with its own moves made
+  in Blender:
+  - Blades: Sword, Katana, Dagger (quick stabs), Rapier (fencing thrusts),
+    Hand Axe, Plasma Blade
+  - Heavy, two-handed: Hammer, Battle Axe, Pickaxe, Ship Anchor, Giant
+    Lollipop: wide smashes, an overhead slam, and a charged leaping slam
+    whose shockwave knocks down everyone around the impact
+  - Polearms: Spear, Bo Staff, Trident: thrusts, a sweep and a long lunge
+  - Fists: Fists, Boxing Gloves, Power Gauntlet
+  - Thrown: Shuriken (x5), Throwing Knives (x4), Bomb (x2, explodes),
+    Boomerang (comes back to your hand)
+  - Ranged: Blaster (14 shots), Bow (hold to draw: harder, faster arrows);
+    shots can be blocked, and parried back
+  - Joke: Frying Pan (clang), Rubber Chicken (squeak, sends people flying)
+- Weapon spawners hand out random weapons; every minute a gold **mystery
+  crate** lands on the tower with a rare one inside (Plasma Blade, Anchor,
+  Trident, Power Gauntlet, Bow).
+- **SWAP** (R / D-pad up / touch button when you stand on a weapon): drop
+  yours, take that one. Pickups keep their ammo.
+- Match setup: start with a Sword, a **Random weapon** or Fists.
+- Bots throw, shoot (and charge the bow) from range, and know each weapon's reach.
+
 ## 0.1.3: Phase 2 increment A (block, parry, powers, pickups)
 
 - **Block** (hold BLOCK): walk with your guard up; blocked hits do 15% (heavy

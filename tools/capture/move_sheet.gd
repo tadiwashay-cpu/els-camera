@@ -56,6 +56,17 @@ func _initialize() -> void:
 	bmat.albedo_color = Color(0.2, 0.25, 0.9)
 	blade.material_override = bmat
 	att.add_child(blade)
+	var att_l := BoneAttachment3D.new()
+	att_l.bone_name = "WeaponL"
+	skel.add_child(att_l)
+	var bow := MeshInstance3D.new()
+	var bwm := BoxMesh.new()
+	bwm.size = Vector3(0.03, 0.9, 0.03)
+	bow.mesh = bwm
+	var rmat := StandardMaterial3D.new()
+	rmat.albedo_color = Color(0.9, 0.15, 0.15)
+	bow.material_override = rmat
+	att_l.add_child(bow)
 	var anim := fighter.find_child("AnimationPlayer", true, false) as AnimationPlayer
 	var cam := Camera3D.new()
 	vp.add_child(cam)

@@ -15,11 +15,13 @@ const BUTTONS := [
 	[&"lock_on", "LOCK", Vector2(-108, -520), 48.0],
 	[&"block", "BLOCK", Vector2(-486, -236), 56.0],
 	[&"power", "POWER", Vector2(-322, -470), 56.0],
+	[&"swap", "SWAP", Vector2(-500, -420), 52.0],
 ]
 
 var joystick: VirtualJoystick
 var catch_hint := false           # an incoming weapon: THROW reads CATCH
 var power_ready := false
+var swap_available := false
 var _look := Vector2.ZERO
 var _look_index := -1
 var _held: Dictionary = {}        # touch index -> button index
@@ -76,6 +78,8 @@ func _input(event: InputEvent) -> void:
 			if t.position.x < size.x * 0.42:
 				return                         # the joystick's side
 			for i in BUTTONS.size():
+				if BUTTONS[i][0] == &"swap" and not swap_available:
+					continue
 				if t.position.distance_to(_button_pos(i)) <= _button_radius(i) * 1.15:
 					_held[t.index] = i
 					Input.action_press(BUTTONS[i][0])
@@ -104,6 +108,12 @@ func release_all() -> void:
 	_look_index = -1
 
 
+func set_swap(on: bool) -> void:
+	if on != swap_available:
+		swap_available = on
+		queue_redraw()
+
+
 func set_power_ready(on: bool) -> void:
 	if on != power_ready:
 		power_ready = on
@@ -119,6 +129,8 @@ func set_catch_hint(on: bool) -> void:
 func _draw() -> void:
 	var font := ThemeDB.fallback_font
 	for i in BUTTONS.size():
+		if BUTTONS[i][0] == &"swap" and not swap_available:
+			continue
 		var p := _button_pos(i)
 		var r := _button_radius(i)
 		var pressed := _held.values().has(i)

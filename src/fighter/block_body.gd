@@ -40,7 +40,7 @@ const HEAD_ORIGIN := Vector3(0, 1.58, 0)
 const LOCO: Array[StringName] = [&"Idle", &"Sword_Idle", &"Walk", &"Walk_Sword", &"Run", &"Run_Sword",
 	&"Sprint", &"Sprint_Sword", &"Strafe_L", &"Strafe_L_Sword", &"Strafe_R", &"Strafe_R_Sword",
 	&"Backpedal", &"Backpedal_Sword", &"Jump_Rise", &"Jump_Rise_Sword", &"Fall", &"Fall_Sword",
-	&"Heavy_Charge", &"Victory"]
+	&"Heavy_Charge", &"Victory", &"Heavy_Idle", &"Spear_Idle", &"Aim", &"Bow_Draw", &"Smash_Charge"]
 ## Bones an upper-body move drives.
 const UPPER: Array[StringName] = [&"Spine", &"Chest", &"UpperChest", &"Neck", &"Head",
 	&"LeftShoulder", &"LeftUpperArm", &"LeftLowerArm", &"LeftHand", &"WeaponL",
@@ -56,6 +56,7 @@ var tree: AnimationTree
 var mesh_instance: MeshInstance3D
 var material: StandardMaterial3D
 var socket_r: BoneAttachment3D
+var socket_l: BoneAttachment3D
 var ragdoll: Ragdoll
 
 var loco := &""
@@ -121,6 +122,10 @@ func setup(skin_data: SkinData, with_tree: bool = true) -> void:
 	socket_r.name = "SocketR"
 	socket_r.bone_name = "WeaponR"
 	skeleton.add_child(socket_r)
+	socket_l = BoneAttachment3D.new()
+	socket_l.name = "SocketL"
+	socket_l.bone_name = "WeaponL"
+	skeleton.add_child(socket_l)
 	if with_tree:
 		_build_tree()
 	else:

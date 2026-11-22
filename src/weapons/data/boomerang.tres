@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/weapons/weapon_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"boomerang"
+display_name = "Boomerang"
+family = "thrown"
+kind = &"thrown"
+rarity = &"common"
+light_moves = Array[StringName]([&"Toss"])
+knockdown_move = &""
+heavy_charge = &""
+heavy_move = &"Toss"
+strikers = {}
+base_damage = 12
+ammo = 1
+throw_damage = 18
+throw_speed = 24
+throw_spin = 22
+returns = true
+part_sizes = PackedVector3Array(0.08, 0.36, 0.03, 0.08, 0.36, 0.03)
+part_centres = PackedVector3Array(0.08, 0.12, 0, -0.08, 0.12, 0)
+part_colors = PackedColorArray(0.85, 0.55, 0.2, 1.0, 0.85, 0.55, 0.2, 1.0)
+part_yaws = PackedFloat32Array(35, -35)

@@ -36,9 +36,9 @@ Increment A (combat depth):
 - [x] Bots block, parry and use powers (v0.1.3)
 
 Increment B (weapons):
-- [ ] Weapon families with their own Blender movesets (blades, heavy, polearms, fists, thrown, joke)
-- [ ] 24 weapons (data + box models), mystery crate drops a rare one in the middle
-- [ ] Weapon swap / pick-up choice
+- [x] Weapon families with their own Blender movesets (blades, heavy, polearms, fists, thrown, ranged, joke)
+- [x] 24 weapons (data + box models, tools/gen_weapons.py), mystery crate drops a rare one on the tower
+- [x] Weapon swap / pick-up choice (v0.1.4)
 
 Increment C (arenas):
 - [ ] Beach Island (tide floods the beach, sharks in deep water, wreck cannon)

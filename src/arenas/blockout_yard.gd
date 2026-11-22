@@ -57,5 +57,6 @@ func build() -> void:
 		Vector3(0, 0.1, -24), Vector3(0, 0.1, 24), Vector3(-25, 0.1, -4), Vector3(25, 0.1, 4)]
 	pickup_points = [Vector3(0, 0.0, 9.5), Vector3(-17, 2.5, 6), Vector3(17, 2.5, -6), Vector3(2.2, 5.0, 2.2),
 		Vector3(-20, 0.0, -14), Vector3(20, 0.0, 14)]
-	spawner_points = [Vector3(0, 5.0, 0), Vector3(-17, 2.5, 0), Vector3(17, 2.5, 0),
+	mystery_point = Vector3(0, 5.0, 0)
+	spawner_points = [Vector3(-2.2, 5.0, -2.2), Vector3(-17, 2.5, 0), Vector3(17, 2.5, 0),
 		Vector3(0, 0.0, -10), Vector3(0, 0.0, 16), Vector3(-12, 0.0, -2)]

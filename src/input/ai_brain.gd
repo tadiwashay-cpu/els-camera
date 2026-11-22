@@ -88,6 +88,26 @@ func update(delta: float) -> void:
 				inp.press(&"throw")
 				_throw_cd = 4.0 + _rng.randf() * 3.0
 				goal = "chase"
+		"toss":
+			me.input.target = target
+			_face_and_stop()
+			if me.state == Fighter.State.MOVE and _attack_cd <= 0.0:
+				_attack_cd = 0.55 * _rng.randf_range(0.9, 1.4)
+				_hold = 0.03
+				me.input.attack_held = true
+		"shoot":
+			me.input.target = target
+			var to := target.global_position - me.global_position
+			to.y = 0.0
+			if _strafe_t <= 0.0:
+				_strafe_t = 0.8 + _rng.randf() * 1.0
+				_strafe = -_strafe
+			_steer(to.normalized().cross(Vector3.UP) * _strafe, 0.4)
+			if me.state == Fighter.State.MOVE and _attack_cd <= 0.0:
+				var bow := me.weapon_data.heavy_charge != &""
+				_attack_cd = (1.1 if bow else 0.3) * _rng.randf_range(0.9, 1.5) + float(level["reaction"]) * 0.5
+				_hold = _rng.randf_range(0.5, 0.9) if bow else 0.03
+				me.input.attack_held = true
 		"barrel":
 			# Throw the sword at a barrel the target is standing next to.
 			_face_and_stop()
@@ -118,7 +138,7 @@ func _decide() -> void:
 		me.input.move = Vector2.ZERO
 		return
 	var d := _dist()
-	var reach := 2.3 if me.armed() else 1.6
+	var reach := _reach() + 0.2
 	var scores := {}
 	scores["chase"] = 0.45 + float(level["aggression"]) * 0.3
 	if d < reach + 0.4 and absf(target.global_position.y - me.global_position.y) < 1.4:
@@ -132,7 +152,12 @@ func _decide() -> void:
 	elif d > 6.0 and d < 17.0 and _throw_cd <= 0.0 and _clear_line(target) \
 			and _rng.randf() < float(level["aggression"]) * 0.35:
 		scores["throw"] = 0.9
-	if me.armed() and _throw_cd <= 0.0:
+	var kind := me.weapon_data.kind if me.armed() else &"melee"
+	if kind == &"thrown" and d > 3.5 and d < 15.0 and _clear_line(target):
+		scores["toss"] = 0.93
+	elif kind == &"ranged" and d > 3.0 and d < 22.0 and _clear_line(target):
+		scores["shoot"] = 0.96
+	if me.armed() and _throw_cd <= 0.0 and kind == &"melee":
 		var barrel := _barrel_near(target)
 		if barrel:
 			_barrel = barrel
@@ -242,9 +267,23 @@ func _go_to(pos: Vector3, amount: float, delta: float) -> void:
 		_stuck_t = 0.0
 
 
+## How close we must be to hit with what we hold.
+func _reach() -> float:
+	if not me.armed():
+		return 1.4
+	var w := me.weapon_data
+	if w.idle_clip == &"Spear_Idle":
+		return 2.7
+	if w.idle_clip == &"Heavy_Idle":
+		return 2.3
+	if not w.light_moves.is_empty() and w.light_moves[0] == &"Stab_A":
+		return 1.7
+	return 2.1
+
+
 func _fight(_delta: float) -> void:
 	var d := _dist()
-	var reach := 2.1 if me.armed() else 1.4
+	var reach := _reach()
 	var to := target.global_position - me.global_position
 	to.y = 0.0
 	if _strafe_t <= 0.0:

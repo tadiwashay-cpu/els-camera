@@ -6,6 +6,10 @@ extends Resource
 @export var id: StringName = &"sword"
 @export var display_name := "Sword"
 @export_enum("blades", "heavy", "fists", "ranged", "thrown", "gadgets", "elemental", "joke") var family := "blades"
+## melee: swings; thrown: ATTACK throws one from the stack; ranged: ATTACK fires.
+@export var kind := &"melee"
+## common: weapon spawners; rare: only from the mystery crate.
+@export var rarity := &"common"
 
 @export_group("Damage")
 ## Damage at the reference tip speed (doc: damage = base x clamp(speed / ref, 0.5, 2.5)).
@@ -28,6 +32,22 @@ extends Resource
 ## What lands the hit for each move: "blade" (the weapon), or a bone name.
 @export var strikers: Dictionary = {}
 @export var attack_speed := 1.0
+## Forward push when a standing attack starts (m/s).
+@export var lunge := 3.5
+## Forward push of the heavy attack (spear lunges travel).
+@export var heavy_lunge := 2.0
+## Heavy weapons' charged slam knocks back everyone this close to the impact.
+@export var slam_radius := 0.0
+## Running/standing speed while holding it (heavy weapons slow you).
+@export var move_speed := 1.0
+## Standing pose while holding it (empty = the sword stance).
+@export var idle_clip := &""
+## Which hand holds it ("right"; bows are "left").
+@export var hand := &"right"
+## Show it on both hands (gloves).
+@export var both_hands := false
+## Extra sound on a hit (e.g. "clang" for the pan, "squeak").
+@export var hit_sound := &""
 
 @export_group("Hitbox")
 ## The striking part runs along the socket's +Y from hit_from to hit_to.
@@ -42,12 +62,26 @@ extends Resource
 @export var throw_damage := 24.0
 ## Spin while flying, radians per second (about the socket's X axis).
 @export var throw_spin := 16.0
+## Thrown/ranged: how many throws or shots (0 = one weapon, thrown whole).
+@export var ammo := 0
+## Blows up where it lands (bombs).
+@export var explosive := false
+## Comes back to the thrower (boomerang).
+@export var returns := false
+## Becomes a pickup where it lands (false: thrown stars and knives are spent).
+@export var keep_on_land := true
+@export var projectile_speed := 50.0
+@export var projectile_damage := 10.0
 
 @export_group("Look")
 ## Boxes in socket space (+Y runs from the grip to the tip).
 @export var part_sizes := PackedVector3Array()
 @export var part_centres := PackedVector3Array()
 @export var part_colors := PackedColorArray()
+## Turn of each part about the socket's Z axis (degrees).
+@export var part_yaws := PackedFloat32Array()
+## Emissive glow (plasma, gauntlet); alpha 0 = none.
+@export var glow := Color(0, 0, 0, 0)
 @export var unlock_cost := 0
 
 var _mesh: ArrayMesh
@@ -55,6 +89,10 @@ var _mesh: ArrayMesh
 
 func is_fists() -> bool:
 	return id == &"fists"
+
+
+func uses_ammo() -> bool:
+	return ammo > 0
 
 
 func striker(move: StringName) -> StringName:
@@ -70,6 +108,12 @@ func mesh() -> ArrayMesh:
 	if _mesh == null and part_sizes.size() > 0:
 		var b := BoxBuilder.new()
 		for i in part_sizes.size():
-			b.box(part_sizes[i], part_centres[i], part_colors[i] if i < part_colors.size() else Color.GRAY)
-		_mesh = b.commit(BoxBuilder.vertex_color_material(0.35))
+			var yaw := part_yaws[i] if i < part_yaws.size() else 0.0
+			b.box(part_sizes[i], part_centres[i], part_colors[i] if i < part_colors.size() else Color.GRAY, 0,
+				Basis(Vector3.BACK, deg_to_rad(yaw)))
+		var mat := BoxBuilder.vertex_color_material(0.35)
+		if glow.a > 0.0:
+			mat.emission_enabled = true
+			mat.emission = glow * 0.6
+		_mesh = b.commit(mat)
 	return _mesh

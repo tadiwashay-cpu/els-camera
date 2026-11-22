@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/weapons/weapon_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"rapier"
+display_name = "Rapier"
+family = "blades"
+kind = &"melee"
+rarity = &"common"
+light_moves = Array[StringName]([&"Thrust", &"Thrust_B", &"Thrust"])
+knockdown_move = &""
+heavy_charge = &"Heavy_Charge"
+heavy_move = &"Heavy_Release"
+strikers = {}
+hit_from = 0.2
+hit_to = 1.08
+hit_radius = 0.12
+base_damage = 13
+ref_speed = 7.5
+knockback = 3.5
+attack_speed = 1.1
+part_sizes = PackedVector3Array(0.035, 0.16, 0.035, 0.13, 0.06, 0.13, 0.022, 0.96, 0.022)
+part_centres = PackedVector3Array(0, 0, 0, 0, 0.1, 0, 0, 0.6, 0)
+part_colors = PackedColorArray(0.18, 0.15, 0.13, 1.0, 0.92, 0.7, 0.22, 1.0, 0.84, 0.87, 0.92, 1.0)
+part_yaws = PackedFloat32Array(0.0, 0.0, 0.0)

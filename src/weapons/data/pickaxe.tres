@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/weapons/weapon_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"pickaxe"
+display_name = "Pickaxe"
+family = "heavy"
+kind = &"melee"
+rarity = &"common"
+light_moves = Array[StringName]([&"Smash_A", &"Smash_B"])
+knockdown_move = &"Smash_B"
+heavy_charge = &"Smash_Charge"
+heavy_move = &"Smash_Release"
+idle_clip = &"Heavy_Idle"
+strikers = {}
+hit_from = 0.45
+hit_to = 0.85
+hit_radius = 0.2
+slam_radius = 2.6
+move_speed = 0.88
+attack_speed = 0.95
+base_damage = 20
+ref_speed = 8
+knockback = 7
+throw_damage = 28
+part_sizes = PackedVector3Array(0.06, 0.95, 0.06, 0.7, 0.08, 0.08, 0.12, 0.06, 0.06, 0.12, 0.06, 0.06)
+part_centres = PackedVector3Array(0, 0.18, 0, 0, 0.62, 0, 0.38, 0.6, 0, -0.38, 0.6, 0)
+part_colors = PackedColorArray(0.45, 0.3, 0.16, 1.0, 0.32, 0.34, 0.38, 1.0, 0.84, 0.87, 0.92, 1.0, 0.84, 0.87, 0.92, 1.0)
+part_yaws = PackedFloat32Array(0.0, 0.0, 0.0, 0.0)

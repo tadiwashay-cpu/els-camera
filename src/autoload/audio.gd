@@ -94,6 +94,7 @@ func _build() -> void:
 	_add("crash_wood", [_crash(0.45, 900.0, 0.8, true), _crash(0.4, 1100.0, 0.75, true)])
 	_add("crash_stone", [_crash(0.6, 500.0, 0.9, false)])
 	_add("boom", [_boom(1.1)])
+	_add("squeak", [_squeak(0.22), _squeak(0.18)])
 	# Recorded replacements win where present.
 	for sound_name: String in _streams.keys():
 		for ext in ["ogg", "wav"]:
@@ -257,4 +258,20 @@ func _boom(length: float) -> PackedFloat32Array:
 		phase += TAU * lerpf(60.0, 28.0, minf(t * 2.0, 1.0)) / RATE
 		var s := sin(phase) * exp(-t * 4.0) * 1.2 + lp * 3.0 * exp(-t * 3.0)
 		out[i] = tanh(s * 1.8) * 0.9
+	return out
+
+
+## A rubber chicken: a wobbling squeal that rises and falls.
+func _squeak(length: float) -> PackedFloat32Array:
+	var n := int(length * RATE)
+	var out := PackedFloat32Array()
+	out.resize(n)
+	var phase := 0.0
+	for i in n:
+		var t := float(i) / RATE
+		var u := t / length
+		var f := 900.0 + 900.0 * sin(PI * u) + 60.0 * sin(TAU * 38.0 * t)
+		phase += TAU * f / RATE
+		var s := (sin(phase) + 0.4 * sin(phase * 2.0)) * _env(t, length, 0.01)
+		out[i] = s * 0.45
 	return out

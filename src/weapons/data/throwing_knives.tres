@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/weapons/weapon_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"throwing_knives"
+display_name = "Throwing Knives"
+family = "thrown"
+kind = &"thrown"
+rarity = &"common"
+light_moves = Array[StringName]([&"Toss"])
+knockdown_move = &""
+heavy_charge = &""
+heavy_move = &"Toss"
+strikers = {}
+base_damage = 14
+ammo = 4
+throw_damage = 17
+throw_speed = 30
+throw_spin = 24
+keep_on_land = false
+part_sizes = PackedVector3Array(0.03, 0.1, 0.03, 0.04, 0.22, 0.015)
+part_centres = PackedVector3Array(0, 0, 0, 0, 0.15, 0)
+part_colors = PackedColorArray(0.18, 0.15, 0.13, 1.0, 0.84, 0.87, 0.92, 1.0)
+part_yaws = PackedFloat32Array(0.0, 0.0)

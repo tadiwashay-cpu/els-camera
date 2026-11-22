@@ -18,9 +18,14 @@ var _base := Basis.IDENTITY
 var _visual: MeshInstance3D
 var _trail: BladeTrail
 var _bounces := 0
+## Left in the stack when it becomes a pickup (-1 = full).
+var ammo := -1
+var _returning := false
+var _hit_list: Array[Fighter] = []
 
 
-func launch(by: Fighter, weapon: WeaponData, origin: Vector3, dir: Vector3, speed: float, is_boosted: bool) -> void:
+func launch(by: Fighter, weapon: WeaponData, origin: Vector3, dir: Vector3, speed: float, is_boosted: bool, ammo_left: int = -1) -> void:
+	ammo = ammo_left
 	thrower = by
 	data = weapon
 	boosted = is_boosted
@@ -49,14 +54,30 @@ func time_to(f: Fighter) -> float:
 
 func _physics_process(delta: float) -> void:
 	age += delta
-	velocity.y -= GRAVITY * delta
-	if harmful and data:
+	if data.explosive and age > 1.8:
+		_explode()
+		return
+	if data.returns and not _returning and age > 0.55:
+		_returning = true
+	if _returning:
+		# Boomerang: curve back to whoever threw it.
+		if thrower == null or not is_instance_valid(thrower) or not thrower.alive:
+			world.projectile_landed(self, global_position)
+			return
+		var home := thrower.global_position + Vector3.UP * 1.3
+		if global_position.distance_to(home) < 1.3:
+			_return_home()
+			return
+		velocity = velocity.lerp((home - global_position).normalized() * 24.0, clampf(delta * 4.0, 0.0, 1.0))
+	else:
+		velocity.y -= GRAVITY * delta
+	if harmful and data and not _returning:
 		_home(delta)
 	var from := global_position
 	var to := from + velocity * delta
 	if harmful:
 		for f: Fighter in world.fighters:
-			if not f.alive or (f == thrower and age < 0.5) or f.protect > 0.0:
+			if not f.alive or (f == thrower and (age < 0.5 or _returning)) or f.protect > 0.0 or _hit_list.has(f):
 				continue
 			var lo := f.global_position + Vector3.UP * Fighter.HURT_LOW
 			var hi := f.global_position + Vector3.UP * Fighter.HURT_HIGH
@@ -69,6 +90,15 @@ func _physics_process(delta: float) -> void:
 	if not hit.is_empty():
 		var n: Vector3 = hit["normal"]
 		var p: Vector3 = hit["position"]
+		if data.explosive:
+			global_position = p + n * 0.2
+			_explode()
+			return
+		if data.returns and not _returning:
+			_returning = true
+			velocity = velocity.bounce(n) * 0.6
+			global_position = p + n * 0.1
+			return
 		var piece := hit["collider"] as Breakable
 		if piece and harmful:
 			piece.hit(data.throw_damage * (1.5 if boosted else 1.0), p, velocity * 0.3, thrower)
@@ -121,6 +151,9 @@ func _home(delta: float) -> void:
 func _hit_fighter(f: Fighter, at: Vector3) -> void:
 	if f.try_deflect(self):
 		return
+	if data.explosive:
+		_explode()
+		return
 	var speed := velocity.length()
 	var dmg := data.throw_damage * clampf(speed / maxf(data.throw_speed, 1.0), 0.6, 1.6) * (1.25 if boosted else 1.0)
 	var by := thrower if thrower and is_instance_valid(thrower) else null
@@ -132,8 +165,25 @@ func _hit_fighter(f: Fighter, at: Vector3) -> void:
 		by.powers.dealt(dealt)
 		by.hit_landed.emit(by, f, dealt)
 	Audio.play(&"hit_heavy", at, 2.0)
+	if data.returns:
+		_hit_list.append(f)          # keeps flying (and comes back)
+		return
 	harmful = false
 	velocity = -velocity * 0.15 + Vector3.UP * 4.0
+
+
+func _explode() -> void:
+	world.explode(global_position, thrower if thrower and is_instance_valid(thrower) else null, 4.0)
+	world.remove_projectile(self)
+
+
+func _return_home() -> void:
+	if not thrower.armed():
+		thrower.equip(data, ammo)
+		Audio.play(&"catch", global_position, 0.0)
+		world.remove_projectile(self)
+	else:
+		world.projectile_landed(self, thrower.global_position)
 
 
 ## Parried: fly back at whoever threw it, faster, now "thrown" by `by`.

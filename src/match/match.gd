@@ -38,6 +38,8 @@ var powerups: Array = []               # PowerUp or null per pickup point
 var _powerup_next: Array[float] = []
 var _bullet_until := -1.0
 var _bullet_by: Fighter
+var _mystery: Breakable
+var _mystery_next := 40.0
 var _rng := RandomNumberGenerator.new()
 
 
@@ -71,7 +73,7 @@ func _ready() -> void:
 	player_input.camera = camera
 	player_input.touch = touch
 	add_child(player_input)
-	arena.explosion.connect(_on_explosion)
+	arena.explosion.connect(func(at: Vector3, by: Fighter) -> void: explode(at, by, 5.0))
 	hud.pause_pressed.connect(toggle_pause)
 	hud.resume_pressed.connect(toggle_pause)
 	hud.rematch_pressed.connect(func() -> void: Game.start_match())
@@ -129,7 +131,7 @@ func _spawn_fighters() -> void:
 		f.display_name = str(Save.setting("player_name")) if i == 0 else BOT_NAMES[(i - 1) % BOT_NAMES.size()]
 		f.skin = Registry.skin(i)
 		f.world = self
-		f.weapon_data = Registry.weapon(config.start_weapon)
+		f.weapon_data = start_weapon()
 		f.powers.power = config.power if i == 0 else FighterPowers.IDS[(i * 2 + _rng.randi()) % FighterPowers.IDS.size()]
 		add_child(f)
 		var spot: Vector3 = starts[(i * 3) % starts.size()]
@@ -189,12 +191,15 @@ func _physics_process(delta: float) -> void:
 			_respawn(fighter_by_id(id))
 	_tick_spawners()
 	_tick_powerups()
+	if config.spawners and arena.mystery_point != Vector3.INF and _mystery == null and clock >= _mystery_next:
+		_drop_mystery()
 	if _bullet_until > 0.0 and clock >= _bullet_until:
 		_end_bullet_time()
 	killcam.record(clock)
 	if touch.visible:
 		touch.set_catch_hint(incoming_projectile(player, 0.6) != null)
 		touch.set_power_ready(player.powers.ready_to_use())
+		touch.set_swap(player.armed() and player.state == Fighter.State.MOVE and pickup_near(player.global_position, 1.3) != null)
 
 
 func _tick_powerups() -> void:
@@ -275,7 +280,8 @@ func _tick_spawners() -> void:
 			continue
 		_spawner_pickup[i] = null
 		if clock >= _spawner_next[i]:
-			var pick := drop_pickup(Registry.weapon(&"sword"), arena.spawner_points[i] + Vector3.UP * 0.6, Vector3.ZERO)
+			var pool := Registry.weapon_pool(false)
+			var pick := drop_pickup(pool[_rng.randi() % pool.size()], arena.spawner_points[i] + Vector3.UP * 0.6, Vector3.ZERO)
 			pick.spawner = i
 			_spawner_pickup[i] = pick
 			_spawner_next[i] = INF
@@ -287,6 +293,8 @@ func _on_hurt(victim: Fighter, attacker: Fighter, damage: float, at: Vector3, he
 	Fx.sparks(self, at, Color(1, 0.85, 0.55) if not heavy else Color(1, 0.55, 0.3), 16 if heavy else 10)
 	Fx.damage_number(self, at + Vector3.UP * 0.3, damage, Color(1, 0.95, 0.6) if attacker == player else Color(1, 0.45, 0.4))
 	Audio.play(&"hit_heavy" if heavy else &"hit", at, 0.0 if heavy else -2.0)
+	if attacker and attacker.armed() and attacker.weapon_data.hit_sound != &"":
+		Audio.play(attacker.weapon_data.hit_sound, at, 3.0)
 	if heavy:
 		Game.hit_stop(40)
 	if victim == player or attacker == player:
@@ -347,11 +355,12 @@ func _replay(victim: Fighter, killer: Fighter, before: float, after: float, spee
 		get_tree().paused = false
 
 
-## A barrel went off: blast everyone and everything nearby (the kill goes
-## to whoever set it off; nearby barrels chain).
-func _on_explosion(at: Vector3, by: Fighter) -> void:
-	const RADIUS := 5.0
+## Something blew up (a barrel, a bomb): blast everyone and everything
+## nearby (the kill goes to whoever set it off; nearby barrels chain).
+func explode(at: Vector3, by: Fighter, radius: float = 5.0) -> void:
+	var RADIUS := radius
 	Fx.explosion(self, at, RADIUS)
+	Audio.play(&"boom", at, 2.0)
 	Game.hit_stop(60)
 	var to_cam := camera.global_position.distance_to(at)
 	camera.shake(clampf(1.2 - to_cam / 25.0, 0.2, 1.0))
@@ -451,13 +460,26 @@ func _unhandled_input(event: InputEvent) -> void:
 
 # ------------------------------------------------------- weapons in the world
 
-func spawn_projectile(by: Fighter, data: WeaponData, origin: Vector3, dir: Vector3, speed: float, boosted: bool) -> ThrownWeapon:
+func spawn_projectile(by: Fighter, data: WeaponData, origin: Vector3, dir: Vector3, speed: float, boosted: bool, ammo_left: int = -1) -> ThrownWeapon:
 	var p := ThrownWeapon.new()
 	p.world = self
 	add_child(p)
-	p.launch(by, data, origin, dir, speed, boosted)
+	p.launch(by, data, origin, dir, speed, boosted, ammo_left)
 	projectiles.append(p)
 	return p
+
+
+func spawn_bolt(by: Fighter, origin: Vector3, dir: Vector3, speed: float, damage: float, arrow: bool) -> Bolt:
+	var b := Bolt.new()
+	b.world = self
+	add_child(b)
+	b.launch(by, origin, dir, speed, damage, arrow)
+	return b
+
+
+func remove_projectile(p: ThrownWeapon) -> void:
+	projectiles.erase(p)
+	p.queue_free()
 
 
 func incoming_projectile(f: Fighter, horizon: float) -> ThrownWeapon:
@@ -484,15 +506,19 @@ func catch_projectile(p: ThrownWeapon, _by: Fighter) -> void:
 
 func projectile_landed(p: ThrownWeapon, at: Vector3) -> void:
 	projectiles.erase(p)
-	if at.y > arena.kill_y:
-		drop_pickup(p.data, at + Vector3.UP * 0.3, Vector3.ZERO)
+	if p.data.explosive:
+		explode(at, p.thrower if p.thrower and is_instance_valid(p.thrower) else null, 4.0)
+	elif at.y > arena.kill_y and p.data.keep_on_land:
+		drop_pickup(p.data, at + Vector3.UP * 0.3, Vector3.ZERO, p.ammo)
+	else:
+		Fx.dust(self, at, 0.4)
 	p.queue_free()
 
 
-func drop_pickup(data: WeaponData, at: Vector3, vel: Vector3) -> WeaponPickup:
+func drop_pickup(data: WeaponData, at: Vector3, vel: Vector3, ammo_left: int = -1) -> WeaponPickup:
 	var pick := WeaponPickup.new()
 	add_child(pick)
-	pick.setup(data, at, vel)
+	pick.setup(data, at, vel, ammo_left)
 	pickups.append(pick)
 	return pick
 
@@ -521,7 +547,7 @@ func take_pickup(pick: WeaponPickup, f: Fighter) -> void:
 	if pick.spawner >= 0:
 		_spawner_next[pick.spawner] = clock + config.spawner_seconds
 		_spawner_pickup[pick.spawner] = null
-	f.equip(pick.data)
+	f.equip(pick.data, pick.ammo)
 	f.body.play(&"Pickup", true, 1.5, 0.05)
 	Audio.play(&"pickup", pick.global_position, -2.0)
 	Fx.sparks(self, pick.global_position, Color(1, 0.85, 0.3), 12)
@@ -535,6 +561,37 @@ func _prune_pickups() -> void:
 		if is_instance_valid(p) and not p.is_queued_for_deletion():
 			keep.append(p)
 	pickups = keep
+
+
+## Armed and standing on another weapon: drop ours, take that one.
+func swap_pickup(pick: WeaponPickup, f: Fighter) -> void:
+	var old := f.unequip()
+	if old:
+		drop_pickup(old, f.global_position + f.forward() * 0.5 + Vector3.UP, Vector3.UP * 3.0, f._dropped_ammo)
+	take_pickup(pick, f)
+
+
+## Once a minute a gold crate lands on the tower with a rare weapon inside.
+func _drop_mystery() -> void:
+	var at := arena.mystery_point + Vector3.UP * 0.6
+	var crate := arena.breakable(Breakable.Kind.CRATE, Vector3(1.2, 1.2, 1.2), at + Vector3.UP * 14.0, Color(1.0, 0.78, 0.2))
+	crate.rebuilds = false
+	crate.max_hp = 20.0
+	crate.hp = 20.0
+	_mystery = crate
+	var tw := crate.create_tween()
+	tw.tween_property(crate, "position", at, 0.8).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
+	tw.tween_callback(func() -> void:
+		Fx.dust(self, at, 1.8)
+		Audio.play(&"land", at, 6.0)
+		arena.request_rebake())
+	crate.broken.connect(func(piece: Breakable, _by: Fighter) -> void:
+		var rare := Registry.weapon_pool(true)
+		drop_pickup(rare[_rng.randi() % rare.size()], piece.global_position + Vector3.UP * 0.4, Vector3.UP * 4.0)
+		_mystery = null
+		_mystery_next = clock + 60.0)
+	hud.callout("MYSTERY CRATE", Color(1.0, 0.8, 0.25), "A rare weapon, on top of the tower", 1.2)
+	Audio.play(&"ui_confirm", null, 0.0)
 
 
 ## The enemy the thrower is most likely aiming at, if any (cone shrinks
@@ -559,6 +616,15 @@ func aim_assist_target(f: Fighter, strength: float) -> Fighter:
 			best_dot = d
 			best = o
 	return best
+
+
+## What a fighter (re)spawns holding: the setup's choice, or a random
+## common weapon when it's "random".
+func start_weapon() -> WeaponData:
+	if config.start_weapon == &"random":
+		var pool := Registry.weapon_pool(false)
+		return pool[_rng.randi() % pool.size()]
+	return Registry.weapon(config.start_weapon)
 
 
 func fighter_by_id(id: int) -> Fighter:

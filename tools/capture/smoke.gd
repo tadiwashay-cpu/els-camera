@@ -13,6 +13,7 @@ var _downs := 0
 var _kinds: Dictionary = {}
 var _last_state: Dictionary = {}
 var _breaks: Dictionary = {}
+var _held: Dictionary = {}
 
 
 func _ready() -> void:
@@ -23,6 +24,8 @@ func _ready() -> void:
 	cfg.bots = int(args[1]) if args.size() > 1 else 1
 	cfg.difficulty = int(args[2]) if args.size() > 2 else 2
 	cfg.seed = 7
+	if args.size() > 3:
+		cfg.start_weapon = StringName(args[3])
 	Game.match_config = cfg
 	_match = (load(Game.MATCH_SCENE) as PackedScene).instantiate() as Match
 	add_child(_match)
@@ -48,6 +51,8 @@ func _ready() -> void:
 		if _match.started:
 			_brain.update(get_physics_process_delta_time())
 		for f in _match.fighters:
+			if f.armed():
+				_held[String(f.weapon_data.id)] = true
 			var prev: int = _last_state.get(f.fighter_id, -1)
 			if f.state != prev:
 				match f.state:
@@ -60,7 +65,7 @@ func _ready() -> void:
 			break
 	print("SMOKE end: scores=", _match.race.scores, " winner=", _match.race.winner, " hits=", _hits,
 		" deaths=", _deaths, " throws=", _throws, " catches=", _catches, " knockdowns=", _downs,
-		" pickups_left=", _match.pickups.size(), " kinds=", _kinds, " breaks=", _breaks, " debris_active=", _match.arena.debris.active_count(), " fps=", Engine.get_frames_per_second())
+		" pickups_left=", _match.pickups.size(), " kinds=", _kinds, " breaks=", _breaks, " debris_active=", _match.arena.debris.active_count(), "\n  weapons used=", _held.keys(), " fps=", Engine.get_frames_per_second())
 	for f in _match.fighters:
 		print("  ", f.display_name, " power=", f.powers.power, " stats=", f.stats, " hp=", f.health, " state=", Fighter.State.keys()[f.state], " pos=", f.global_position.snapped(Vector3.ONE * 0.1), " armed=", f.armed())
 	await get_tree().create_timer(1.5, true, false, true).timeout

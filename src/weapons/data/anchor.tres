@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/weapons/weapon_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"anchor"
+display_name = "Ship Anchor"
+family = "heavy"
+kind = &"melee"
+rarity = &"rare"
+light_moves = Array[StringName]([&"Smash_A", &"Smash_B"])
+knockdown_move = &"Smash_B"
+heavy_charge = &"Smash_Charge"
+heavy_move = &"Smash_Release"
+idle_clip = &"Heavy_Idle"
+strikers = {}
+hit_from = 0.45
+hit_to = 0.85
+hit_radius = 0.2
+slam_radius = 3.6
+move_speed = 0.8
+attack_speed = 0.95
+base_damage = 34
+ref_speed = 8
+knockback = 12
+throw_damage = 40
+throw_speed = 17
+part_sizes = PackedVector3Array(0.1, 1.1, 0.1, 0.5, 0.08, 0.08, 0.8, 0.1, 0.12, 0.12, 0.2, 0.12, 0.12, 0.2, 0.12, 0.16, 0.12, 0.05)
+part_centres = PackedVector3Array(0, 0.25, 0, 0, 0.62, 0, 0, 0.84, 0, 0.4, 0.76, 0, -0.4, 0.76, 0, 0, -0.32, 0)
+part_colors = PackedColorArray(0.32, 0.34, 0.38, 1.0, 0.32, 0.34, 0.38, 1.0, 0.32, 0.34, 0.38, 1.0, 0.32, 0.34, 0.38, 1.0, 0.32, 0.34, 0.38, 1.0, 0.6, 0.6, 0.62, 1.0)
+part_yaws = PackedFloat32Array(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)

@@ -155,13 +155,13 @@ const _KEYS := {
 	&"move_forward": [KEY_W, KEY_UP], &"move_back": [KEY_S, KEY_DOWN],
 	&"sprint": [KEY_SHIFT], &"attack": [KEY_J], &"jump": [KEY_SPACE], &"throw": [KEY_K],
 	&"dodge": [KEY_L, KEY_CTRL], &"lock_on": [KEY_Q, KEY_TAB], &"pause": [KEY_ESCAPE, KEY_P],
-	&"block": [KEY_F], &"power": [KEY_E],
+	&"block": [KEY_F], &"power": [KEY_E], &"swap": [KEY_R],
 	&"look_left": [], &"look_right": [], &"look_up": [], &"look_down": [],
 }
 const _PAD_BUTTONS := {
 	&"attack": [JOY_BUTTON_X], &"jump": [JOY_BUTTON_A], &"throw": [JOY_BUTTON_Y],
 	&"dodge": [JOY_BUTTON_B], &"lock_on": [JOY_BUTTON_RIGHT_SHOULDER, JOY_BUTTON_RIGHT_STICK],
-	&"sprint": [JOY_BUTTON_LEFT_STICK], &"pause": [JOY_BUTTON_START], &"block": [JOY_BUTTON_LEFT_SHOULDER],
+	&"sprint": [JOY_BUTTON_LEFT_STICK], &"pause": [JOY_BUTTON_START], &"block": [JOY_BUTTON_LEFT_SHOULDER], &"swap": [JOY_BUTTON_DPAD_UP],
 }
 const _PAD_AXES := {
 	&"move_left": [JOY_AXIS_LEFT_X, -1.0], &"move_right": [JOY_AXIS_LEFT_X, 1.0],

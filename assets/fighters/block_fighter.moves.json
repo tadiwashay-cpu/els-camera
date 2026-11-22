@@ -1,6 +1,12 @@
 {
  "fps": 30,
  "moves": {
+  "Aim": {
+   "events": {},
+   "length": 1.2,
+   "loop": true,
+   "speed": 0.0
+  },
   "Backpedal": {
    "events": {},
    "length": 0.7,
@@ -23,6 +29,28 @@
    "events": {},
    "length": 1.0,
    "loop": true,
+   "speed": 0.0
+  },
+  "Bomb_Lob": {
+   "events": {
+    "release": 0.28
+   },
+   "length": 0.5333,
+   "loop": false,
+   "speed": 0.0
+  },
+  "Bow_Draw": {
+   "events": {},
+   "length": 1.0,
+   "loop": true,
+   "speed": 0.0
+  },
+  "Bow_Release": {
+   "events": {
+    "fire": 0.01
+   },
+   "length": 0.3333,
+   "loop": false,
    "speed": 0.0
   },
   "Catch": {
@@ -89,6 +117,12 @@
   "Heavy_Charge": {
    "events": {},
    "length": 0.6,
+   "loop": true,
+   "speed": 0.0
+  },
+  "Heavy_Idle": {
+   "events": {},
+   "length": 2.0,
    "loop": true,
    "speed": 0.0
   },
@@ -271,6 +305,14 @@
    "loop": true,
    "speed": 4.6
   },
+  "Shoot": {
+   "events": {
+    "fire": 0.01
+   },
+   "length": 0.2333,
+   "loop": false,
+   "speed": 0.0
+  },
   "Slash_A": {
    "events": {
     "hit": [
@@ -304,6 +346,96 @@
    "loop": false,
    "speed": 0.0
   },
+  "Smash_A": {
+   "events": {
+    "hit": [
+     0.3,
+     0.46
+    ]
+   },
+   "length": 0.7333,
+   "loop": false,
+   "speed": 0.0
+  },
+  "Smash_B": {
+   "events": {
+    "hit": [
+     0.34,
+     0.5
+    ]
+   },
+   "length": 0.8667,
+   "loop": false,
+   "speed": 0.0
+  },
+  "Smash_Charge": {
+   "events": {},
+   "length": 0.6,
+   "loop": true,
+   "speed": 0.0
+  },
+  "Smash_Release": {
+   "events": {
+    "hit": [
+     0.26,
+     0.42
+    ],
+    "slam": 0.32
+   },
+   "length": 0.9,
+   "loop": false,
+   "speed": 0.0
+  },
+  "Spear_Idle": {
+   "events": {},
+   "length": 2.0,
+   "loop": true,
+   "speed": 0.0
+  },
+  "Spear_Lunge": {
+   "events": {
+    "hit": [
+     0.24,
+     0.48
+    ]
+   },
+   "length": 0.8333,
+   "loop": false,
+   "speed": 0.0
+  },
+  "Spear_Sweep": {
+   "events": {
+    "hit": [
+     0.22,
+     0.44
+    ]
+   },
+   "length": 0.7333,
+   "loop": false,
+   "speed": 0.0
+  },
+  "Spear_Thrust_A": {
+   "events": {
+    "hit": [
+     0.14,
+     0.27
+    ]
+   },
+   "length": 0.5,
+   "loop": false,
+   "speed": 0.0
+  },
+  "Spear_Thrust_B": {
+   "events": {
+    "hit": [
+     0.15,
+     0.29
+    ]
+   },
+   "length": 0.5333,
+   "loop": false,
+   "speed": 0.0
+  },
   "Sprint": {
    "events": {},
    "length": 0.5333,
@@ -315,6 +447,39 @@
    "length": 0.5333,
    "loop": true,
    "speed": 6.4
+  },
+  "Stab_A": {
+   "events": {
+    "hit": [
+     0.09,
+     0.17
+    ]
+   },
+   "length": 0.3,
+   "loop": false,
+   "speed": 0.0
+  },
+  "Stab_B": {
+   "events": {
+    "hit": [
+     0.09,
+     0.18
+    ]
+   },
+   "length": 0.3333,
+   "loop": false,
+   "speed": 0.0
+  },
+  "Stab_C": {
+   "events": {
+    "hit": [
+     0.14,
+     0.24
+    ]
+   },
+   "length": 0.4667,
+   "loop": false,
+   "speed": 0.0
   },
   "Stagger": {
    "events": {},
@@ -363,6 +528,36 @@
     "release": 0.3
    },
    "length": 0.6,
+   "loop": false,
+   "speed": 0.0
+  },
+  "Thrust": {
+   "events": {
+    "hit": [
+     0.08,
+     0.2
+    ]
+   },
+   "length": 0.4,
+   "loop": false,
+   "speed": 0.0
+  },
+  "Thrust_B": {
+   "events": {
+    "hit": [
+     0.09,
+     0.21
+    ]
+   },
+   "length": 0.4333,
+   "loop": false,
+   "speed": 0.0
+  },
+  "Toss": {
+   "events": {
+    "release": 0.16
+   },
+   "length": 0.4,
    "loop": false,
    "speed": 0.0
   },

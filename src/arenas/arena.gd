@@ -13,6 +13,8 @@ const GRID_SHADER := preload("res://src/arenas/grid.gdshader")
 var spawn_points: Array[Vector3] = []
 var spawner_points: Array[Vector3] = []
 var pickup_points: Array[Vector3] = []
+## Where the mystery crate drops (Vector3.INF = no crate here).
+var mystery_point := Vector3.INF
 var kill_y := -14.0
 var bounds := 34.0                 # half-size of the play area (camera, bots)
 var nav: NavigationRegion3D

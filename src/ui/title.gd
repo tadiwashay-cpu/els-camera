@@ -186,8 +186,9 @@ func _match_setup() -> Control:
 	_option(box, "Match time", times, MatchConfig.TIMES.find(int(cfg.minutes)), func(i: int) -> void: cfg.minutes = MatchConfig.TIMES[i])
 	_option(box, "Opponents", ["1 bot", "2 bots", "3 bots"], cfg.bots - 1, func(i: int) -> void: cfg.bots = i + 1)
 	_option(box, "Difficulty", ["Easy", "Normal", "Hard"], cfg.difficulty, func(i: int) -> void: cfg.difficulty = i)
-	_option(box, "Start with", ["Sword", "Fists"], 0 if cfg.start_weapon == &"sword" else 1,
-		func(i: int) -> void: cfg.start_weapon = &"sword" if i == 0 else &"fists")
+	var starts := [&"sword", &"random", &"fists"]
+	_option(box, "Start with", ["Sword", "Random weapon", "Fists"], maxi(starts.find(cfg.start_weapon), 0),
+		func(i: int) -> void: cfg.start_weapon = starts[i])
 	var targets := [0, 5, 10, 20]
 	_option(box, "Kill target", ["Off", "First to 5", "First to 10", "First to 20"], targets.find(cfg.kill_target),
 		func(i: int) -> void: cfg.kill_target = targets[i])

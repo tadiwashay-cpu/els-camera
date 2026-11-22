@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/weapons/weapon_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"frying_pan"
+display_name = "Frying Pan"
+family = "joke"
+kind = &"melee"
+rarity = &"common"
+light_moves = Array[StringName]([&"Slash_A", &"Slash_B", &"Slash_C"])
+knockdown_move = &"Slash_C"
+heavy_charge = &"Heavy_Charge"
+heavy_move = &"Heavy_Release"
+hit_sound = &"clang"
+strikers = {}
+hit_from = 0.15
+hit_to = 1.0
+hit_radius = 0.13
+base_damage = 12
+ref_speed = 8.5
+knockback = 9
+throw_damage = 20
+part_sizes = PackedVector3Array(0.04, 0.36, 0.03, 0.34, 0.34, 0.05, 0.28, 0.28, 0.055)
+part_centres = PackedVector3Array(0, 0.08, 0, 0, 0.44, 0, 0, 0.44, 0)
+part_colors = PackedColorArray(0.18, 0.15, 0.13, 1.0, 0.25, 0.26, 0.28, 1.0, 0.15, 0.15, 0.17, 1.0)
+part_yaws = PackedFloat32Array(0.0, 0.0, 0.0)

@@ -51,6 +51,8 @@ func _physics_process(_delta: float) -> void:
 	inp.block_held = Input.is_action_pressed(&"block")
 	if Input.is_action_just_pressed(&"power"):
 		inp.press(&"power")
+	if Input.is_action_just_pressed(&"swap"):
+		inp.press(&"swap")
 	if Input.is_action_just_pressed(&"jump"):
 		inp.press(&"jump")
 	if Input.is_action_just_pressed(&"throw"):

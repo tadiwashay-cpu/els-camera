@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/weapons/weapon_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"plasma_blade"
+display_name = "Plasma Blade"
+family = "blades"
+kind = &"melee"
+rarity = &"rare"
+light_moves = Array[StringName]([&"Slash_A", &"Slash_B", &"Slash_C"])
+knockdown_move = &"Slash_C"
+heavy_charge = &"Heavy_Charge"
+heavy_move = &"Heavy_Release"
+strikers = {}
+hit_from = 0.15
+hit_to = 1.0
+hit_radius = 0.13
+base_damage = 24
+ref_speed = 9
+knockback = 7
+throw_damage = 34
+glow = Color(0.3, 0.9, 1.0, 1)
+part_sizes = PackedVector3Array(0.05, 0.26, 0.05, 0.09, 0.05, 0.09, 0.06, 1.0, 0.06)
+part_centres = PackedVector3Array(0, 0, 0, 0, 0.14, 0, 0, 0.66, 0)
+part_colors = PackedColorArray(0.32, 0.34, 0.38, 1.0, 0.18, 0.15, 0.13, 1.0, 0.45, 0.95, 1.0, 1.0)
+part_yaws = PackedFloat32Array(0.0, 0.0, 0.0)

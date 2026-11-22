@@ -191,7 +191,10 @@ func _process(_delta: float) -> void:
 		_hp.value = player.health
 		_hp_fill.bg_color = Color(0.35, 0.95, 0.45).lerp(Color(1, 0.25, 0.2), 1.0 - player.health / player.max_health)
 		_hp_label.text = "%s   %d HP" % [player.display_name, int(ceil(player.health))]
-		_weapon_label.text = player.weapon_data.display_name.to_upper() if player.armed() else "UNARMED - find a weapon"
+		if player.armed():
+			_weapon_label.text = player.weapon_data.display_name.to_upper() + ("  x%d" % player.ammo if player.weapon_data.uses_ammo() else "")
+		else:
+			_weapon_label.text = "UNARMED - find a weapon"
 		var pw := player.powers
 		var info: Dictionary = FighterPowers.INFO[pw.power]
 		_power.value = pw.meter

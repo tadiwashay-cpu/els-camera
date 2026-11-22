@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/weapons/weapon_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"lollipop"
+display_name = "Giant Lollipop"
+family = "joke"
+kind = &"melee"
+rarity = &"common"
+light_moves = Array[StringName]([&"Smash_A", &"Smash_B"])
+knockdown_move = &"Smash_B"
+heavy_charge = &"Smash_Charge"
+heavy_move = &"Smash_Release"
+idle_clip = &"Heavy_Idle"
+strikers = {}
+hit_from = 0.45
+hit_to = 0.85
+hit_radius = 0.2
+slam_radius = 2.6
+move_speed = 0.88
+attack_speed = 0.95
+base_damage = 14
+ref_speed = 8
+knockback = 13
+throw_damage = 20
+part_sizes = PackedVector3Array(0.05, 1.0, 0.05, 0.52, 0.52, 0.1, 0.36, 0.08, 0.11, 0.36, 0.08, 0.11)
+part_centres = PackedVector3Array(0, 0.2, 0, 0, 0.9, 0, 0, 0.9, 0, 0, 0.9, 0)
+part_colors = PackedColorArray(0.95, 0.95, 0.95, 1.0, 1.0, 0.4, 0.7, 1.0, 0.95, 0.95, 0.95, 1.0, 0.5, 0.9, 1.0, 1.0)
+part_yaws = PackedFloat32Array(0.0, 0.0, 30, -30)
