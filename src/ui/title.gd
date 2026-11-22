@@ -2,6 +2,10 @@ extends Node3D
 ## Title screen: two block fighters squaring off on a plinth under an
 ## orbiting camera, the logo, and the Play / Settings panels.
 ##   Play -> match setup (time, bots, difficulty, weapon, kill target) -> loading screen -> match
+##   Armory -> buy and equip weapons (ArmoryScreen); a fighter shows the pick.
+
+const STARTS: Array[StringName] = [&"loadout", &"sword", &"random", &"fists"]
+const START_NAMES := ["Your weapon", "Sword", "Random (owned)", "Fists"]
 
 var _cam: Camera3D
 var _t := 0.0
@@ -11,7 +15,10 @@ var _setup: Control
 var _settings: Control
 var _mp: Control
 var _lobby: Control
+var _armory: ArmoryScreen
+var _bodies: Array[BlockBody] = []
 var _coins: Label
+var _version: Label
 var _mp_status: Label
 var _games_box: VBoxContainer
 var _lobby_players: VBoxContainer
@@ -68,6 +75,7 @@ func _build_world() -> void:
 		b.socket_r.add_child(w)
 		b.anim.play(&"Sword_Idle" if i == 0 else &"Heavy_Charge")
 		b.anim.seek(randf() * 1.5, true)
+		_bodies.append(b)
 	_cam = Camera3D.new()
 	_cam.fov = 45
 	add_child(_cam)
@@ -76,8 +84,19 @@ func _build_world() -> void:
 
 func _process(delta: float) -> void:
 	_t += delta * 0.18
-	_cam.position = Vector3(sin(_t) * 6.0, 2.0, cos(_t) * 6.0)
-	_cam.look_at(Vector3(0, 1.0, 0), Vector3.UP)
+	if _armory and _armory.visible:
+		# The Armory: one fighter, turning slowly, holding the selected weapon.
+		var b := _bodies[0]
+		b.rotation.y += delta * 0.5
+		_cam.position = b.position + Vector3(0, 1.3, 6.0)
+		_cam.look_at(b.position + Vector3(0, 1.0, 0), Vector3.UP)
+		_cam.h_offset = -1.8
+		_cam.v_offset = -0.95
+	else:
+		_cam.h_offset = 0.0
+		_cam.v_offset = 0.0
+		_cam.position = Vector3(sin(_t) * 6.0, 2.0, cos(_t) * 6.0)
+		_cam.look_at(Vector3(0, 1.0, 0), Vector3.UP)
 	if _coins:
 		_coins.text = "%d COINS" % int(Save.data["coins"])
 
@@ -98,7 +117,7 @@ func _build_ui() -> void:
 	_coins.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_ui.add_child(_coins)
 	var ver := Label.new()
-	ver.text = "v%s  ·  Phase 3 playtest" % Game.version()
+	ver.text = "v%s  ·  powers and Armory playtest" % Game.version()
 	ver.anchor_top = 1.0
 	ver.anchor_bottom = 1.0
 	ver.offset_left = 30
@@ -106,11 +125,16 @@ func _build_ui() -> void:
 	ver.add_theme_font_size_override(&"font_size", 22)
 	ver.modulate = Color(1, 1, 1, 0.6)
 	_ui.add_child(ver)
+	_version = ver
 	_main = _main_menu()
 	_setup = _match_setup()
 	_settings = _settings_panel()
 	_mp = _multiplayer_panel()
 	_lobby = _lobby_panel()
+	_armory = ArmoryScreen.new()
+	_ui.add_child(_armory)
+	_armory.back.connect(func() -> void: _show(_main))
+	_armory.selected.connect(_preview_weapon)
 	Net.lobby_changed.connect(_refresh_lobby)
 	Net.status_changed.connect(func(t: String) -> void: _mp_status.text = t)
 	Net.left.connect(func(reason: String) -> void:
@@ -140,9 +164,18 @@ func _panel(title: String) -> VBoxContainer:
 
 
 func _show(which: Control) -> void:
-	for c in [_main, _setup, _settings, _mp, _lobby]:
+	for c in [_main, _setup, _settings, _mp, _lobby, _armory]:
 		if c:
 			c.visible = c == which
+	if _version:
+		_version.visible = which != _armory
+	if _bodies.size() > 1:
+		_bodies[1].visible = which != _armory
+		if which != _armory:
+			_bodies[0].rotation.y = PI * 0.5
+			_preview_weapon(Registry.weapon(&"sword"))
+		else:
+			_preview_weapon(_armory.current)
 	if which == _mp:
 		Net.discovery.start_listening()
 		_refresh_games()
@@ -153,6 +186,27 @@ func _show(which: Control) -> void:
 		if c is Button and not (c as Button).disabled:
 			(c as Button).grab_focus.call_deferred()
 			break
+
+
+## The title fighter holds `w` (the Armory's pick) in its idle pose.
+func _preview_weapon(w: WeaponData) -> void:
+	if _bodies.is_empty() or w == null:
+		return
+	var b := _bodies[0]
+	for sock: BoneAttachment3D in [b.socket_r, b.socket_l]:
+		for c in sock.get_children():
+			c.queue_free()
+	if not w.is_fists():
+		var socks: Array[BoneAttachment3D] = [b.socket_l if w.hand == &"left" else b.socket_r]
+		if w.both_hands:
+			socks = [b.socket_r, b.socket_l]
+		for sock in socks:
+			var mi := MeshInstance3D.new()
+			mi.mesh = w.mesh()
+			sock.add_child(mi)
+	var clip: StringName = w.idle_clip if w.idle_clip != &"" else (&"Idle" if w.is_fists() else &"Sword_Idle")
+	if b.anim.current_animation != clip:
+		b.anim.play(clip, 0.2)
 
 
 func _main_menu() -> Control:
@@ -172,9 +226,9 @@ func _main_menu() -> Control:
 	var mp := UiTheme.big_button("MULTIPLAYER")
 	mp.pressed.connect(func() -> void: _show(_mp))
 	box.add_child(mp)
-	var cust := UiTheme.big_button("CUSTOMIZE  (soon)")
-	cust.disabled = true
-	box.add_child(cust)
+	var arm := UiTheme.big_button("ARMORY")
+	arm.pressed.connect(func() -> void: _show(_armory))
+	box.add_child(arm)
 	var st := UiTheme.big_button("SETTINGS")
 	st.pressed.connect(func() -> void: _show(_settings))
 	box.add_child(st)
@@ -209,11 +263,13 @@ func _match_setup() -> Control:
 	for m in MatchConfig.TIMES:
 		times.append("%d min" % m)
 	_option(box, "Match time", times, MatchConfig.TIMES.find(int(cfg.minutes)), func(i: int) -> void: cfg.minutes = MatchConfig.TIMES[i])
-	_option(box, "Opponents", ["1 bot", "2 bots", "3 bots"], cfg.bots - 1, func(i: int) -> void: cfg.bots = i + 1)
+	var bot_counts: Array = []
+	for n in range(1, Match.MAX_FIGHTERS):
+		bot_counts.append("%d bot%s" % [n, "" if n == 1 else "s"])
+	_option(box, "Opponents", bot_counts, clampi(cfg.bots - 1, 0, bot_counts.size() - 1), func(i: int) -> void: cfg.bots = i + 1)
 	_option(box, "Difficulty", ["Easy", "Normal", "Hard"], cfg.difficulty, func(i: int) -> void: cfg.difficulty = i)
-	var starts := [&"sword", &"random", &"fists"]
-	_option(box, "Start with", ["Sword", "Random weapon", "Fists"], maxi(starts.find(cfg.start_weapon), 0),
-		func(i: int) -> void: cfg.start_weapon = starts[i])
+	_option(box, "Start with", START_NAMES, maxi(STARTS.find(cfg.start_weapon), 0),
+		func(i: int) -> void: cfg.start_weapon = STARTS[i])
 	var targets := [0, 5, 10, 20]
 	_option(box, "Kill target", ["Off", "First to 5", "First to 10", "First to 20"], targets.find(cfg.kill_target),
 		func(i: int) -> void: cfg.kill_target = targets[i])
@@ -417,7 +473,10 @@ func _build_lobby_options() -> void:
 		times.append("%d min" % mins)
 	_option(_lobby_opts, "Match time", times, maxi(MatchConfig.TIMES.find(int(round(float(s.get("minutes", 3.0))))), 0),
 		func(i: int) -> void: Net.set_setting("minutes", float(MatchConfig.TIMES[i])))
-	_option(_lobby_opts, "Bots", ["None", "1 bot", "2 bots", "3 bots"], clampi(int(s.get("bots", 1)), 0, 3),
+	var bot_counts: Array = ["None"]
+	for n in range(1, Match.MAX_FIGHTERS):
+		bot_counts.append("%d bot%s" % [n, "" if n == 1 else "s"])
+	_option(_lobby_opts, "Bots", bot_counts, clampi(int(s.get("bots", 1)), 0, Match.MAX_FIGHTERS - 1),
 		func(i: int) -> void: Net.set_setting("bots", i))
 	_option(_lobby_opts, "Bot skill", ["Easy", "Normal", "Hard"], clampi(int(s.get("difficulty", 1)), 0, 2),
 		func(i: int) -> void: Net.set_setting("difficulty", i))
@@ -429,9 +488,8 @@ func _build_lobby_options() -> void:
 	names.append("Random")
 	_option(_lobby_opts, "Arena", names, maxi(ids.find(StringName(str(s.get("arena_choice", "blockout_yard")))), 0),
 		func(i: int) -> void: Net.set_setting("arena_choice", String(ids[i])))
-	var starts := ["sword", "random", "fists"]
-	_option(_lobby_opts, "Start with", ["Sword", "Random weapon", "Fists"], maxi(starts.find(str(s.get("start_weapon", "sword"))), 0),
-		func(i: int) -> void: Net.set_setting("start_weapon", starts[i]))
+	_option(_lobby_opts, "Start with", START_NAMES, maxi(STARTS.find(StringName(str(s.get("start_weapon", "loadout")))), 0),
+		func(i: int) -> void: Net.set_setting("start_weapon", String(STARTS[i])))
 	_option(_lobby_opts, "Hazards", ["On", "Off"], 0 if bool(s.get("hazards", true)) else 1,
 		func(i: int) -> void: Net.set_setting("hazards", i == 0))
 

@@ -22,11 +22,12 @@ var discovery: LanDiscovery
 var active := false
 var is_host := false
 var in_match := false
-## peer id -> {"name", "power", "skin"}
+## peer id -> {"name", "power", "skin", "owned", "loadout"}
 var players: Dictionary = {}
 ## Host's match settings, mirrored to everyone in the lobby.
 var settings: Dictionary = {}
-## The fighters of the match being played: [{"id", "name", "skin", "peer", "power"}].
+## The fighters of the match being played: [{"id", "name", "skin", "peer", "power",
+## "owned" (Armory weapons; bots: none, meaning any), "loadout"}].
 var roster: Array = []
 ## The NetSync of the running match (it handles snapshots, inputs, events).
 var sync: NetSync
@@ -67,7 +68,8 @@ func host(player_name: String, power: StringName) -> Error:
 	multiplayer.multiplayer_peer = peer
 	active = true
 	is_host = true
-	players = {1: {"name": player_name, "power": String(power), "skin": 0}}
+	players = {1: {"name": player_name, "power": String(power), "skin": 0,
+		"owned": Array(Armory.owned()), "loadout": String(Armory.equipped())}}
 	settings = _settings_from(Game.match_config)
 	discovery.start_broadcast(_announce())
 	_set_status("Hosting on %s" % ", ".join(local_ips()))
@@ -126,7 +128,8 @@ func set_setting(key: String, value: Variant) -> void:
 
 func _on_connected() -> void:
 	var hello: Dictionary = get_meta("pending_hello", {})
-	_hello.rpc_id(1, str(hello.get("name", "Player")), str(hello.get("power", "rage")), Game.version())
+	_hello.rpc_id(1, str(hello.get("name", "Player")), str(hello.get("power", "rage")), Game.version(),
+		Array(Armory.owned()), String(Armory.equipped()))
 	_set_status("Connected, waiting for the host")
 
 
@@ -187,7 +190,7 @@ func _sorted_ids() -> Array:
 
 
 @rpc("any_peer", "reliable")
-func _hello(player_name: String, power: String, version: String) -> void:
+func _hello(player_name: String, power: String, version: String, owned: Array = [], loadout: String = "sword") -> void:
 	if not is_host:
 		return
 	var id := multiplayer.get_remote_sender_id()
@@ -197,7 +200,9 @@ func _hello(player_name: String, power: String, version: String) -> void:
 	if players.size() >= MAX_PLAYERS or in_match:
 		_refused.rpc_id(id, "That game is full or already playing")
 		return
-	players[id] = {"name": player_name.substr(0, 16), "power": power, "skin": 0}
+	var locker := Armory.clean_locker(owned)
+	players[id] = {"name": player_name.substr(0, 16), "power": power, "skin": 0,
+		"owned": Array(locker), "loadout": loadout if locker.has(loadout) else "sword"}
 	_push_lobby()
 
 
@@ -223,14 +228,18 @@ func start_match() -> void:
 	var fid := 0
 	for id: int in _sorted_ids():
 		var p: Dictionary = players[id]
-		roster.append({"id": fid, "name": p["name"], "skin": int(p["skin"]), "peer": id, "power": p["power"]})
+		roster.append({"id": fid, "name": p["name"], "skin": int(p["skin"]), "peer": id, "power": p["power"],
+			"owned": p.get("owned", ["sword", "fists"]), "loadout": str(p.get("loadout", "sword"))})
 		fid += 1
-	var bots := clampi(int(settings.get("bots", 1)), 0, MAX_PLAYERS - roster.size())
+	var bots := clampi(int(settings.get("bots", 1)), 0, Match.MAX_FIGHTERS - roster.size())
 	if roster.size() == 1:
 		bots = maxi(bots, 1)
 	for b in bots:
+		var rng := RandomNumberGenerator.new()
+		rng.randomize()
 		roster.append({"id": fid, "name": Match.BOT_NAMES[b % Match.BOT_NAMES.size()], "skin": fid, "peer": 0,
-			"power": String(FighterPowers.IDS[(fid * 2 + randi()) % FighterPowers.IDS.size()])})
+			"power": String(FighterPowers.IDS[(fid * 2 + randi()) % FighterPowers.IDS.size()]),
+			"loadout": String(Match.bot_loadout(rng))})
 		fid += 1
 	var s := settings.duplicate()
 	s["arena_id"] = String(Registry.pick_arena(StringName(str(s.get("arena_choice", "blockout_yard")))).id)
@@ -352,7 +361,7 @@ static func _apply_settings(c: MatchConfig, s: Dictionary) -> void:
 	c.difficulty = int(s.get("difficulty", 1))
 	c.arena_choice = StringName(str(s.get("arena_choice", "blockout_yard")))
 	c.arena_id = StringName(str(s.get("arena_id", "blockout_yard")))
-	c.start_weapon = StringName(str(s.get("start_weapon", "sword")))
+	c.start_weapon = StringName(str(s.get("start_weapon", "loadout")))
 	c.hazards = bool(s.get("hazards", true))
 	c.kill_target = int(s.get("kill_target", 0))
 	c.pickups = bool(s.get("pickups", true))

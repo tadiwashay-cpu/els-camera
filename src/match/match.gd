@@ -7,7 +7,9 @@ extends Node3D
 
 signal ready_to_play
 
-const BOT_NAMES := ["Rook", "Vex", "Bolt", "Juno"]
+const BOT_NAMES := ["Rook", "Vex", "Bolt", "Juno", "Kite", "Nova", "Brick", "Pixel"]
+## Most fighters in a match (you + 8 bots, or 4 phones + bots).
+const MAX_FIGHTERS := 9
 const RESPAWN_DELAY := 3.0
 
 var config: MatchConfig
@@ -149,11 +151,17 @@ func _spawn_fighters() -> void:
 	if Net.active and not Net.roster.is_empty():
 		entries = Net.roster
 	else:
-		var count := 1 + clampi(config.bots, 1, 3)
+		var count := 1 + clampi(config.bots, 1, MAX_FIGHTERS - 1)
 		for i in count:
-			entries.append({"id": i, "name": str(Save.setting("player_name")) if i == 0 else BOT_NAMES[(i - 1) % BOT_NAMES.size()],
+			var e := {"id": i, "name": str(Save.setting("player_name")) if i == 0 else BOT_NAMES[(i - 1) % BOT_NAMES.size()],
 				"skin": i, "peer": 1 if i == 0 else 0,
-				"power": String(config.power if i == 0 else FighterPowers.IDS[(i * 2 + _rng.randi()) % FighterPowers.IDS.size()])})
+				"power": String(config.power if i == 0 else FighterPowers.IDS[(i * 2 + _rng.randi()) % FighterPowers.IDS.size()])}
+			if i == 0:
+				e["owned"] = Armory.owned()
+				e["loadout"] = String(Armory.equipped())
+			else:
+				e["loadout"] = String(bot_loadout(_rng))
+			entries.append(e)
 	var me := Net.my_id()
 	for e: Dictionary in entries:
 		var i := int(e["id"])
@@ -165,11 +173,17 @@ func _spawn_fighters() -> void:
 		f.display_name = str(e["name"])
 		f.skin = Registry.skin(int(e["skin"]))
 		f.world = self
-		f.weapon_data = start_weapon()
+		f.set_locker(e.get("owned", []))
+		f.loadout = StringName(str(e.get("loadout", "")))
+		f.weapon_data = start_weapon(f)
 		f.powers.power = StringName(str(e["power"]))
 		f.set_meta("peer", peer)
 		add_child(f)
-		var spot: Vector3 = starts[(i * 3) % starts.size()]
+		# Spread the start: every spawn point once, then rings around them.
+		var spot: Vector3 = starts[(i * 3) % starts.size()] if entries.size() <= starts.size() else starts[i % starts.size()]
+		var lap := i / starts.size()
+		if lap > 0:
+			spot += Vector3(cos(i * 2.1), 0, sin(i * 2.1)) * 1.6 * lap
 		f.global_position = spot
 		var to_centre := -spot
 		f.rotation.y = atan2(to_centre.x, to_centre.z)
@@ -218,9 +232,12 @@ func _physics_process(delta: float) -> void:
 		# A joiner: the host's snapshots move everything; the arena's looks
 		# (water, gulls, neon) still run here.
 		arena.tick(self, delta)
+		var near: WeaponData = net.pickup_near(player.global_position, 1.3) if net and player.alive else null
+		hud.set_locked(near if near != null and not player.can_use(near) else null)
 		if touch.visible:
 			touch.set_power_ready(player.powers.ready_to_use())
-			touch.set_swap(player.armed() and player.alive and net != null and net.pickup_near(player.global_position, 1.3))
+			touch.set_swap(player.armed() and near != null and player.can_use(near))
+			_touch_skill()
 		return
 	clock += delta
 	for ev in race.tick(delta):
@@ -257,9 +274,14 @@ func _physics_process(delta: float) -> void:
 		_end_bullet_time()
 	killcam.record(clock)
 	if touch.visible:
-		touch.set_catch_hint(incoming_projectile(player, 0.6) != null)
+		var incoming := incoming_projectile(player, 0.6)
+		touch.set_catch_hint(incoming != null and incoming.data.catchable and player.can_use(incoming.data))
 		touch.set_power_ready(player.powers.ready_to_use())
-		touch.set_swap(player.armed() and player.state == Fighter.State.MOVE and pickup_near(player.global_position, 1.3) != null)
+		touch.set_swap(player.armed() and player.state == Fighter.State.MOVE and pickup_near(player.global_position, 1.3, player) != null)
+		_touch_skill()
+	if player:
+		var locked := pickup_near(player.global_position, 1.3) if player.alive else null
+		hud.set_locked(locked.data if locked and not player.can_use(locked.data) else null)
 
 
 func _tick_powerups() -> void:
@@ -445,6 +467,48 @@ func hazard_kill(f: Fighter, cause: String, impulse: Vector3 = Vector3.ZERO) -> 
 	f.die(null, impulse)
 
 
+## The SKILL button: the power's colour, its cooldown ring.
+func _touch_skill() -> void:
+	var s := WeaponSkills.info(player.skill_id())
+	if s.is_empty():
+		touch.set_skill(Color(0.4, 0.4, 0.45), 0.0, "")
+		return
+	var left := player.skill_left()
+	touch.set_skill(s["color"], 1.0 - clampf(left / float(s["cd"]), 0.0, 1.0), str(s["name"]))
+
+
+## Things about to hit `f` within `horizon` seconds (danger sense):
+## [{"id", "pos", "t"}]. Works on the host and on joiners (from mirrors).
+func threats_to(f: Fighter, horizon: float) -> Array:
+	var out: Array = []
+	var me := f.global_position + Vector3.UP * 1.1
+	if authority:
+		for p in projectiles:
+			if is_instance_valid(p) and p.harmful and p.thrower != f:
+				_add_threat(out, p.get_instance_id(), p.global_position, p.velocity, me, horizon)
+		for c in get_children():
+			var b := c as Bolt
+			if b and b.owner_fighter != f:
+				_add_threat(out, b.get_instance_id(), b.global_position, b.velocity, me, horizon)
+	elif net:
+		for item: Array in net.flying():
+			_add_threat(out, item[0], item[1], item[2], me, horizon)
+	return out
+
+
+func _add_threat(out: Array, id: Variant, pos: Vector3, vel: Vector3, me: Vector3, horizon: float) -> void:
+	var speed2 := vel.length_squared()
+	if speed2 < 4.0:
+		return
+	var to := me - pos
+	var t := to.dot(vel) / speed2
+	if t <= 0.0 or t > horizon:
+		return
+	if (to - vel * t).length() > 1.3:
+		return                         # it'll miss
+	out.append({"id": id, "pos": pos, "t": t})
+
+
 ## Something blew up (a barrel, a bomb): blast everyone and everything
 ## nearby (the kill goes to whoever set it off; nearby barrels chain).
 func explode(at: Vector3, by: Fighter, radius: float = 5.0) -> void:
@@ -549,7 +613,7 @@ func _results(winner: Fighter) -> void:
 		var f := fighter_by_id(id)
 		rows.append([f.display_name, "%d kills" % int(race.scores[id]), f.body.skin.shirt.lightened(0.35)])
 	var my_kills: int = maxi(int(race.scores.get(player.fighter_id, 0)), 0)
-	var coins := my_kills * 10 + (50 if winner == player else 0) + 5
+	var coins := Armory.match_coins(my_kills, winner == player)
 	Save.add_coins(coins)
 	Save.add_stat("matches")
 	if winner == player:
@@ -656,7 +720,7 @@ func incoming_projectile(f: Fighter, horizon: float) -> ThrownWeapon:
 	var best: ThrownWeapon
 	var best_t := horizon
 	for p in projectiles:
-		if not is_instance_valid(p) or not p.harmful or p.thrower == f:
+		if not is_instance_valid(p) or not p.harmful or p.thrower == f or p.phantom:
 			continue
 		var t := p.time_to(f)
 		if t <= best_t and p.global_position.distance_to(f.global_position + Vector3.UP) < 14.0:
@@ -677,6 +741,13 @@ func catch_projectile(p: ThrownWeapon, _by: Fighter) -> void:
 func projectile_landed(p: ThrownWeapon, at: Vector3) -> void:
 	projectiles.erase(p)
 	var by := p.thrower if p.thrower and is_instance_valid(p.thrower) else null
+	if p.warp and by and by.alive:
+		by.global_position = at + Vector3.UP * 0.1
+		Fx.burst(self, at + Vector3.UP, Color(0.6, 0.35, 0.9))
+	if p.phantom and not p.data.explosive:
+		Fx.dust(self, at, 0.4)
+		p.queue_free()
+		return
 	if p.data.explosive:
 		explode(at, by, 4.0)
 	elif p.data.ignites:
@@ -698,10 +769,13 @@ func drop_pickup(data: WeaponData, at: Vector3, vel: Vector3, ammo_left: int = -
 	return pick
 
 
-func pickup_near(pos: Vector3, radius: float) -> WeaponPickup:
+## A weapon on the ground within `radius`; with `for_fighter`, only one
+## that fighter may hold (Armory).
+func pickup_near(pos: Vector3, radius: float, for_fighter: Fighter = null) -> WeaponPickup:
 	for p in pickups:
 		if is_instance_valid(p) and p.can_take() and p.global_position.distance_to(pos + Vector3.UP * 0.6) <= radius:
-			return p
+			if for_fighter == null or for_fighter.can_use(p.data):
+				return p
 	return null
 
 
@@ -795,11 +869,26 @@ func aim_assist_target(f: Fighter, strength: float) -> Fighter:
 
 ## What a fighter (re)spawns holding: the setup's choice, or a random
 ## common weapon when it's "random".
-func start_weapon() -> WeaponData:
-	if config.start_weapon == &"random":
-		var pool := Registry.weapon_pool(false)
-		return pool[_rng.randi() % pool.size()]
+## What `f` starts each life with, by the match's "Start with" setting:
+## its own pick (loadout), a random weapon it may hold, the sword or fists.
+func start_weapon(f: Fighter = null) -> WeaponData:
+	match config.start_weapon:
+		&"random":
+			var pool: Array[WeaponData] = []
+			for w in Registry.weapon_pool(false):
+				if f == null or f.can_use(w):
+					pool.append(w)
+			return pool[_rng.randi() % pool.size()] if not pool.is_empty() else Registry.weapon(&"sword")
+		&"loadout":
+			var w := Registry.weapon(f.loadout) if f and f.loadout != &"" else null
+			return w if w and f.can_use(w) else Registry.weapon(&"sword")
 	return Registry.weapon(config.start_weapon)
+
+
+## A bot's own weapon for "Your weapon" matches: any common one, now and then a rare.
+static func bot_loadout(rng: RandomNumberGenerator) -> StringName:
+	var pool := Registry.weapon_pool(rng.randf() < 0.15)
+	return pool[rng.randi() % pool.size()].id if not pool.is_empty() else &"sword"
 
 
 func fighter_by_id(id: int) -> Fighter:

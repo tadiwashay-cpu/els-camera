@@ -12,6 +12,7 @@ const ARENAS := ["res://src/arenas/data/blockout_yard.tres", "res://src/arenas/d
 var weapons: Dictionary = {}
 var skins: Array[SkinData] = []
 var arenas: Dictionary = {}
+var _variants: Dictionary = {}
 
 
 func _ready() -> void:
@@ -46,7 +47,20 @@ func weapon_pool(rare: bool) -> Array[WeaponData]:
 
 
 func skin(index: int) -> SkinData:
-	return skins[posmod(index, skins.size())]
+	if index < skins.size():
+		return skins[posmod(index, skins.size())]
+	# More fighters than skins: the same outfits with new colours.
+	var key := "variant_%d" % index
+	if not _variants.has(key):
+		var base := skins[index % skins.size()]
+		var v := base.duplicate() as SkinData
+		var shift := 0.13 + 0.21 * float(index / skins.size())
+		for prop: String in ["shirt", "sleeve", "trail", "pants"]:
+			var c: Color = v.get(prop)
+			v.set(prop, Color.from_hsv(fmod(c.h + shift, 1.0), c.s, c.v))
+		v.id = StringName(key)
+		_variants[key] = v
+	return _variants[key]
 
 
 func arena(id: StringName) -> ArenaData:

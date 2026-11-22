@@ -86,6 +86,8 @@ func _build() -> void:
 	_add("kill", [_notes([783.99, 1174.66, 1567.98], 0.08, 0.55)])
 	_add("ui_click", [_chirp(0.03, 2200.0, 1800.0, 0.35, false)])
 	_add("ui_confirm", [_notes([880.0, 1318.5], 0.06, 0.4)])
+	_add("ui_back", [_notes([660.0, 440.0], 0.06, 0.35)])
+	_add("buy", [_notes([1318.5, 1568.0, 2093.0], 0.06, 0.45)])
 	_add("beep", [_notes([880.0], 0.13, 0.45)])
 	_add("go", [_notes([1318.5], 0.4, 0.5)])
 	_add("tick", [_chirp(0.025, 3000.0, 2600.0, 0.3, false)])
@@ -102,6 +104,7 @@ func _build() -> void:
 	_add("clunk", [_metal(0.5, [180.0, 410.0, 760.0, 1210.0])])
 	_add("shot", [_crash(0.35, 5000.0, 0.9, false)])
 	_add("zap", [_zap(0.45)])
+	_add("tingle", [_notes([2093.0, 2637.0, 3136.0, 4186.0], 0.035, 0.32)])
 	_add("strum", [_notes([196.0, 246.9, 293.7, 392.0], 0.05, 0.5)])
 	# Recorded replacements win where present.
 	for sound_name: String in _streams.keys():

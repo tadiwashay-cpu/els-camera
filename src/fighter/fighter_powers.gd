@@ -25,6 +25,9 @@ const PICKUPS := {
 ## Statuses weapons put on you.
 const STATUS := {
 	&"chill": {"name": "CHILLED", "color": Color(0.55, 0.85, 1.0)},
+	&"overclock": {"name": "OVERCLOCK", "color": Color(1.0, 0.5, 0.2)},
+	&"bulwark": {"name": "BULWARK", "color": Color(0.45, 0.7, 1.0)},
+	&"overdrive": {"name": "OVERDRIVE", "color": Color(1.0, 0.35, 0.75)},
 }
 
 const FULL := 100.0
@@ -87,10 +90,14 @@ func damage_dealt_mult() -> float:
 		m *= 2.0
 	if has(&"damage"):
 		m *= 2.0
+	if has(&"overclock"):
+		m *= 1.3
 	return minf(m, 2.5)
 
 
 func damage_taken_mult() -> float:
+	if has(&"bulwark"):
+		return 0.15
 	return 0.3 if has(&"iron_skin") else 1.0
 
 

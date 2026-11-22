@@ -1,5 +1,6 @@
 extends Node
-## Dev: screenshots of the Multiplayer screen and the host's lobby.
+## Dev: screenshots of the Armory (a locked and an owned weapon), the
+## Multiplayer screen and the host's lobby.
 ##   xvfb-run -a godot --path . --resolution 1600x1000 res://tools/capture/lobby_shots.tscn -- OUT_DIR
 
 func _shot(out: String, n: String) -> void:
@@ -14,6 +15,18 @@ func _ready() -> void:
 	var title := (load(Game.TITLE_SCENE) as PackedScene).instantiate()
 	add_child(title)
 	await get_tree().create_timer(0.8).timeout
+	var armory: ArmoryScreen = title.get(&"_armory")
+	title.call(&"_show", armory)
+	await get_tree().create_timer(1.5).timeout
+	armory.call(&"_select", Registry.weapon(&"thunderbolt"))
+	await get_tree().create_timer(0.6).timeout
+	await _shot(out, "armory_locked")
+	armory.call(&"_select", Registry.weapon(&"sword"))
+	await get_tree().create_timer(0.6).timeout
+	await _shot(out, "armory_owned")
+	armory.call(&"_select", Registry.weapon(&"bazooka"))
+	await get_tree().create_timer(0.6).timeout
+	await _shot(out, "armory_bazooka")
 	title.call(&"_show", title.get(&"_mp"))
 	await get_tree().create_timer(1.5).timeout
 	await _shot(out, "mp_menu")

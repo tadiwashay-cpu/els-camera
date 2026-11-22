@@ -35,6 +35,8 @@ var _effects: Label
 var _tint: ColorRect
 var _hp_fill: StyleBoxFlat
 var _water: Label
+var _locked: Label
+var _locked_id: StringName = &""
 
 
 func _ready() -> void:
@@ -86,6 +88,10 @@ func _ready() -> void:
 	_weapon_label.modulate = Color(1, 1, 1, 0.8)
 	hp_box.add_child(_weapon_label)
 
+	var danger := DangerIndicator.new()
+	danger.match_node = match_node
+	_root.add_child(danger)
+
 	# In-the-water warning (upper centre, under the timer).
 	_water = UiTheme.title("IN THE WATER!  JUMP ONTO SOMETHING", 30, Color(0.45, 0.85, 1.0))
 	_water.anchor_left = 0.5
@@ -95,6 +101,19 @@ func _ready() -> void:
 	_water.offset_top = 150
 	_water.visible = false
 	_root.add_child(_water)
+
+	# Standing on a weapon this player hasn't bought (lower centre).
+	_locked = UiTheme.title("", 28, Color(1.0, 0.8, 0.35))
+	_locked.anchor_left = 0.5
+	_locked.anchor_right = 0.5
+	_locked.anchor_top = 1.0
+	_locked.anchor_bottom = 1.0
+	_locked.offset_left = -560
+	_locked.offset_right = 560
+	_locked.offset_top = -250
+	_locked.offset_bottom = -200
+	_locked.visible = false
+	_root.add_child(_locked)
 
 	# Timer (top centre)
 	_timer = UiTheme.title("3:00", 64)
@@ -202,10 +221,15 @@ func _process(_delta: float) -> void:
 		_hp.value = player.health
 		_hp_fill.bg_color = Color(0.35, 0.95, 0.45).lerp(Color(1, 0.25, 0.2), 1.0 - player.health / player.max_health)
 		_hp_label.text = "%s   %d HP" % [player.display_name, int(ceil(player.health))]
+		var sk := WeaponSkills.info(player.skill_id())
+		var power := ""
+		if not sk.is_empty():
+			var left := player.skill_left()
+			power = "   %s %s" % [str(sk["name"]).to_upper(), "READY" if left <= 0.0 else "%ds" % int(ceil(left))]
 		if player.armed():
-			_weapon_label.text = player.weapon_data.display_name.to_upper() + ("  x%d" % player.ammo if player.weapon_data.uses_ammo() else "")
+			_weapon_label.text = player.weapon_data.display_name.to_upper() + ("  x%d" % player.ammo if player.weapon_data.uses_ammo() else "") + power
 		else:
-			_weapon_label.text = "UNARMED - find a weapon"
+			_weapon_label.text = "UNARMED - find a weapon" + power
 		var pw := player.powers
 		var info: Dictionary = FighterPowers.INFO[pw.power]
 		_power.value = pw.meter
@@ -293,6 +317,17 @@ func callout(text: String, color: Color = Color.WHITE, small: String = "", hold:
 		_center_tween.tween_interval(hold)
 		_center_tween.tween_property(_center, "modulate:a", 0.0, 0.3)
 		_center_tween.parallel().tween_property(_small, "modulate:a", 0.0, 0.3)
+
+
+## Shows that the weapon underfoot is locked (not bought), or hides it (null).
+func set_locked(w: WeaponData) -> void:
+	var id: StringName = w.id if w else &""
+	if id == _locked_id:
+		return
+	_locked_id = id
+	_locked.visible = w != null
+	if w:
+		_locked.text = "LOCKED: %s  ·  RANK %s  ·  %d COINS IN THE ARMORY" % [w.display_name.to_upper(), w.tier, Armory.price(w)]
 
 
 func set_small(text: String) -> void:

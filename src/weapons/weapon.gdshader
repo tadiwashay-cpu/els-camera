@@ -7,6 +7,8 @@ shader_type spatial;
 
 varying vec3 col;
 varying float finish;
+// A weapon power ready to use: a pulsing glow in its colour (alpha = strength).
+instance uniform vec4 charge : source_color = vec4(0.0);
 
 void vertex() {
 	vec3 c = COLOR.rgb;
@@ -21,5 +23,5 @@ void fragment() {
 	METALLIC = metal * 0.75;
 	ROUGHNESS = mix(0.7, 0.26, metal);
 	SPECULAR = mix(0.35, 0.8, metal);
-	EMISSION = col * emit * 2.2;
+	EMISSION = col * emit * 2.2 + charge.rgb * charge.a * (0.35 + 0.65 * emit + 0.4 * metal);
 }

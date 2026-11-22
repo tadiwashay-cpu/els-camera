@@ -160,7 +160,7 @@ const _KEYS := {
 	&"move_forward": [KEY_W, KEY_UP], &"move_back": [KEY_S, KEY_DOWN],
 	&"sprint": [KEY_SHIFT], &"attack": [KEY_J], &"jump": [KEY_SPACE], &"throw": [KEY_K],
 	&"dodge": [KEY_L, KEY_CTRL], &"lock_on": [KEY_Q, KEY_TAB], &"pause": [KEY_ESCAPE, KEY_P],
-	&"block": [KEY_F], &"power": [KEY_E], &"swap": [KEY_R],
+	&"block": [KEY_F], &"power": [KEY_E], &"swap": [KEY_R], &"skill": [KEY_C, KEY_G],
 	&"look_left": [], &"look_right": [], &"look_up": [], &"look_down": [],
 }
 const _PAD_BUTTONS := {
@@ -174,6 +174,7 @@ const _PAD_AXES := {
 	&"look_left": [JOY_AXIS_RIGHT_X, -1.0], &"look_right": [JOY_AXIS_RIGHT_X, 1.0],
 	&"look_up": [JOY_AXIS_RIGHT_Y, -1.0], &"look_down": [JOY_AXIS_RIGHT_Y, 1.0],
 	&"power": [JOY_AXIS_TRIGGER_RIGHT, 1.0],
+	&"skill": [JOY_AXIS_TRIGGER_LEFT, 1.0],
 }
 
 

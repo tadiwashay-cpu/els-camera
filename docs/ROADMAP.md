@@ -66,6 +66,12 @@ Next (after the two-phone test):
 - [ ] **Gate:** two phones on a hotspot finish a match with no desync
 
 ## Phase 4: Content and progression
+- [x] 0.4.0: a power for every weapon (SKILL button), throwable or not per weapon, up to 8 bots,
+      higher jumps, danger sense for incoming throws, arm clipping fixed
+- [x] 0.4.0: the Armory: buy weapons by rank with coins, equip one to start with; locked weapons
+      can't be picked up or caught; bigger coin rewards and a welcome bonus
+- [ ] 0.4.x: curved weapon models from Blender, a bigger shield with its own moves
+- [ ] 0.4.x: realistic lighting and feel (post effects, camera, particles), bigger maps with twists
 - [ ] Deep Forest, Abyss Submarine Base; 48 more weapons; all 12 powers
 - [ ] Skins and customize screen, coins and unlocks, music, survival waves
 - [ ] **Gate:** 30 minutes of solo play without running out of things to do

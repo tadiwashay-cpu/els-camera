@@ -1,16 +1,19 @@
 extends SceneTree
 ## Dev tool: renders a contact sheet of fighter moves (rows = moves,
 ## columns = evenly spaced frames, two camera angles).
-##   xvfb-run godot --path . --script res://tools/capture/move_sheet.gd -- OUT.png Move1,Move2 [columns]
+##   xvfb-run godot --path . --script res://tools/capture/move_sheet.gd -- OUT.png Move1,Move2 [columns] [cell px] [front]
+## "front" uses a straight-on front view and a top view (for arm clipping).
 
 const GLB := "res://assets/fighters/block_fighter.glb"
-const CELL := 220
+var CELL := 220
 
 func _initialize() -> void:
 	var args := OS.get_cmdline_user_args()
 	var out: String = args[0]
 	var names: PackedStringArray = args[1].split(",")
 	var cols := int(args[2]) if args.size() > 2 else 6
+	CELL = int(args[3]) if args.size() > 3 else 220
+	var front := args.size() > 4 and args[4] == "front"
 	var vp := SubViewport.new()
 	vp.size = Vector2i(CELL, CELL)
 	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
@@ -83,9 +86,9 @@ func _initialize() -> void:
 		var length := anim.get_animation(clip).length
 		for view in 2:
 			if view == 0:
-				cam.position = Vector3(2.6, 1.5, 3.6)   # front three-quarter (fighter faces +Z)
+				cam.position = Vector3(0.0, 1.25, 2.6) if front else Vector3(2.6, 1.5, 3.6)   # front three-quarter (fighter faces +Z)
 			else:
-				cam.position = Vector3(4.4, 1.2, 0.0)   # from the fighter's left side
+				cam.position = Vector3(0.01, 4.0, 0.3) if front else Vector3(4.4, 1.2, 0.0)   # from the fighter's left side
 			cam.look_at_from_position(cam.position, Vector3(0, 0.95, 0))
 			for c in cols:
 				var t := length * float(c) / float(max(cols - 1, 1))

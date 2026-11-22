@@ -4,6 +4,43 @@ Versions are `MAJOR.MINOR.PATCH`; the number lives in `project.godot`
 (`config/version`) and shows on the title screen and next to the FPS counter.
 Bump MINOR for a phase or batch of features, PATCH for fixes.
 
+## 0.4.0: Weapon powers, the Armory, 8 bots
+
+- **Every weapon has its own power** (48 in all, original): the SKILL
+  button (keyboard C or G, gamepad LT) fires it, then it recharges (5 to
+  14 s). The weapon glows in the power's colour when it's ready, and the
+  HUD shows its name and READY or the seconds left. Powers are built from
+  a few effects mixed per weapon: flying waves, dashes, teleports behind a
+  target, pulls, blasts, leaping slams, spins, lightning storms, volleys,
+  rains from the sky, ghost throws, a reflecting barrier and buffs (faster
+  swings, free shots, a sugar-rush heal). Bots use them too. Online, the
+  host runs them and every phone sees the same effects.
+- **Not every weapon can be thrown**: 26 heavy, ranged and two-handed
+  weapons stay in your hands (THROW does nothing with them). Thrown
+  weapons and light blades still fly.
+- **The Armory** (title screen): weapons are bought with coins before you
+  can use them, priced by rank: S+ 1500, S 1000, A 600, B 350, C 150. The
+  sword and fists are free. Each card shows the weapon (drawn from its 3D
+  model), its rank, its power and what it does; a fighter on the right
+  holds the selected weapon. EQUIP picks the weapon you start with.
+  - A weapon you haven't bought can't be picked up or caught; standing on
+    one shows "LOCKED" with its price. Bots can use everything.
+  - "Start with" now offers **Your weapon** (the default: each fighter
+    starts with their equipped weapon, bots with one of their own),
+    Sword, Random (only weapons you own) or Fists. Online, every phone
+    brings its own Armory weapons; the host enforces them.
+  - Matches pay more: 15 coins a kill, 75 for a win, 10 for playing. Every
+    save gets a one-time 500-coin welcome.
+- **Up to 8 bots** (9 fighters) offline and online; spawns spread into
+  rings when there are more fighters than spawn points.
+- **Higher jumps**: 11.2 (double jump 10.2), about a metre more.
+- **Danger sense**: when a thrown weapon or shot is about to hit you, a
+  "!" flashes over your fighter, a chevron points where it's coming from
+  and a short tingle plays, about 0.9 s before it lands.
+- **Arms no longer go through the body** when running, guarding or
+  fighting: the Blender rig now keeps the hands and elbows outside the
+  torso, and the run, guard and idle arm poses were reworked.
+
 ## 0.3.0: Phase 3 increment A (LAN and hotspot multiplayer)
 
 - **MULTIPLAYER** on the title screen: play with up to 4 phones on the

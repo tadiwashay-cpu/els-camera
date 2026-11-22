@@ -53,6 +53,8 @@ func _physics_process(_delta: float) -> void:
 		inp.press(&"power")
 	if Input.is_action_just_pressed(&"swap"):
 		inp.press(&"swap")
+	if Input.is_action_just_pressed(&"skill"):
+		inp.press(&"skill")
 	if Input.is_action_just_pressed(&"jump"):
 		inp.press(&"jump")
 	if Input.is_action_just_pressed(&"throw"):

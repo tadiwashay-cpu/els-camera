@@ -23,6 +23,10 @@ var ammo := -1
 var _returning := false
 var _hit_list: Array[Fighter] = []
 var _ricochets := 0
+## Thrown by a power: vanishes where it lands, can't be caught.
+var phantom := false
+## Kunai Warp: the thrower appears where it lands (or behind who it hits).
+var warp := false
 
 
 func launch(by: Fighter, weapon: WeaponData, origin: Vector3, dir: Vector3, speed: float, is_boosted: bool, ammo_left: int = -1) -> void:
@@ -180,6 +184,9 @@ func _hit_fighter(f: Fighter, at: Vector3) -> void:
 		world.lightning(at, thrower if thrower and is_instance_valid(thrower) else null)
 		world.remove_projectile(self)
 		return
+	if warp and thrower and is_instance_valid(thrower) and thrower.alive:
+		thrower.global_position = f.global_position - f.forward() * 1.2
+		warp = false
 	var speed := velocity.length()
 	var dmg := data.throw_damage * clampf(speed / maxf(data.throw_speed, 1.0), 0.6, 1.6) * (1.25 if boosted else 1.0)
 	var by := thrower if thrower and is_instance_valid(thrower) else null
@@ -207,6 +214,9 @@ func _explode() -> void:
 
 
 func _return_home() -> void:
+	if phantom:
+		world.remove_projectile(self)
+		return
 	if not thrower.armed():
 		thrower.equip(data, ammo)
 		Audio.play(&"catch", global_position, 0.0)

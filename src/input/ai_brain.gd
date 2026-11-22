@@ -173,15 +173,15 @@ func _decide() -> void:
 			scores["pickup"] = 0.95 - me.global_position.distance_to(_pickup.global_position) / 60.0
 		if d < 6.0:
 			scores["fight"] = 0.9          # no weapon in reach: use fists
-	elif d > 6.0 and d < 17.0 and _throw_cd <= 0.0 and _clear_line(target) \
-			and _rng.randf() < float(level["aggression"]) * 0.35:
+	elif d > 6.0 and d < 17.0 and _throw_cd <= 0.0 and me.weapon_data.throwable and me.weapon_data.kind == &"melee" \
+			and _clear_line(target) and _rng.randf() < float(level["aggression"]) * 0.35:
 		scores["throw"] = 0.9
 	var kind := me.weapon_data.kind if me.armed() else &"melee"
 	if kind == &"thrown" and d > 3.5 and d < 15.0 and _clear_line(target):
 		scores["toss"] = 0.93
 	elif kind == &"ranged" and d > 3.0 and d < 22.0 and _clear_line(target):
 		scores["shoot"] = 0.96
-	if me.armed() and _throw_cd <= 0.0 and kind == &"melee":
+	if me.armed() and _throw_cd <= 0.0 and kind == &"melee" and me.weapon_data.throwable:
 		var barrel := _barrel_near(target)
 		if barrel:
 			_barrel = barrel
@@ -202,6 +202,7 @@ func _decide() -> void:
 			_arena_goal_t = 0.0
 			scores["arena"] = 0.97          # out of the flood, unless a fight is right here
 	_consider_power(d)
+	_consider_skill(d)
 	if me.health < me.max_health * 0.3 and target.armed() and d < 5.0:
 		scores["backoff"] = 0.75 * (1.0 - float(level["aggression"]))
 	var best := "chase"
@@ -377,6 +378,18 @@ func _fight(_delta: float) -> void:
 
 
 var _parry_pending := false
+
+
+## Weapon powers: when the target is in the power's reach (sometimes).
+func _consider_skill(d: float) -> void:
+	if not me.skill_ready() or me.state != Fighter.State.MOVE:
+		return
+	var s := WeaponSkills.info(me.skill_id())
+	if s.is_empty() or d > float(s["range"]):
+		return
+	if _rng.randf() < 0.12 + float(level["aggression"]) * 0.18:
+		me.input.target = target
+		me.input.press(&"skill")
 
 
 func _consider_power(d: float) -> void:

@@ -75,6 +75,10 @@ const WEAPON_SHADER := preload("res://src/weapons/weapon.gdshader")
 @export var block_mult := 1.0
 ## Extra parry window in seconds (shields).
 @export var parry_bonus := 0.0
+## This weapon's power (SKILL), from WeaponSkills.INFO.
+@export var skill := &""
+## Rank in the Armory (C, B, A, S, S+): sets the price.
+@export var tier := "C"
 
 @export_group("Hitbox")
 ## The striking part runs along the socket's +Y from hit_from to hit_to.

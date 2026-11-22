@@ -407,6 +407,37 @@ METAL = {"sword", "katana", "dagger", "rapier", "hand_axe", "plasma_blade", "ham
          "anchor", "spear", "trident", "power_gauntlet", "shuriken", "throwing_knives", "blaster", "frying_pan",
          "scythe", "lance", "flail", "wrench", "shovel", "kunai", "saw_blade", "rocket_fist", "plasma_pistols",
          "bazooka", "sniper", "grapple"}
+# Each weapon's power (src/weapons/weapon_skills.gd) and its Armory rank.
+SKILLS = {
+    "sword": "sky_cleaver", "katana": "flash_step", "dagger": "shadow_step", "rapier": "needle_storm",
+    "hand_axe": "axe_volley", "plasma_blade": "plasma_nova", "hammer": "earthshaker", "battle_axe": "cyclone_cleave",
+    "pickaxe": "rockslide", "anchor": "undertow", "lollipop": "sugar_rush", "shovel": "dirt_kick", "guitar": "power_chord",
+    "spear": "skewer", "bo_staff": "pole_vault", "trident": "tidal_surge", "scythe": "grim_harvest", "lance": "joust",
+    "flail": "meteor_swing", "nunchucks": "whirlwind", "wrench": "overclock", "umbrella": "updraft",
+    "ice_cream": "brain_freeze", "fists": "haymaker", "boxing_gloves": "uppercut", "power_gauntlet": "gravity_smash",
+    "shield": "bulwark", "shuriken": "star_fan", "throwing_knives": "knife_storm", "kunai": "kunai_warp",
+    "bomb": "cluster_bomb", "snowball": "snowstorm", "saw_blade": "saw_storm", "thunderbolt": "storm_call",
+    "boomerang": "twin_return", "yoyo": "yoyo_snare", "rocket_fist": "fist_barrage", "blaster": "scatter_shot",
+    "plasma_pistols": "overdrive", "slingshot": "big_rock", "bazooka": "rocket_jump", "sniper": "rail_shot",
+    "scepter": "starfall", "grapple": "reel_slam", "fan": "cyclone", "bow": "arrow_rain", "frying_pan": "pan_slam",
+    "rubber_chicken": "mega_squawk",
+}
+TIERS = {
+    "S+": ["thunderbolt", "scepter", "bazooka", "power_gauntlet"],
+    "S": ["plasma_blade", "anchor", "trident", "sniper", "bow", "scythe", "lance", "grapple", "plasma_pistols", "saw_blade"],
+    "A": ["katana", "battle_axe", "hammer", "spear", "flail", "shield", "shuriken", "kunai", "bomb", "blaster", "fan",
+          "rocket_fist", "guitar"],
+    "B": ["rapier", "hand_axe", "pickaxe", "bo_staff", "boxing_gloves", "nunchucks", "wrench", "shovel", "throwing_knives",
+          "boomerang", "slingshot", "snowball", "yoyo", "umbrella"],
+    "C": ["sword", "dagger", "ice_cream", "lollipop", "frying_pan", "rubber_chicken", "fists"],
+}
+TIER_OF = {w: t for t, ws in TIERS.items() for w in ws}
+
+# Weapons you can't throw (THROW does nothing): heavy two-handers, long
+# polearms, guns, bows, shields, gauntlets, and the odd ones.
+NOT_THROWABLE = {"hammer", "battle_axe", "pickaxe", "anchor", "lollipop", "shovel", "guitar", "bo_staff", "scythe",
+                 "lance", "rapier", "plasma_blade", "flail", "nunchucks", "umbrella", "ice_cream", "shield", "blaster",
+                 "plasma_pistols", "slingshot", "bazooka", "sniper", "scepter", "grapple", "fan", "bow"}
 IGNITES = {"plasma_blade", "blaster", "bomb", "plasma_pistols", "bazooka", "thunderbolt"}
 
 
@@ -439,6 +470,12 @@ def write(wid, name, family_key, stats, parts):
         lines.append("%s = %s" % (k, fmt(v)))
     if glow:
         lines.append("glow = Color(%s, %s, %s, 1)" % glow)
+    if wid in SKILLS:
+        lines.append('skill = &"%s"' % SKILLS[wid])
+    lines.append('tier = "%s"' % TIER_OF.get(wid, "C"))
+    if wid in NOT_THROWABLE:
+        lines = [l for l in lines if not l.startswith("throwable =")]
+        lines.append("throwable = false")
     if wid in METAL:
         lines.append("metal = true")
     if wid in IGNITES:
@@ -459,6 +496,8 @@ def write(wid, name, family_key, stats, parts):
 
 def main():
     os.makedirs(OUT, exist_ok=True)
+    missing = [w[0] for w in WEAPONS if w[0] not in TIER_OF or w[0] not in SKILLS]
+    assert not missing, "no tier/skill for %s" % missing
     for wid, name, fam, stats, parts in WEAPONS:
         write(wid, name, fam, stats, parts)
     print("wrote %d weapons" % len(WEAPONS))

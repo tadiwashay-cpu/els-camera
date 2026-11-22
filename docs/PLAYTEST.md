@@ -1,36 +1,38 @@
-# Playtest guide (v0.3.0: Phase 3, two phones)
+# Playtest guide (v0.4.0: weapon powers and the Armory)
 
 ## Install
 1. On the tablet open GitHub > this repo > **Releases** > "Block Duelist 3D
-   v0.3.0 (playtest)" and download the APK (or Actions > latest run > Artifacts).
+   v0.4.0 (playtest)" and download the APK (or Actions > latest run > Artifacts).
 2. Tap it, allow "install unknown apps", open **Block Duelist 3D**.
-3. Settings: Graphics on **MEDIUM** for the gate, turn **Show FPS** on.
+3. Settings: Graphics on **MEDIUM** for the gates, turn **Show FPS** on.
 
 ## What to play
-Install the same build on two phones (or the tablet and a phone).
 
 | # | Do this | Look for |
 |---|---------|----------|
-| 1 | Both on the same Wi-Fi. Tablet: MULTIPLAYER > HOST A GAME | Lobby shows you and an IP address |
-| 2 | Phone: MULTIPLAYER | The tablet's game appears under "Games nearby" (if not, type the IP and JOIN) |
-| 3 | Tablet: pick 3 min, 1 bot, Beach Island, START | Both load, the countdown starts together |
-| 4 | Fight each other | Your own moves feel responsive? Hits land when they look like they do? |
-| 5 | Watch the other phone's fighter | Smooth, no teleporting or jitter? Ragdolls and kills show on both? |
-| 6 | Knock each other into the sea, use the cannon | Swimming, sharks, the tide look the same on both phones |
-| 7 | Harbor Factory, 5 min, 2 bots, Hard | FPS on both phones; crane, press and fires the same on both |
-| 8 | Phone hotspot: phone turns hotspot on, tablet joins it, phone hosts | Works the same as Wi-Fi? |
-| 9 | Close the app on the joining phone mid-match | A bot takes over on the host |
-| 10 | Still offline: Random arena, 5 min, 3 bots, Hard, Medium graphics | The Phase 2 gate: near 60 fps, nothing stuck |
+| 1 | Title > ARMORY | 500 welcome coins; weapons by rank with prices; icons readable; the fighter holds the selected weapon |
+| 2 | Buy a C or B weapon, EQUIP it, PLAY with "Start with: Your weapon" | You spawn with it every life |
+| 3 | In a match, stand on a weapon you don't own | "LOCKED" with its price; you can't pick it up or catch it |
+| 4 | Press SKILL (button above the attack buttons) with different weapons | Each power does something different; the weapon glows when it's ready |
+| 5 | Try THROW with a hammer, bazooka or shield | Nothing happens: those can't be thrown |
+| 6 | 8 bots, Beach Island, 3 min | Still playable? FPS? Spawns not stacked? |
+| 7 | Stand still while a bot throws at you | "!" over your head, a chevron pointing at it, a tingle sound |
+| 8 | Run, guard, swing; watch the arms | Hands stay outside the body |
+| 9 | Jump and double jump | Higher than before, not floaty? |
+| 10 | Results screen | More coins than before (15 a kill, 75 a win) |
+| 11 | Two phones, LAN (Phase 3 gate) | Each phone starts with its own equipped weapon; powers show on both |
+| 12 | Random arena, 5 min, 3 bots, Hard, Medium graphics (Phase 2 gate) | Near 60 fps, nothing stuck |
 
 ## Send back
 Copy this into a GitHub Issue or the chat:
 
 ```
 Device: Redmi Pad 2 (or ...)
-Build: v0.3.0 (from the title screen)
+Build: v0.4.0 (from the title screen)
 
 FEEL (1 bad - 5 great)
   Moving:      Attacking:      Weapons:      Camera:      Bots:
+  Powers:      Armory prices fair?:      Danger warning useful?:
   Online: responsive?      smooth others?      same on both phones?
   Beach Island:      Harbor Factory:      Hazards fair?:
 

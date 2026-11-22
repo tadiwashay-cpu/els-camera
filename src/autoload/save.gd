@@ -2,9 +2,14 @@ extends Node
 ## The save file (user://save.json): coins, unlocks, settings and stats.
 
 const PATH := "user://save.json"
+## Coins given once, the first time a save meets the Armory.
+const WELCOME_COINS := 500
 const DEFAULTS := {
 	"coins": 0,
 	"unlocks": [],
+	"owned": ["sword", "fists"],   # weapons bought in the Armory (Armory)
+	"equipped": "sword",           # the weapon you start with ("Your weapon")
+	"welcome_bonus": false,
 	"settings": {
 		"quality": 1,             # 0 low, 1 medium (Redmi Pad 2 default), 2 high
 		"show_fps": false,
@@ -30,6 +35,18 @@ func _ready() -> void:
 func load_data() -> void:
 	var text := FileAccess.get_file_as_string(PATH) if FileAccess.file_exists(PATH) else ""
 	data = from_json(text)
+	if grant_welcome(data):
+		save_data()
+
+
+## The one-time Armory welcome: some coins to buy a first weapon. Returns
+## true if it was granted now.
+static func grant_welcome(d: Dictionary) -> bool:
+	if bool(d.get("welcome_bonus", false)):
+		return false
+	d["welcome_bonus"] = true
+	d["coins"] = int(d.get("coins", 0)) + WELCOME_COINS
+	return true
 
 
 func save_data() -> void:
@@ -85,6 +102,8 @@ static func _merge(defaults: Dictionary, loaded: Dictionary) -> Dictionary:
 			out[key] = float(val)
 		elif typeof(val) != typeof(def):
 			out[key] = def.duplicate() if def is Array else def
+		elif val is Array:
+			out[key] = (val as Array).duplicate()   # never the read-only default
 		else:
 			out[key] = val
 	return out

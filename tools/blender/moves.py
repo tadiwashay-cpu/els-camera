@@ -26,8 +26,8 @@ GUARD = {   # unarmed: fists up
     "hips": (0.0, 0.01, -0.07), "hips_rot": (3.0, 0.0, -12.0),
     "spine": (3.0, 0.0, 5.0), "chest": (3.0, 0.0, 4.0), "upper": (2.0, 0.0, 3.0),
     "neck": (-2.0, 0.0, 0.0), "head": (-4.0, 0.0, 0.0),
-    "hand_l": (0.13, -0.30, 1.42), "elbow_l": (0.5, 0.3, -1.0),
-    "hand_r": (-0.15, -0.24, 1.38), "elbow_r": (-0.5, 0.3, -1.0),
+    "hand_l": (0.16, -0.38, 1.42), "elbow_l": (0.8, -0.1, -1.0),
+    "hand_r": (-0.18, -0.33, 1.38), "elbow_r": (-0.8, -0.1, -1.0),
     "wrist_l": (0.0, 0.0, -20.0), "wrist_r": (0.0, 0.0, 20.0),
     "foot_l": (0.16, -0.15, ANKLE_Z), "foot_r": (-0.15, 0.16, ANKLE_Z),
     "foot_l_rot": (0.0, 0.0, -8.0), "foot_r_rot": (0.0, 0.0, -30.0),
@@ -48,8 +48,8 @@ STANCE = {   # sword in the right hand, point forward and up
 }
 
 RELAXED_ARMS = {
-    "hand_l": (0.25, -0.02, 1.02), "elbow_l": (0.2, 1.0, -0.3),
-    "hand_r": (-0.25, -0.02, 1.02), "elbow_r": (-0.2, 1.0, -0.3),
+    "hand_l": (0.31, -0.04, 1.02), "elbow_l": (0.4, 1.0, -0.3),
+    "hand_r": (-0.31, -0.04, 1.02), "elbow_r": (-0.4, 1.0, -0.3),
 }
 
 
@@ -133,10 +133,14 @@ def gait(T, speed, direction=(0.0, -1.0), stance=0.6, lift=0.12, hips_z=-0.05, b
         lift_r = max(0.0, swing) * bounce_arms * 4
         if lat:
             swing *= 0.3
-        P["hand_l"] = (0.24 - elbow_bend * 0.1, arm_fwd + arm_amp * swing, arm_z + lift_l + elbow_bend * 0.1)
-        P["hand_r"] = (-0.24 + elbow_bend * 0.1, arm_fwd - arm_amp * swing, arm_z + lift_r + elbow_bend * 0.1)
-        P["elbow_l"] = (0.25, 1.0, -0.4)
-        P["elbow_r"] = (-0.25, 1.0, -0.4)
+        # Hands swing beside the body (block torsos are wide), a little ahead
+        # of the hips; bent arms (running) pump forward more than back.
+        ax = 0.31 - elbow_bend * 0.04
+        ay = arm_fwd - 0.08 * elbow_bend
+        P["hand_l"] = (ax, ay + arm_amp * swing, arm_z + lift_l + elbow_bend * 0.1)
+        P["hand_r"] = (-ax, ay - arm_amp * swing, arm_z + lift_r + elbow_bend * 0.1)
+        P["elbow_l"] = (0.4, 1.0, -0.35)
+        P["elbow_r"] = (-0.4, 1.0, -0.35)
         P["wrist_l"] = (0.0, 0.0, -10.0)
         P["wrist_r"] = (0.0, 0.0, 10.0)
         if armed:

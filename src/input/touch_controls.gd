@@ -16,12 +16,17 @@ const BUTTONS := [
 	[&"block", "BLOCK", Vector2(-486, -236), 56.0],
 	[&"power", "POWER", Vector2(-322, -470), 56.0],
 	[&"swap", "SWAP", Vector2(-500, -420), 52.0],
+	[&"skill", "SKILL", Vector2(-480, -600), 60.0],
 ]
 
 var joystick: VirtualJoystick
 var catch_hint := false           # an incoming weapon: THROW reads CATCH
 var power_ready := false
 var swap_available := false
+## The weapon power: its colour, and 0..1 of the cooldown done (1 = ready).
+var skill_color := Color(0.45, 0.45, 0.5)
+var skill_charge := 0.0
+var skill_name := ""
 var _look := Vector2.ZERO
 var _look_index := -1
 var _held: Dictionary = {}        # touch index -> button index
@@ -120,6 +125,14 @@ func set_power_ready(on: bool) -> void:
 		queue_redraw()
 
 
+func set_skill(color: Color, charge: float, label: String) -> void:
+	if not color.is_equal_approx(skill_color) or absf(charge - skill_charge) > 0.02 or label != skill_name:
+		skill_color = color
+		skill_charge = charge
+		skill_name = label
+		queue_redraw()
+
+
 func set_catch_hint(on: bool) -> void:
 	if on != catch_hint:
 		catch_hint = on
@@ -137,6 +150,10 @@ func _draw() -> void:
 		var accent := Color(1.0, 0.6, 0.15) if not (i == 2 and catch_hint) else Color(0.35, 1.0, 0.55)
 		if BUTTONS[i][0] == &"power":
 			accent = Color(1.0, 0.9, 0.25) if power_ready else Color(0.45, 0.45, 0.5)
+		if BUTTONS[i][0] == &"skill":
+			accent = skill_color if skill_charge >= 1.0 else skill_color.darkened(0.55)
+			if skill_charge < 1.0:
+				draw_arc(p, r + 6.0 * _scale, -PI * 0.5, -PI * 0.5 + TAU * skill_charge, 32, Color(skill_color, 0.9), 6.0 * _scale)
 		draw_circle(p, r, Color(0.04, 0.05, 0.07, _alpha * 0.75) if not pressed else Color(accent, _alpha))
 		draw_arc(p, r, 0, TAU, 48, Color(accent, minf(_alpha + 0.25, 1.0)), 4.0 * _scale, true)
 		var label: String = BUTTONS[i][1]

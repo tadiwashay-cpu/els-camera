@@ -126,6 +126,32 @@ def two_bone_ik(start: Vector, target: Vector, a: float, b: float, pole: Vector)
     return mid, end, p
 
 
+# The block body's torso, in rest model space (metres): (z from, z to,
+# half width, half depth) per box, from src/fighter/block_body.gd PARTS.
+TORSO = [(1.315, 1.49, 0.22, 0.125), (1.18, 1.35, 0.185, 0.115), (1.05, 1.19, 0.155, 0.10), (0.88, 1.06, 0.17, 0.11)]
+
+
+def torso_push(v: Vector, side: int, margin: float):
+    """If chest-space point `v` is inside the torso (grown by `margin`),
+    return it moved just outside (sideways on its own side, or to the
+    front), else None."""
+    for z0, z1, hw, hd in TORSO:
+        if not (z0 - margin * 0.5 <= v.z <= z1 + margin * 0.5):
+            continue
+        w, d = hw + margin, hd + margin
+        if abs(v.x) >= w or abs(v.y) >= d:
+            continue
+        options = []
+        if v.x * side >= -0.02:                       # on its own side: out sideways
+            options.append((w - abs(v.x), Vector((side * w, v.y, v.z))))
+        if v.y <= 0.04:                               # in front: forward
+            options.append((d + v.y, Vector((v.x, -d, v.z))))
+        else:                                         # behind: back
+            options.append((d - v.y, Vector((v.x, d, v.z))))
+        return min(options, key=lambda o: o[0])[1]
+    return None
+
+
 class Rig:
     """Turns pose dicts into armature-space bone matrices for one armature."""
 
@@ -172,13 +198,35 @@ class Rig:
         upper_head = M["UpperChest"].translation
         chest_to_world = lambda v: upper_head + q_upper @ (Vector(v) - UPPER_CHEST_REST)
 
+        world_to_chest = lambda w: q_upper.inverted() @ (w - upper_head) + UPPER_CHEST_REST
         for side, s in (("Left", "l"), ("Right", "r")):
+            sgn = 1 if s == "l" else -1
             fk(side + "Shoulder", q_upper @ euler_q(P["clav_" + s]))
             ua, la, hand = side + "UpperArm", side + "LowerArm", side + "Hand"
             start = M[side + "Shoulder"] @ self._offset(ua)
-            target = chest_to_world(P["hand_" + s])
-            pole = q_upper @ Vector(P["elbow_" + s])
-            mid, end, p = two_bone_ik(start, target, self.length[ua], self.length[la], pole)
+            # Keep the hand out of the body (block torsos are wide).
+            hand_local = Vector(P["hand_" + s])
+            pushed = torso_push(hand_local, sgn, 0.075)
+            if pushed is not None:
+                hand_local = pushed
+            target = chest_to_world(hand_local)
+            # Try the authored elbow direction first, then ones that swing the
+            # elbow out and back, and keep the first that clears the torso.
+            poles = [Vector(P["elbow_" + s]), Vector((sgn * 1.0, 0.5, -0.4)), Vector((sgn * 1.0, 0.0, -0.6)),
+                     Vector((sgn * 0.8, 0.8, 0.0)), Vector((sgn * 1.0, -0.3, -0.8))]
+            best = None
+            for k, pv in enumerate(poles):
+                pole = q_upper @ pv.normalized()
+                mid, end, p = two_bone_ik(start, target, self.length[ua], self.length[la], pole)
+                inside = 0
+                for pt in (mid, (start + mid) * 0.5 + (mid - start) * 0.15, (mid + end) * 0.5):
+                    if torso_push(world_to_chest(pt), sgn, 0.06) is not None:
+                        inside += 1
+                if best is None or inside < best[0]:
+                    best = (inside, mid, end, p)
+                if inside == 0:
+                    break
+            _, mid, end, p = best
             z_hint = -p          # rest: elbow points back (+Y), bone Z points forward (-Y)
             place(ua, frame(mid - start, z_hint))
             place(la, frame(end - mid, z_hint))

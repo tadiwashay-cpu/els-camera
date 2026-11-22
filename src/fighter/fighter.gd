@@ -15,7 +15,7 @@ signal hit_landed(attacker: Fighter, victim: Fighter, damage: float)
 ## The body went limp (knockdown or death): the network replays the ragdoll.
 signal went_limp(f: Fighter, impulse: Vector3, vel: Vector3, bone: StringName, dead: bool)
 
-enum State { MOVE, ATTACK, CHARGE, HEAVY, THROW, CATCH, DODGE, HURT, DOWN, GETUP, DEAD, FROZEN, LAND, POWER, HELD }
+enum State { MOVE, ATTACK, CHARGE, HEAVY, THROW, CATCH, DODGE, HURT, DOWN, GETUP, DEAD, FROZEN, LAND, POWER, HELD, SKILL }
 
 @export_group("Movement")
 @export var max_health := 100.0
@@ -24,8 +24,8 @@ enum State { MOVE, ATTACK, CHARGE, HEAVY, THROW, CATCH, DODGE, HURT, DOWN, GETUP
 @export var sprint_speed := 9.8
 @export var accel := 48.0
 @export var air_accel := 14.0
-@export var jump_velocity := 9.6
-@export var double_jump_velocity := 9.0
+@export var jump_velocity := 11.2
+@export var double_jump_velocity := 10.2
 @export var gravity := 24.0
 @export var turn_speed := 16.0
 @export var dodge_speed := 12.0
@@ -69,6 +69,10 @@ var body: BlockBody
 var ragdoll: Ragdoll
 var weapon_data: WeaponData
 var weapon_visual: MeshInstance3D
+## Weapon ids this fighter may hold (bought in the Armory). Empty: any.
+var allowed: Dictionary = {}
+## The weapon picked to start with ("Your weapon"), or empty.
+var loadout: StringName = &""
 ## Throws or shots left for thrown/ranged weapons.
 var ammo := 0
 var _weapon_visuals: Array[MeshInstance3D] = []
@@ -140,6 +144,13 @@ var death_cause := ""
 var swimming := false
 ## On a joining phone: drawn from the host's snapshots, never simulated.
 var puppet := false
+## Weapon powers: when each weapon's power is ready again (fighter clock).
+var _skill_cd: Dictionary = {}
+var _skill_id := &""
+var _skill_done := false
+## A joiner's copy of the host's cooldown (seconds left).
+var net_skill_left := 0.0
+var _glow_was := -1.0
 
 
 func _ready() -> void:
@@ -191,6 +202,18 @@ func armed() -> bool:
 	return weapon_data != null and not weapon_data.is_fists()
 
 
+## May this fighter hold `w`? (Fists always.)
+func can_use(w: WeaponData) -> bool:
+	return w == null or w.is_fists() or allowed.is_empty() or allowed.has(w.id)
+
+
+func set_locker(ids: Variant) -> void:
+	allowed.clear()
+	if ids is Array or ids is PackedStringArray:
+		for id: Variant in ids:
+			allowed[StringName(str(id))] = true
+
+
 ## Holds a weapon (`ammo_left` -1 = a full stack/magazine).
 func equip(data: WeaponData, ammo_left: int = -1) -> void:
 	weapon_data = data if data else Registry.weapon(&"fists")
@@ -237,7 +260,8 @@ func _physics_process(delta: float) -> void:
 	delta *= time_scale
 	powers.tick(delta)
 	body.aura = powers.aura()
-	_shield_mesh.visible = powers.shield > 0.0
+	_shield_mesh.visible = powers.shield > 0.0 or powers.has(&"bulwark")
+	_glow_weapon()
 	_guard_meter = maxf(_guard_meter - delta * 14.0, 0.0)
 	_block_lock = maxf(_block_lock - delta, 0.0)
 	_clock += delta
@@ -320,6 +344,18 @@ func _physics_process(delta: float) -> void:
 				if not _power_done:
 					_power_done = true
 					_apply_power()
+				_set_state(State.MOVE)
+		State.SKILL:
+			_brake(delta, 24.0)
+			var at: float = WeaponSkills.info(_skill_id).get("at", 0.1)
+			if not _skill_done and (body.action_time >= at or state_time >= at + 0.05):
+				_skill_done = true
+				WeaponSkills.perform(self, _skill_id)
+				if str(WeaponSkills.info(_skill_id).get("kind", "")) in ["leap", "self_launch", "dash", "teleport"]:
+					body.stop_action(0.2)
+					_set_state(State.MOVE)
+			if _skill_done and (body.action_over() or state_time > 0.9):
+				body.stop_action(0.15)
 				_set_state(State.MOVE)
 		State.LAND:
 			# A big drop: knees, a hand down, a moment to come up.
@@ -452,6 +488,9 @@ func _state_move(delta: float) -> void:
 	if input.consume(&"power") and powers.ready_to_use():
 		_use_power()
 		return
+	if input.consume(&"skill") and skill_ready():
+		_use_skill()
+		return
 	if blocking:
 		input.consume(&"_light")
 		return
@@ -465,7 +504,7 @@ func _state_move(delta: float) -> void:
 		_start_charge()
 		return
 	if world:
-		var pick := world.pickup_near(global_position, 1.3)
+		var pick := world.pickup_near(global_position, 1.3, self)
 		if pick:
 			if not armed():
 				world.take_pickup(pick, self)
@@ -623,7 +662,7 @@ func _start_attack(clip: StringName, damage_mult: float, s: State) -> void:
 	_have_prev = false
 	_queued_attack = false
 	_set_state(s)
-	body.play(clip, _attack_upper, weapon_data.attack_speed, 0.07)
+	body.play(clip, _attack_upper, weapon_data.attack_speed * (1.35 if powers.has(&"overclock") else 1.0), 0.07)
 	if not _attack_upper and is_on_floor():
 		var lunge := forward() * (weapon_data.lunge if s == State.ATTACK else weapon_data.heavy_lunge)
 		velocity.x = lunge.x
@@ -791,7 +830,7 @@ func _throw_or_catch() -> bool:
 		return false
 	var incoming := world.incoming_projectile(self, 0.6)
 	if incoming and input.pressed_recently(&"throw", int(catch_window * 1000.0)):
-		if world.time_to_reach(incoming, self) <= catch_window and incoming.data.catchable:
+		if world.time_to_reach(incoming, self) <= catch_window and incoming.data.catchable and can_use(incoming.data):
 			input.consume(&"throw")
 			_catch(incoming)
 			return true
@@ -852,7 +891,7 @@ func _fire() -> void:
 	_next_shot_at = _clock + weapon_data.fire_cooldown
 	var origin := sock * Vector3(0, weapon_data.hit_to, 0) if not bow else sock.origin + forward() * 0.35
 	var speed := weapon_data.projectile_speed * (0.7 + 0.5 * _shot_charge if bow else 1.0)
-	var dmg := weapon_data.projectile_damage * (1.0 + 1.3 * _shot_charge if bow else 1.0)
+	var dmg := weapon_data.projectile_damage * (1.0 + 1.3 * _shot_charge if bow else 1.0) * powers.damage_dealt_mult()
 	if kind == &"wind":
 		world.gust(self, origin, _aim_direction(origin, 30.0))
 	else:
@@ -860,6 +899,9 @@ func _fire() -> void:
 	Audio.play(SHOT_SOUNDS.get(kind, &"tick"), origin, 2.0, SHOT_PITCH.get(kind, 1.6))
 	if kind in [&"rocket", &"slug"] and is_player:
 		world.camera.shake(0.18)
+	if powers.has(&"overdrive"):
+		_next_shot_at = _clock + weapon_data.fire_cooldown * 0.4
+		return                          # free shots while it lasts
 	ammo -= 1
 	if ammo <= 0:
 		Fx.dust(get_parent(), origin, 0.5)
@@ -1086,6 +1128,10 @@ func parried(by: Fighter) -> void:
 
 ## A shot reaches us while blocking: parry sends it back, a block stops it.
 func try_deflect_bolt(b: Bolt) -> bool:
+	if alive and powers.has(&"bulwark") and b.style != &"rail":
+		b.reflect(self)
+		Audio.play(&"clang", b.global_position, 2.0, 1.4)
+		return true
 	if not blocking or not alive:
 		return false
 	var dir := Vector3(b.velocity.x, 0, b.velocity.z).normalized()
@@ -1109,6 +1155,10 @@ func try_deflect_bolt(b: Bolt) -> bool:
 ## A thrown weapon reaches us while blocking: parry sends it back,
 ## a plain block knocks it down. Returns true if the guard took it.
 func try_deflect(p: ThrownWeapon) -> bool:
+	if alive and powers.has(&"bulwark"):
+		p.reflect(self)
+		Audio.play(&"clang", p.global_position, 4.0, 1.3)
+		return true
 	if not blocking or not alive:
 		return false
 	var dir := Vector3(p.velocity.x, 0, p.velocity.z).normalized()
@@ -1128,6 +1178,56 @@ func try_deflect(p: ThrownWeapon) -> bool:
 
 
 # ----------------------------------------------------------------- powers
+
+# ----------------------------------------------------------- weapon powers
+
+func skill_id() -> StringName:
+	return weapon_data.skill if weapon_data else &""
+
+
+## Seconds until this weapon's power is ready (0 = ready).
+func skill_left() -> float:
+	if puppet:
+		return net_skill_left
+	var id := skill_id()
+	if id == &"":
+		return INF
+	return maxf(float(_skill_cd.get(id, 0.0)) - _clock, 0.0)
+
+
+func skill_ready() -> bool:
+	return skill_id() != &"" and skill_left() <= 0.0 and not swimming
+
+
+func _use_skill() -> void:
+	_skill_id = skill_id()
+	var s := WeaponSkills.info(_skill_id)
+	if s.is_empty():
+		return
+	_skill_cd[_skill_id] = _clock + float(s["cd"])
+	_skill_done = false
+	protect = 0.0
+	_soft_aim()
+	_set_state(State.SKILL)
+	body.play(s["anim"], false, 1.0, 0.05)
+	Fx.burst(get_parent(), socket_transform().origin, s["color"])
+	Audio.play(&"respawn", global_position + Vector3.UP, -2.0, 1.6)
+	if world:
+		world.callout_for(self, str(s["name"]).to_upper(), s["color"])
+
+
+## The weapon glows in its power's colour while the power is ready.
+func _glow_weapon() -> void:
+	var k := 0.0
+	if skill_id() != &"" and skill_left() <= 0.0:
+		k = 0.55 + 0.45 * sin(_clock * 6.0)
+	if absf(k - _glow_was) < 0.02 or _weapon_visuals.is_empty():
+		return
+	_glow_was = k
+	var c: Color = WeaponSkills.info(skill_id()).get("color", Color.WHITE)
+	for v in _weapon_visuals:
+		v.set_instance_shader_parameter(&"charge", Color(c.r, c.g, c.b, k))
+
 
 func _use_power() -> void:
 	if not powers.spend():
@@ -1344,7 +1444,7 @@ func respawn(at: Vector3, yaw: float) -> void:
 	body.stop_action(0.0)
 	_set_state(State.MOVE)
 	if world:
-		equip(world.start_weapon())
+		equip(world.start_weapon(self))
 	Audio.play(&"respawn", at + Vector3.UP, -4.0)
 
 
@@ -1352,7 +1452,8 @@ func respawn(at: Vector3, yaw: float) -> void:
 func _puppet_tick(delta: float) -> void:
 	_clock += delta
 	body.aura = powers.aura()
-	_shield_mesh.visible = powers.shield > 0.0
+	_shield_mesh.visible = powers.shield > 0.0 or powers.has(&"bulwark")
+	_glow_weapon()
 	if protect > 0.0:
 		body.flash(0.35 + 0.35 * sin(_clock * 18.0))
 	_update_trail()

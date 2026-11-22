@@ -12,7 +12,7 @@ extends Node
 
 const SEND_EVERY := 2              # physics frames per snapshot / input packet (30 Hz)
 const INTERP_DELAY := 0.1
-const ACTIONS: Array[StringName] = [&"jump", &"throw", &"dodge", &"power", &"swap"]
+const ACTIONS: Array[StringName] = [&"jump", &"throw", &"dodge", &"power", &"swap", &"skill"]
 const STATE_DOWN := 8              # Fighter.State.DOWN, DEAD below
 const STATE_DEAD := 10
 
@@ -28,7 +28,7 @@ var _peer_fighter: Dictionary = {}  # peer -> Fighter
 # Joiner side.
 var _snaps: Array = []              # newest last: {"t", "recv", "f": {id: Array}}
 var _offset := INF                  # local clock - host clock (smallest seen)
-var _counts := PackedInt32Array([0, 0, 0, 0, 0])
+var _counts := PackedInt32Array([0, 0, 0, 0, 0, 0])
 var _taps := 0
 var _was_attack := false
 var _seq := 0
@@ -49,7 +49,7 @@ func setup(match_node: Match) -> void:
 			var peer := int(f.get_meta("peer", 0))
 			if peer > 1:
 				_peer_fighter[peer] = f
-				_inputs[peer] = {"counts": PackedInt32Array([0, 0, 0, 0, 0]), "taps": 0, "hold": 0, "seq": -1}
+				_inputs[peer] = {"counts": PackedInt32Array([0, 0, 0, 0, 0, 0]), "taps": 0, "hold": 0, "seq": -1}
 		m.arena.notice.connect(func(text: String, color: Color, sub: String) -> void: event("notice", [text, color, sub]))
 
 
@@ -146,7 +146,7 @@ func _snapshot() -> PackedByteArray:
 		fs.append([f.fighter_id, f.global_position.x, f.global_position.y, f.global_position.z, f.rotation.y,
 			f.velocity.x, f.velocity.y, f.velocity.z, int(f.state), f.health, f.alive, b.loco, b.loco_speed,
 			b.action, b.action_time, String(f.weapon_data.id) if f.weapon_data else "fists", f.ammo,
-			f.powers.meter, flags, f.powers.effects.duplicate(), f.powers.shield, f.display_name])
+			f.powers.meter, flags, f.powers.effects.duplicate(), f.powers.shield, f.display_name, minf(f.skill_left(), 99.0)])
 	var thrown: Array = []
 	for p in m.projectiles:
 		if is_instance_valid(p):
@@ -269,6 +269,8 @@ func _apply_stats(rec: Array) -> void:
 	if alive and not f.alive:
 		_respawned(f)
 	f.alive = alive
+	if rec.size() > 22:
+		f.net_skill_left = float(rec[22])
 	if str(rec[21]) != f.display_name:
 		f.display_name = str(rec[21])
 		m.hud.refresh_board()
@@ -407,6 +409,9 @@ func _mirror_thrown(list: Array) -> void:
 	for rec: Array in list:
 		var w := Registry.weapon(StringName(str(rec[1])))
 		var n := _replica("t%d" % int(rec[0]), func() -> Node3D: return _mesh_node(w.mesh()))
+		var was: Vector3 = n.get_meta("p", rec[2])
+		n.set_meta("v", (Vector3(rec[2]) - was) / (SEND_EVERY / 60.0))
+		n.set_meta("p", rec[2])
 		n.global_position = rec[2]
 		n.quaternion = rec[3]
 	_sweep("t")
@@ -430,6 +435,7 @@ func _mirror_pickups(list: Array) -> void:
 		var w := Registry.weapon(StringName(str(rec[1])))
 		var n := _replica("k%d" % int(rec[0]), func() -> Node3D:
 			var root := Node3D.new()
+			root.set_meta("w", String(w.id))
 			var mi := _mesh_node(w.mesh())
 			mi.rotation_degrees = Vector3(0, 0, 70)
 			root.add_child(mi)
@@ -459,12 +465,25 @@ func _mirror_powerups(list: Array) -> void:
 	_sweep("u")
 
 
-## A mirrored weapon on the ground within `radius` (the SWAP button).
-func pickup_near(pos: Vector3, radius: float) -> bool:
+## Mirrored things in flight: [[key, position, velocity]] (danger sense).
+func flying() -> Array:
+	var out: Array = []
 	for key: String in _replicas:
-		if key.begins_with("k") and (_replicas[key] as Node3D).global_position.distance_to(pos + Vector3.UP * 0.6) < radius + 0.6:
-			return true
-	return false
+		if key.begins_with("t") or key.begins_with("b"):
+			var n := _replicas[key] as Node3D
+			var v: Vector3 = n.get_meta("v", Vector3.ZERO)
+			out.append([key, n.global_position, v])
+	return out
+
+
+## A mirrored weapon on the ground within `radius` (the SWAP button and
+## the Armory lock hint), or null.
+func pickup_near(pos: Vector3, radius: float) -> WeaponData:
+	for key: String in _replicas:
+		var n := _replicas[key] as Node3D
+		if key.begins_with("k") and n.global_position.distance_to(pos + Vector3.UP * 0.6) < radius + 0.6:
+			return Registry.weapon(StringName(str(n.get_meta("w", "sword"))))
+	return null
 
 
 func _mirror_broken(flags: PackedByteArray) -> void:
@@ -540,6 +559,8 @@ func receive_event(kind: String, d: Array) -> void:
 			Audio.play(StringName(str(d[0])), d[1], float(d[2]), float(d[3]))
 		"fx":
 			match str(d[0]):
+				"ring":
+					WeaponSkills.ring_local(m, d[1], float(d[2]), d[3], str(d[4]))
 				"sparks":
 					Fx.sparks(m, d[1], d[2], int(d[3]))
 				"dust":
