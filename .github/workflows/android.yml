@@ -1,0 +1,82 @@
+name: Test and build Android APK
+
+# Every push: unit tests, a full bots-only match, then a debug APK.
+# The APK is attached to the run (Actions > run > Artifacts) and to a
+# pre-release named after the version in project.godot (vX.Y.Z-playtest),
+# which is the easiest place to download it on the tablet.
+on:
+  push:
+    paths-ignore: ["docs/**", "**.md"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    container:
+      image: barichello/godot-ci:4.7.2
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Import assets
+        run: timeout 900 godot --headless --import || true
+
+      - name: Unit tests (GUT)
+        run: godot --headless -s addons/gut/gut_cmdln.gd -gconfig=res://.gutconfig.json
+
+      - name: Smoke match (60 s, 4 bots, no player input)
+        run: |
+          timeout 300 godot --headless --path . res://tools/capture/smoke.tscn -- 60 3 1 2>&1 | tee smoke.log
+          grep -q "SMOKE end" smoke.log
+          ! grep -q "SCRIPT ERROR" smoke.log
+
+  apk:
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    container:
+      image: barichello/godot-ci:4.7.2
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read the version
+        id: v
+        run: echo "version=$(grep -oP 'config/version="\K[^"]+' project.godot)" >> "$GITHUB_OUTPUT"
+
+      - name: Editor settings, export templates, version code
+        run: |
+          mkdir -p ~/.local/share/godot/export_templates ~/.config
+          [ -d ~/.config/godot ] || cp -r /root/.config/godot ~/.config/godot
+          [ -d ~/.local/share/godot/export_templates/4.7.2.stable ] || ln -s /root/.local/share/godot/export_templates/4.7.2.stable ~/.local/share/godot/export_templates/4.7.2.stable
+          sed -i -e "s/^version\/name=.*/version\/name=\"${{ steps.v.outputs.version }}\"/" -e "s/^version\/code=.*/version\/code=${{ github.run_number }}/" export_presets.cfg
+
+      - name: Import assets
+        run: timeout 900 godot --headless --import || true
+
+      - name: Export the debug APK
+        run: |
+          mkdir -p build
+          godot --headless --export-debug "Android" "build/block-duelist-3d-v${{ steps.v.outputs.version }}.apk"
+          ls -la build
+          test -s "build/block-duelist-3d-v${{ steps.v.outputs.version }}.apk"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: block-duelist-3d-v${{ steps.v.outputs.version }}-apk
+          path: build/*.apk
+
+      - name: Publish the playtest pre-release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.v.outputs.version }}-playtest
+          name: Block Duelist 3D v${{ steps.v.outputs.version }} (playtest)
+          prerelease: true
+          target_commitish: ${{ github.sha }}
+          files: build/*.apk
+          body: |
+            Playtest build ${{ github.run_number }} of Block Duelist 3D v${{ steps.v.outputs.version }} (commit ${{ github.sha }}).
+            On the tablet: download the APK, tap it, allow "install unknown apps".
+            What changed: docs/CHANGELOG.md. What to test and report: docs/PLAYTEST.md.

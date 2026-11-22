@@ -1,26 +1,19 @@
-_archive/
-_devdocs/
-_docs/*.jpg
-_docs/ads.txt
-_docs/app-ads.txt
-_docs/gplay.html
-_other/
-_saved/
+# Godot
+.godot/
+.import/
+.nomedia
+export.cfg
+export_credentials.cfg
+*.translation
+*.tmp
 
-.gradle/
-
-.idea/*
-!.idea/inspectionProfiles
-
+# Builds and signing (the release key lives only in GitHub Secrets)
 build/
-app/release/
-gfx/
-testdata/
-
-*.db
-*.iml
 *.apk
-*.ap_
+*.aab
+*.keystore
+*.jks
 
-local.properties
-uninstall.bat
+# Tools
+__pycache__/
+*.pyc

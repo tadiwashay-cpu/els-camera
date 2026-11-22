@@ -1,0 +1,228 @@
+class_name AIBrain
+extends RefCounted
+## A bot (doc: utility-scoring brain). Every 0.1 s it scores what to do:
+## chase, attack, throw, grab a weapon or back off; then it "presses
+## buttons" on its FighterInput like a player would. It paths with the
+## arena's baked navigation mesh. Difficulty changes reaction time, aim
+## and nerve, never what it can do.
+
+const LEVELS := [
+	{"reaction": 0.45, "catch": 0.15, "dodge": 0.1, "aggression": 0.45, "heavy": 0.1, "cadence": 0.62, "aim": 0.35},
+	{"reaction": 0.28, "catch": 0.45, "dodge": 0.28, "aggression": 0.65, "heavy": 0.2, "cadence": 0.42, "aim": 0.18},
+	{"reaction": 0.16, "catch": 0.75, "dodge": 0.5, "aggression": 0.85, "heavy": 0.3, "cadence": 0.3, "aim": 0.06},
+]
+
+var me: Fighter
+var world: Match
+var level: Dictionary
+var goal := "chase"
+var target: Fighter
+
+var _rng := RandomNumberGenerator.new()
+var _think := 0.0
+var _path := PackedVector3Array()
+var _path_i := 0
+var _repath := 0.0
+var _attack_cd := 0.0
+var _throw_cd := 2.0
+var _hold := 0.0
+var _release_next := false
+var _strafe := 1.0
+var _strafe_t := 0.0
+var _stuck_t := 0.0
+var _decided_catch: Dictionary = {}       # projectile id -> bool
+var _react := 0.0
+var _pickup: WeaponPickup
+
+
+func _init(fighter: Fighter, match_node: Match, difficulty: int) -> void:
+	me = fighter
+	world = match_node
+	level = LEVELS[clampi(difficulty, 0, 2)]
+	_rng.randomize()
+
+
+func update(delta: float) -> void:
+	var inp := me.input
+	inp.sprint = false
+	if not me.alive or me.state == Fighter.State.FROZEN:
+		inp.move = Vector2.ZERO
+		inp.attack_held = false
+		return
+	_attack_cd -= delta
+	_throw_cd -= delta
+	_strafe_t -= delta
+	_think -= delta
+	if _think <= 0.0:
+		_think = 0.1
+		_decide()
+	_handle_attack_button(delta)
+	_react_to_incoming(delta)
+	match goal:
+		"pickup":
+			if _pickup and is_instance_valid(_pickup):
+				_go_to(_pickup.global_position, 1.0, delta)
+			else:
+				goal = "chase"
+		"chase":
+			if target:
+				_go_to(target.global_position, 1.0 if _dist() > 9.0 else 0.85, delta)
+		"fight":
+			_fight(delta)
+		"throw":
+			_face_and_stop()
+			if me.state == Fighter.State.MOVE and _throw_cd <= 0.0:
+				inp.press(&"throw")
+				_throw_cd = 4.0 + _rng.randf() * 3.0
+				goal = "chase"
+		"backoff":
+			if target:
+				var away := me.global_position - target.global_position
+				away.y = 0.0
+				_steer(away.normalized().rotated(Vector3.UP, _strafe * 0.6), 0.85)
+
+
+func _dist() -> float:
+	return me.global_position.distance_to(target.global_position) if target else INF
+
+
+func _decide() -> void:
+	target = _nearest_enemy()
+	me.input.target = target if target and _dist() < 20.0 else null
+	if target == null:
+		goal = "idle"
+		me.input.move = Vector2.ZERO
+		return
+	var d := _dist()
+	var reach := 2.3 if me.armed() else 1.6
+	var scores := {}
+	scores["chase"] = 0.45 + float(level["aggression"]) * 0.3
+	if d < reach + 0.4 and absf(target.global_position.y - me.global_position.y) < 1.4:
+		scores["fight"] = 1.0
+	if not me.armed():
+		_pickup = world.nearest_pickup(me.global_position, 22.0)
+		if _pickup:
+			scores["pickup"] = 0.95 - me.global_position.distance_to(_pickup.global_position) / 60.0
+		if d < 6.0:
+			scores["fight"] = 0.9          # no weapon in reach: use fists
+	elif d > 6.0 and d < 17.0 and _throw_cd <= 0.0 and _clear_line(target) \
+			and _rng.randf() < float(level["aggression"]) * 0.35:
+		scores["throw"] = 0.9
+	if me.health < me.max_health * 0.3 and target.armed() and d < 5.0:
+		scores["backoff"] = 0.75 * (1.0 - float(level["aggression"]))
+	var best := "chase"
+	var best_s := -1.0
+	for k: String in scores:
+		if float(scores[k]) > best_s:
+			best_s = scores[k]
+			best = k
+	goal = best
+
+
+func _nearest_enemy() -> Fighter:
+	var best: Fighter
+	var best_d := INF
+	for f: Fighter in world.fighters:
+		if f == me or not f.alive:
+			continue
+		var d := me.global_position.distance_to(f.global_position)
+		if f.is_player:
+			d *= 0.8          # bots like a human target
+		if d < best_d:
+			best_d = d
+			best = f
+	return best
+
+
+func _clear_line(f: Fighter) -> bool:
+	var from := me.global_position + Vector3.UP * 1.4
+	var to := f.global_position + Vector3.UP * 1.2
+	return me.get_world_3d().direct_space_state.intersect_ray(PhysicsRayQueryParameters3D.create(from, to, Game.L_WORLD)).is_empty()
+
+
+func _steer(dir: Vector3, amount: float) -> void:
+	me.input.steer(dir, amount)
+
+
+func _face_and_stop() -> void:
+	me.input.move = Vector2.ZERO
+
+
+func _go_to(pos: Vector3, amount: float, delta: float) -> void:
+	_repath -= delta
+	if _repath <= 0.0 or _path_i >= _path.size():
+		_repath = 0.45
+		var map := me.get_world_3d().navigation_map
+		_path = NavigationServer3D.map_get_path(map, me.global_position, pos, true)
+		_path_i = 0
+	var next := pos
+	while _path_i < _path.size():
+		var p := _path[_path_i]
+		if Vector2(p.x - me.global_position.x, p.z - me.global_position.z).length() < 0.7:
+			_path_i += 1
+		else:
+			next = p
+			break
+	var dir := next - me.global_position
+	dir.y = 0.0
+	if amount >= 1.0 and dir.length() > 6.0:
+		me.input.sprint = true
+	_steer(dir, amount)
+	# Unstick: moving but not getting anywhere -> jump.
+	if me.hspeed() < 0.8 and me.input.move.length() > 0.5:
+		_stuck_t += delta
+		if _stuck_t > 0.6:
+			me.input.press(&"jump")
+			_stuck_t = 0.0
+	else:
+		_stuck_t = 0.0
+
+
+func _fight(_delta: float) -> void:
+	var d := _dist()
+	var reach := 2.1 if me.armed() else 1.4
+	var to := target.global_position - me.global_position
+	to.y = 0.0
+	if _strafe_t <= 0.0:
+		_strafe_t = 0.6 + _rng.randf() * 1.2
+		_strafe = -_strafe if _rng.randf() < 0.5 else _strafe
+	if d > reach:
+		_steer(to.normalized(), 0.7)
+	elif d < reach * 0.55:
+		_steer(-to.normalized(), 0.5)
+	else:
+		_steer(to.normalized().cross(Vector3.UP) * _strafe, 0.35)
+	# Dodge a swing that's coming.
+	if target.state in [Fighter.State.ATTACK, Fighter.State.HEAVY] and d < 3.2 and _react <= 0.0:
+		_react = float(level["reaction"])
+		if _rng.randf() < float(level["dodge"]):
+			me.input.press(&"dodge")
+			return
+	_react -= 0.1
+	if _attack_cd <= 0.0 and me.state == Fighter.State.MOVE and d < reach + 0.3:
+		_attack_cd = float(level["cadence"]) * _rng.randf_range(0.8, 1.3)
+		if _rng.randf() < float(level["heavy"]) and me.armed():
+			_hold = _rng.randf_range(0.4, 0.95)       # charge a heavy
+		else:
+			_hold = 0.03
+		me.input.attack_held = true
+
+
+func _handle_attack_button(delta: float) -> void:
+	if me.input.attack_held:
+		_hold -= delta
+		if _hold <= 0.0:
+			me.input.attack_held = false
+
+
+func _react_to_incoming(_delta: float) -> void:
+	var p := world.incoming_projectile(me, 0.8)
+	if p == null:
+		return
+	var key := p.get_instance_id()
+	if not _decided_catch.has(key):
+		_decided_catch[key] = _rng.randf() < float(level["catch"])
+		if not _decided_catch[key] and _rng.randf() < float(level["dodge"]):
+			me.input.press(&"dodge")
+	if _decided_catch[key] and world.time_to_reach(p, me) <= 0.15:
+		me.input.press(&"throw")

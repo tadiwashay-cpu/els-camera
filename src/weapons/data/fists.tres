@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/weapons/weapon_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"fists"
+display_name = "Fists"
+family = "fists"
+base_damage = 8.0
+ref_speed = 5.5
+mass = 0.5
+knockback = 3.5
+heavy_multiplier = 1.0
+light_moves = Array[StringName]([&"Jab", &"Cross"])
+knockdown_move = &""
+heavy_charge = &""
+heavy_move = &"Kick"
+strikers = {"Cross": "RightHand", "Jab": "LeftHand", "Kick": "RightFoot"}
+attack_speed = 1.0
+hit_from = 0.0
+hit_to = 0.0
+hit_radius = 0.16
+throwable = false
+catchable = false

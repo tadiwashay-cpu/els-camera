@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/weapons/weapon_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"sword"
+display_name = "Sword"
+family = "blades"
+base_damage = 16.0
+ref_speed = 9.0
+mass = 1.0
+knockback = 5.5
+heavy_multiplier = 1.7
+light_moves = Array[StringName]([&"Slash_A", &"Slash_B", &"Slash_C"])
+knockdown_move = &"Slash_C"
+heavy_charge = &"Heavy_Charge"
+heavy_move = &"Heavy_Release"
+strikers = {}
+attack_speed = 1.0
+hit_from = 0.15
+hit_to = 1.02
+hit_radius = 0.13
+throwable = true
+catchable = true
+throw_speed = 24.0
+throw_damage = 26.0
+throw_spin = 16.0
+part_sizes = PackedVector3Array(0.045, 0.2, 0.045, 0.07, 0.05, 0.07, 0.26, 0.045, 0.07, 0.075, 0.8, 0.022, 0.045, 0.08, 0.02, 0.022, 0.62, 0.026)
+part_centres = PackedVector3Array(0, 0, 0, 0, -0.12, 0, 0, 0.12, 0, 0, 0.54, 0, 0, 0.98, 0, 0, 0.48, 0)
+part_colors = PackedColorArray(0.28, 0.16, 0.08, 1, 0.9, 0.68, 0.2, 1, 0.9, 0.68, 0.2, 1, 0.84, 0.87, 0.92, 1, 0.84, 0.87, 0.92, 1, 0.55, 0.6, 0.7, 1)
+unlock_cost = 0

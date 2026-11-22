@@ -1,0 +1,52 @@
+# Roadmap
+
+Seven phases; each ends in a tagged build tested on the Redmi Pad 2 before the
+next starts. Claude ticks items as they land; the owner passes the gates.
+
+## Phase 0: Foundation
+- [x] Godot 4.7 project (Mobile renderer, Jolt, static typing), autoloads
+- [x] CLAUDE.md, roadmap, changelog, playtest guide
+- [x] CI: unit tests + bots-only match + debug APK on every push, playtest pre-release
+- [x] Boot splash, title menu, loading screen (threaded load, progress bar, tips, shader warm-up)
+- [ ] **Gate:** the APK installs and opens on the Redmi Pad 2
+
+## Phase 1: First playable fight (v0.1.0)
+- [x] Block fighter on our own Blender rig (one skinned mesh, skins as data)
+- [x] 36 original moves authored in Blender (tools/blender)
+- [x] Third-person camera: shoulder spring arm, lock-on orbit, shake, hit-stop, slow-mo kills
+- [x] Sword: 3-hit combo, charged spin heavy, blade-speed damage, blade trails
+- [x] Throw and catch (catch window 200 ms, caught weapons fly back 1.5x faster)
+- [x] Ragdoll: brief on heavy hits with get-up, full on death, sword drops as a pickup
+- [x] Touch controls (VirtualJoystick + buttons), keyboard/mouse, gamepad
+- [x] Blockout Yard arena (3 levels, bridge, cover, edges, 6 sword spawners, nav mesh)
+- [x] Timed Kill Race vs bots (1 to 3), respawns with protection, last 30 s double, sudden death
+- [x] Killcam replay of your death; final-kill replay; results with coins
+- [ ] **Gate:** owner plays 10 matches on the tablet, it feels fun, tuning notes logged
+
+## Phase 2: Offline game
+- [ ] 24 weapons, 6 powers and the power meter, map pickups, block and parry
+- [ ] Beach Island and Abandoned Harbor Factory arenas (with hazards)
+- [ ] Bots for up to 4 fighters at 60 fps, custom match time
+- [ ] More signature moves (Blender), better hit reacts
+- [ ] **Gate:** a 4-fighter, 5-minute match holds 60 fps on Medium with no blocking bugs
+
+## Phase 3: LAN and hotspot multiplayer
+- [ ] ENet host/join, UDP discovery, lobby, input sending, snapshots, interpolation
+- [ ] **Gate:** two phones on a hotspot finish a match with no desync
+
+## Phase 4: Content and progression
+- [ ] Deep Forest, Abyss Submarine Base; 48 more weapons; all 12 powers
+- [ ] Skins and customize screen, coins and unlocks, music, survival waves
+- [ ] **Gate:** 30 minutes of solo play without running out of things to do
+
+## Phase 5: Online and new 3D weapons
+- [ ] Headless server, room codes, ping display; block football, king of the hill
+- [ ] Gravity gun, freeze ray, jetpack, block builder and more
+- [ ] **Gate:** an online match with a friend in another city stays playable
+
+## Phase 6: Polish and release
+- [ ] Boss tournament, performance and heat pass, touch layout editor
+- [ ] Signed release build (AAB), store listing, v1.0 tag
+
+## Tuning notes (from play-tests)
+_Owner: add what felt off after each test here (or in an Issue)._

@@ -1,0 +1,262 @@
+{
+ "fps": 30,
+ "moves": {
+  "Backpedal": {
+   "events": {},
+   "length": 0.7,
+   "loop": true,
+   "speed": 2.6
+  },
+  "Backpedal_Sword": {
+   "events": {},
+   "length": 0.7,
+   "loop": true,
+   "speed": 2.6
+  },
+  "Catch": {
+   "events": {
+    "catch": 0.08
+   },
+   "length": 0.4,
+   "loop": false,
+   "speed": 0.0
+  },
+  "Cross": {
+   "events": {
+    "hit": [
+     0.11,
+     0.22
+    ]
+   },
+   "length": 0.4667,
+   "loop": false,
+   "speed": 0.0
+  },
+  "Dodge_Roll": {
+   "events": {},
+   "length": 0.6,
+   "loop": false,
+   "speed": 0.0
+  },
+  "Double_Jump": {
+   "events": {},
+   "length": 0.5333,
+   "loop": false,
+   "speed": 0.0
+  },
+  "Fall": {
+   "events": {},
+   "length": 0.8,
+   "loop": true,
+   "speed": 0.0
+  },
+  "GetUp_Back": {
+   "events": {},
+   "length": 1.1,
+   "loop": false,
+   "speed": 0.0
+  },
+  "GetUp_Front": {
+   "events": {},
+   "length": 1.1,
+   "loop": false,
+   "speed": 0.0
+  },
+  "Heavy_Charge": {
+   "events": {},
+   "length": 0.6,
+   "loop": true,
+   "speed": 0.0
+  },
+  "Heavy_Release": {
+   "events": {
+    "hit": [
+     0.08,
+     0.44
+    ]
+   },
+   "length": 0.8,
+   "loop": false,
+   "speed": 0.0
+  },
+  "Hit_Back": {
+   "events": {},
+   "length": 0.4,
+   "loop": false,
+   "speed": 0.0
+  },
+  "Hit_Front": {
+   "events": {},
+   "length": 0.4,
+   "loop": false,
+   "speed": 0.0
+  },
+  "Idle": {
+   "events": {},
+   "length": 2.0,
+   "loop": true,
+   "speed": 0.0
+  },
+  "Jab": {
+   "events": {
+    "hit": [
+     0.06,
+     0.15
+    ]
+   },
+   "length": 0.3333,
+   "loop": false,
+   "speed": 0.0
+  },
+  "Jump_Start": {
+   "events": {},
+   "length": 0.2,
+   "loop": false,
+   "speed": 0.0
+  },
+  "Kick": {
+   "events": {
+    "hit": [
+     0.2,
+     0.34
+    ]
+   },
+   "length": 0.6,
+   "loop": false,
+   "speed": 0.0
+  },
+  "Land": {
+   "events": {},
+   "length": 0.3333,
+   "loop": false,
+   "speed": 0.0
+  },
+  "Pickup": {
+   "events": {
+    "grab": 0.18
+   },
+   "length": 0.4667,
+   "loop": false,
+   "speed": 0.0
+  },
+  "Run": {
+   "events": {},
+   "length": 0.6,
+   "loop": true,
+   "speed": 4.6
+  },
+  "Run_Sword": {
+   "events": {},
+   "length": 0.6,
+   "loop": true,
+   "speed": 4.6
+  },
+  "Slash_A": {
+   "events": {
+    "hit": [
+     0.13,
+     0.27
+    ]
+   },
+   "length": 0.5333,
+   "loop": false,
+   "speed": 0.0
+  },
+  "Slash_B": {
+   "events": {
+    "hit": [
+     0.13,
+     0.27
+    ]
+   },
+   "length": 0.5333,
+   "loop": false,
+   "speed": 0.0
+  },
+  "Slash_C": {
+   "events": {
+    "hit": [
+     0.25,
+     0.38
+    ]
+   },
+   "length": 0.7333,
+   "loop": false,
+   "speed": 0.0
+  },
+  "Sprint": {
+   "events": {},
+   "length": 0.5333,
+   "loop": true,
+   "speed": 6.4
+  },
+  "Sprint_Sword": {
+   "events": {},
+   "length": 0.5333,
+   "loop": true,
+   "speed": 6.4
+  },
+  "Strafe_L": {
+   "events": {},
+   "length": 0.6333,
+   "loop": true,
+   "speed": 2.6
+  },
+  "Strafe_L_Sword": {
+   "events": {},
+   "length": 0.6333,
+   "loop": true,
+   "speed": 2.6
+  },
+  "Strafe_R": {
+   "events": {},
+   "length": 0.6333,
+   "loop": true,
+   "speed": 2.6
+  },
+  "Strafe_R_Sword": {
+   "events": {},
+   "length": 0.6333,
+   "loop": true,
+   "speed": 2.6
+  },
+  "Sword_Idle": {
+   "events": {},
+   "length": 2.0,
+   "loop": true,
+   "speed": 0.0
+  },
+  "Taunt": {
+   "events": {},
+   "length": 1.6,
+   "loop": false,
+   "speed": 0.0
+  },
+  "Throw": {
+   "events": {
+    "release": 0.3
+   },
+   "length": 0.6,
+   "loop": false,
+   "speed": 0.0
+  },
+  "Victory": {
+   "events": {},
+   "length": 2.0,
+   "loop": true,
+   "speed": 0.0
+  },
+  "Walk": {
+   "events": {},
+   "length": 1.0,
+   "loop": true,
+   "speed": 1.7
+  },
+  "Walk_Sword": {
+   "events": {},
+   "length": 1.0,
+   "loop": true,
+   "speed": 1.7
+  }
+ }
+}
