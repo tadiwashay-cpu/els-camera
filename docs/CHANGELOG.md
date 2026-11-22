@@ -4,6 +4,16 @@ Versions are `MAJOR.MINOR.PATCH`; the number lives in `project.godot`
 (`config/version`) and shows on the title screen and next to the FPS counter.
 Bump MINOR for a phase or batch of features, PATCH for fixes.
 
+## 0.1.1: Playtest fixes
+
+- Fixed: after a jump, landing or dodge roll the body could stay frozen on
+  the move's last frame and slide around (most visible when unarmed). Every
+  move now hands the body back to running/standing when it ends.
+- New jump animations (made in Blender, with sword versions): explosive
+  launch, knee-drive rise (sword cocked behind the head), balanced fall,
+  tucked front-flip double jump (the sword spins with you), back-flip wall
+  kick, soft landing and a three-point "superhero" landing for big drops.
+
 ## 0.1.0: Phase 0 + Phase 1 playtest
 
 First playable build: one arena, sword fights against bots.

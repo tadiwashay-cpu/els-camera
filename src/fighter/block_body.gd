@@ -38,7 +38,8 @@ const HEAD_ORIGIN := Vector3(0, 1.58, 0)
 ## Loops the locomotion layer can hold.
 const LOCO: Array[StringName] = [&"Idle", &"Sword_Idle", &"Walk", &"Walk_Sword", &"Run", &"Run_Sword",
 	&"Sprint", &"Sprint_Sword", &"Strafe_L", &"Strafe_L_Sword", &"Strafe_R", &"Strafe_R_Sword",
-	&"Backpedal", &"Backpedal_Sword", &"Fall", &"Heavy_Charge", &"Victory"]
+	&"Backpedal", &"Backpedal_Sword", &"Jump_Rise", &"Jump_Rise_Sword", &"Fall", &"Fall_Sword",
+	&"Heavy_Charge", &"Victory"]
 ## Bones an upper-body move drives.
 const UPPER: Array[StringName] = [&"Spine", &"Chest", &"UpperChest", &"Neck", &"Head",
 	&"LeftShoulder", &"LeftUpperArm", &"LeftLowerArm", &"LeftHand", &"WeaponL",
@@ -287,12 +288,20 @@ func stop_action(fade: float = 0.15) -> void:
 		tree.set(&"parameters/upper/request", AnimationNodeOneShot.ONE_SHOT_REQUEST_FADE_OUT)
 
 
-## Advances the move clock; true once the move has finished.
-func tick_action(delta: float) -> bool:
+## The move clock runs here, every physics frame, whoever started the move:
+## a finished move always hands the body back to locomotion, so nothing can
+## leave a fighter stuck on a move's last frame, sliding around.
+func _physics_process(delta: float) -> void:
 	if action == &"":
-		return true
+		return
 	action_time += delta * action_speed
-	return action_time >= move_length(action)
+	if action_time >= move_length(action) and not bool(move_info(action)["loop"]):
+		stop_action(0.15)
+
+
+## True once the current move (if any) has finished.
+func action_over() -> bool:
+	return action == &""
 
 
 func _on_skeleton_updated() -> void:

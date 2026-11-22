@@ -44,9 +44,21 @@
    "loop": false,
    "speed": 0.0
   },
+  "Double_Jump_Sword": {
+   "events": {},
+   "length": 0.5333,
+   "loop": false,
+   "speed": 0.0
+  },
   "Fall": {
    "events": {},
-   "length": 0.8,
+   "length": 0.7,
+   "loop": true,
+   "speed": 0.0
+  },
+  "Fall_Sword": {
+   "events": {},
+   "length": 0.7,
    "loop": true,
    "speed": 0.0
   },
@@ -108,9 +120,27 @@
    "loop": false,
    "speed": 0.0
   },
+  "Jump_Rise": {
+   "events": {},
+   "length": 0.7,
+   "loop": true,
+   "speed": 0.0
+  },
+  "Jump_Rise_Sword": {
+   "events": {},
+   "length": 0.7,
+   "loop": true,
+   "speed": 0.0
+  },
   "Jump_Start": {
    "events": {},
-   "length": 0.2,
+   "length": 0.2333,
+   "loop": false,
+   "speed": 0.0
+  },
+  "Jump_Start_Sword": {
+   "events": {},
+   "length": 0.2333,
    "loop": false,
    "speed": 0.0
   },
@@ -126,6 +156,24 @@
    "speed": 0.0
   },
   "Land": {
+   "events": {},
+   "length": 0.3333,
+   "loop": false,
+   "speed": 0.0
+  },
+  "Land_Hard": {
+   "events": {},
+   "length": 0.6333,
+   "loop": false,
+   "speed": 0.0
+  },
+  "Land_Hard_Sword": {
+   "events": {},
+   "length": 0.6333,
+   "loop": false,
+   "speed": 0.0
+  },
+  "Land_Sword": {
    "events": {},
    "length": 0.3333,
    "loop": false,
@@ -257,6 +305,12 @@
    "length": 1.0,
    "loop": true,
    "speed": 1.7
+  },
+  "Wall_Kick": {
+   "events": {},
+   "length": 0.5,
+   "loop": false,
+   "speed": 0.0
   }
  }
 }

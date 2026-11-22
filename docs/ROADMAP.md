@@ -8,7 +8,7 @@ next starts. Claude ticks items as they land; the owner passes the gates.
 - [x] CLAUDE.md, roadmap, changelog, playtest guide
 - [x] CI: unit tests + bots-only match + debug APK on every push, playtest pre-release
 - [x] Boot splash, title menu, loading screen (threaded load, progress bar, tips, shader warm-up)
-- [ ] **Gate:** the APK installs and opens on the Redmi Pad 2
+- [x] **Gate:** the APK installs and opens on the Redmi Pad 2
 
 ## Phase 1: First playable fight (v0.1.0)
 - [x] Block fighter on our own Blender rig (one skinned mesh, skins as data)
@@ -21,7 +21,7 @@ next starts. Claude ticks items as they land; the owner passes the gates.
 - [x] Blockout Yard arena (3 levels, bridge, cover, edges, 6 sword spawners, nav mesh)
 - [x] Timed Kill Race vs bots (1 to 3), respawns with protection, last 30 s double, sudden death
 - [x] Killcam replay of your death; final-kill replay; results with coins
-- [ ] **Gate:** owner plays 10 matches on the tablet, it feels fun, tuning notes logged
+- [x] **Gate:** owner played it on the tablet: "everything looks good", smooth on max settings
 
 ## Phase 2: Offline game
 - [ ] 24 weapons, 6 powers and the power meter, map pickups, block and parry
@@ -50,3 +50,7 @@ next starts. Claude ticks items as they land; the owner passes the gates.
 
 ## Tuning notes (from play-tests)
 _Owner: add what felt off after each test here (or in an Issue)._
+
+- v0.1.0 (Redmi Pad 2, max settings): smooth. Asked for better jump
+  animations (done in 0.1.1), a fix for fighters sliding frozen after losing
+  their weapon (done in 0.1.1) and a breakable, livelier environment.

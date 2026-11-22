@@ -13,7 +13,7 @@ signal died(victim: Fighter, killer: Fighter)
 signal hurt(victim: Fighter, attacker: Fighter, damage: float, at: Vector3, heavy: bool)
 signal hit_landed(attacker: Fighter, victim: Fighter, damage: float)
 
-enum State { MOVE, ATTACK, CHARGE, HEAVY, THROW, CATCH, DODGE, HURT, DOWN, GETUP, DEAD, FROZEN }
+enum State { MOVE, ATTACK, CHARGE, HEAVY, THROW, CATCH, DODGE, HURT, DOWN, GETUP, DEAD, FROZEN, LAND }
 
 @export_group("Movement")
 @export var max_health := 100.0
@@ -69,6 +69,7 @@ var _combo := 0
 var _combo_window := 0.0
 var _queued_attack := false
 var _attack_hits: Array[Fighter] = []
+var _attack_clip := &""
 var _attack_upper := false
 var _attack_damage_mult := 1.0
 var _attack_knockdown := false
@@ -190,13 +191,18 @@ func _physics_process(delta: float) -> void:
 				velocity.z = _dodge_dir.z * dodge_speed * k
 		State.HURT:
 			_brake(delta, 18.0)
-			if body.tick_action(delta) or state_time > 0.35:
+			if body.action_over() or state_time > 0.35:
 				body.stop_action()
 				_set_state(State.MOVE)
 		State.GETUP:
 			_brake(delta, accel)
-			if body.tick_action(delta):
-				body.stop_action(0.2)
+			if body.action_over():
+				_set_state(State.MOVE)
+		State.LAND:
+			# A big drop: knees, a hand down, a moment to come up.
+			_brake(delta, 40.0)
+			if body.action_over() or state_time > 0.42:
+				body.stop_action(0.15)
 				_set_state(State.MOVE)
 	var was_floor := is_on_floor()
 	move_and_slide()
@@ -294,20 +300,20 @@ func _jump() -> void:
 		velocity.y = jump_velocity
 		_jumps = 1
 		_air_time = coyote_time + 0.01
-		body.play(&"Jump_Start", false, 1.0, 0.05)
+		body.play(_armed_clip(&"Jump_Start"), false, 1.0, 0.04)
 		Audio.play(&"swing", global_position, -14.0, 0.6)
 	elif is_on_wall_only() and _jumps < 3:
 		var n := get_wall_normal()
 		velocity = Vector3(n.x, 0, n.z).normalized() * 7.0 + Vector3.UP * double_jump_velocity
 		rotation.y = atan2(n.x, n.z)
 		_jumps = 2
-		body.play(&"Double_Jump", false, 1.1, 0.06)
+		body.play(&"Wall_Kick", false, 1.1, 0.05)
 		Audio.play(&"swing", global_position, -8.0, 0.8)
 		Fx.dust(get_parent(), global_position + Vector3.UP * 1.0 - n * 0.3, 0.8)
 	elif _jumps < 2:
 		velocity.y = double_jump_velocity
 		_jumps = 2
-		body.play(&"Double_Jump", false, 1.0, 0.06)
+		body.play(_armed_clip(&"Double_Jump"), false, 1.0, 0.05)
 		Audio.play(&"swing", global_position, -8.0, 0.7)
 
 
@@ -325,9 +331,22 @@ func _dodge(dir: Vector3) -> void:
 func _landed() -> void:
 	if _fall_speed > 8.0:
 		Fx.dust(get_parent(), global_position + Vector3.UP * 0.05, clampf(_fall_speed / 14.0, 0.6, 1.5))
-		Audio.play(&"land", global_position, -6.0)
-		if state == State.MOVE and _fall_speed > 13.0:
-			body.play(&"Land", hspeed() > 2.0, 1.0, 0.04)
+		Audio.play(&"land", global_position, -6.0 + clampf(_fall_speed - 14.0, 0.0, 6.0))
+	if state != State.MOVE:
+		return
+	if _fall_speed > 15.0:
+		# Superhero landing from a big drop.
+		body.play(_armed_clip(&"Land_Hard"), false, 1.0, 0.03)
+		_set_state(State.LAND)
+		if is_player and world:
+			world.camera.shake(0.25)
+	elif _fall_speed > 6.0 and hspeed() < 3.5:
+		body.play(_armed_clip(&"Land"), false, 1.1, 0.04)
+
+
+## The sword version of a move when holding one (e.g. Fall_Sword).
+func _armed_clip(clip: StringName) -> StringName:
+	return StringName(String(clip) + "_Sword") if armed() else clip
 
 
 func _follow_ragdoll() -> void:
@@ -388,6 +407,7 @@ func _start_attack(clip: StringName, damage_mult: float, s: State) -> void:
 	_soft_aim()
 	_attack_upper = (hspeed() > 3.5 or not is_on_floor()) and s == State.ATTACK
 	_attack_damage_mult = damage_mult
+	_attack_clip = clip
 	_attack_hits.clear()
 	_have_prev = false
 	_queued_attack = false
@@ -406,8 +426,8 @@ func _start_attack(clip: StringName, damage_mult: float, s: State) -> void:
 
 
 func _state_attack(delta: float) -> void:
-	var clip := body.action
-	var done := body.tick_action(delta)
+	var clip := _attack_clip
+	var done := body.action != clip      # finished (or replaced)
 	var t := body.action_time
 	var w := BlockBody.hit_window(clip)
 	if _attack_upper:
@@ -559,7 +579,7 @@ func _catch(p: ThrownWeapon) -> void:
 
 
 func _state_throw(delta: float) -> void:
-	var done := body.tick_action(delta)
+	var done := body.action_over()
 	_brake(delta, 10.0 if not body.action_upper else 4.0)
 	if state == State.THROW and not _threw and body.action_time >= BlockBody.event_time(&"Throw", "release"):
 		_threw = true
@@ -742,8 +762,8 @@ func _animate() -> void:
 	if state == State.CHARGE:
 		body.set_loco(&"Heavy_Charge", 1.0)
 		return
-	if not is_on_floor() and _air_time > 0.12:
-		body.set_loco(&"Fall", 1.0)
+	if not is_on_floor() and _air_time > 0.08:
+		body.set_loco(_armed_clip(&"Jump_Rise" if velocity.y > 1.0 else &"Fall"), 1.0)
 		return
 	if hs < 0.35:
 		body.set_loco(&"Sword_Idle" if sword else &"Idle", 1.0)

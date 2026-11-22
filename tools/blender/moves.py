@@ -237,39 +237,109 @@ for _name, _kw in _loco.items():
     move(_name, gait(**_kw), _kw["T"], loop=True, speed=_kw["speed"])
     move(_name + "_Sword", gait(armed=True, **_kw), _kw["T"], loop=True, speed=_kw["speed"])
 
-# Air
-_crouch = {"hips": (0.0, 0.02, -0.24), "hips_rot": (14.0, 0.0, 0.0), "spine": (10.0, 0, 0), "knee_l": (0.2, -1, 0), "knee_r": (-0.2, -1, 0),
-           "foot_l": (0.13, -0.02, ANKLE_Z), "foot_r": (-0.13, 0.02, ANKLE_Z),
-           "hand_l": (0.26, 0.15, 1.0), "hand_r": (-0.26, 0.15, 1.0)}
-move("Jump_Start", Keys(merge({"hips": (0, 0, -0.04)}, RELAXED_ARMS), [
+# Air ---------------------------------------------------------------------
+# Every air move has a "_Sword" twin so the blade is held properly.
+# The game picks Jump_Rise while going up and Fall while coming down.
+
+def _air_arms(armed, phase):
+    """Hands for the air poses. phase: crouch, launch, rise, rise2, fall, fall2, tuck."""
+    if armed:
+        return {
+            "crouch": {"hand_r": (-0.3, 0.14, 1.04), "elbow_r": (-0.6, 0.6, -0.5), "grip_r": (0.15, 0.35, -0.92),
+                       "hand_l": (0.28, 0.2, 1.02), "elbow_l": (0.4, 0.8, -0.4)},
+            "launch": {"hand_r": (-0.32, -0.08, 1.72), "elbow_r": (-0.8, 0.2, -0.2), "grip_r": (0.1, 0.45, 0.88),
+                       "hand_l": (0.4, -0.4, 1.6), "elbow_l": (0.7, 0.3, -0.5)},
+            "rise": {"hand_r": (-0.28, 0.16, 1.78), "elbow_r": (-0.8, -0.1, 0.3), "grip_r": (0.15, 0.72, 0.68),
+                     "hand_l": (0.26, -0.36, 1.56), "elbow_l": (0.7, 0.3, -0.6)},
+            "rise2": {"hand_r": (-0.27, 0.18, 1.82), "elbow_r": (-0.8, -0.1, 0.3), "grip_r": (0.18, 0.76, 0.62),
+                      "hand_l": (0.27, -0.38, 1.6), "elbow_l": (0.7, 0.3, -0.6)},
+            "fall": {"hand_r": (-0.42, -0.22, 1.4), "elbow_r": (-0.5, 0.6, -0.6), "grip_r": (-0.45, -0.5, -0.74),
+                     "hand_l": (0.5, -0.06, 1.55), "elbow_l": (0.2, 0.6, -0.8)},
+            "fall2": {"hand_r": (-0.44, -0.18, 1.44), "elbow_r": (-0.5, 0.6, -0.6), "grip_r": (-0.5, -0.45, -0.74),
+                      "hand_l": (0.52, -0.12, 1.6), "elbow_l": (0.2, 0.6, -0.8)},
+            "tuck": {"hand_r": (-0.56, -0.18, 1.3), "elbow_r": (-0.3, 0.6, -0.7), "grip_r": (0.0, -1.0, 0.12),
+                     "hand_l": (0.2, -0.4, 1.12), "elbow_l": (0.6, 0.3, -0.7)},
+        }[phase]
+    return {
+        "crouch": {"hand_l": (0.26, 0.24, 1.0), "hand_r": (-0.26, 0.24, 1.0), "elbow_l": (0.3, 0.8, -0.4), "elbow_r": (-0.3, 0.8, -0.4)},
+        "launch": {"hand_l": (0.4, -0.4, 1.62), "hand_r": (-0.4, -0.36, 1.6), "elbow_l": (0.7, 0.3, -0.5), "elbow_r": (-0.7, 0.3, -0.5)},
+        "rise": {"hand_l": (0.3, -0.2, 1.7), "hand_r": (-0.36, 0.06, 1.6), "elbow_l": (0.6, 0.4, -0.6), "elbow_r": (-0.6, 0.4, -0.6)},
+        "rise2": {"hand_l": (0.31, -0.22, 1.75), "hand_r": (-0.37, 0.08, 1.65), "elbow_l": (0.6, 0.4, -0.6), "elbow_r": (-0.6, 0.4, -0.6)},
+        "fall": {"hand_l": (0.5, -0.06, 1.55), "hand_r": (-0.5, -0.06, 1.55), "elbow_l": (0.2, 0.6, -0.8), "elbow_r": (-0.2, 0.6, -0.8)},
+        "fall2": {"hand_l": (0.52, -0.12, 1.6), "hand_r": (-0.52, 0.0, 1.5), "elbow_l": (0.2, 0.6, -0.8), "elbow_r": (-0.2, 0.6, -0.8)},
+        "tuck": {"hand_l": (0.2, -0.4, 1.12), "hand_r": (-0.2, -0.4, 1.12), "elbow_l": (0.6, 0.3, -0.7), "elbow_r": (-0.6, 0.3, -0.7)},
+    }[phase]
+
+
+_CROUCH = {"hips": (0.0, 0.03, -0.2), "hips_rot": (16.0, 0.0, 0.0), "spine": (8.0, 0, 0), "chest": (2.0, 0, 0), "head": (-6.0, 0, 0),
+           "foot_l": (0.13, -0.02, ANKLE_Z), "foot_r": (-0.13, 0.04, ANKLE_Z), "knee_l": (0.2, -1, 0), "knee_r": (-0.2, -1, 0)}
+_LAUNCH = {"hips": (0.0, 0.0, 0.04), "hips_rot": (-4.0, 0, 0), "spine": (-6.0, 0, 0), "chest": (-4.0, 0, 0), "head": (-10.0, 0, 0),
+           "foot_l": (0.12, 0.06, 0.16), "foot_r": (-0.12, 0.1, 0.12), "foot_l_rot": (40, 0, 0), "foot_r_rot": (45, 0, 0),
+           "toe_l": -20.0, "toe_r": -20.0, "knee_l": (0.1, -1, 0), "knee_r": (-0.1, -1, 0)}
+_crouch = merge(_CROUCH, {"hand_l": (0.26, 0.15, 1.0), "hand_r": (-0.26, 0.15, 1.0)})   # used by the dodge roll
+_RISE = {"hips": (0.0, 0.0, 0.02), "hips_rot": (-2.0, 0, 0), "spine": (-3.0, 0, 0), "chest": (-2.0, 0, 0), "head": (-6.0, 0, 0),
+         "foot_l": (0.12, -0.26, 0.6), "foot_l_rot": (25, 0, 0), "knee_l": (0.15, -1, 0.5),
+         "foot_r": (-0.12, 0.18, 0.2), "foot_r_rot": (50, 0, 0), "knee_r": (-0.1, -1, 0.0), "toe_l": -8.0, "toe_r": -15.0}
+_RISE2 = dict(_RISE, **{"foot_l": (0.12, -0.24, 0.66), "foot_r": (-0.12, 0.22, 0.16)})
+_FALL = {"hips": (0.0, 0.0, 0.0), "hips_rot": (6.0, 0, 0), "spine": (4.0, 0, 0), "chest": (2.0, 0, 0), "head": (10.0, 0, 0),
+         "foot_l": (0.15, -0.16, 0.34), "foot_l_rot": (15, 0, 0), "knee_l": (0.25, -1, 0.2),
+         "foot_r": (-0.15, 0.04, 0.26), "foot_r_rot": (20, 0, 0), "knee_r": (-0.25, -1, 0.1), "toe_l": 0.0, "toe_r": 0.0}
+_FALL2 = dict(_FALL, **{"foot_l": (0.15, -0.06, 0.26), "foot_r": (-0.15, -0.14, 0.32), "hips_rot": (8.0, 0, 0)})
+
+for _armed, _sfx in ((False, ""), (True, "_Sword")):
+    _base = STANCE if _armed else GUARD
+    _a = lambda ph, a=_armed: _air_arms(a, ph)
+    move("Jump_Start" + _sfx, Keys(merge(_CROUCH, _a("crouch")), [
+        (0.0, {}),
+        (0.1, merge(_LAUNCH, _a("launch")), "snap"),
+        (0.22, merge(RESET, _RISE, _a("rise")), "smooth"),
+    ]), 0.22)
+    move("Jump_Rise" + _sfx, Keys(merge(_RISE, _a("rise")), [
+        (0.0, {}),
+        (0.35, merge(_RISE2, _a("rise2"))),
+        (0.7, merge(_RISE, _a("rise"))),
+    ]), 0.7, loop=True)
+    move("Fall" + _sfx, Keys(merge(_FALL, _a("fall")), [
+        (0.0, {}),
+        (0.35, merge(_FALL2, _a("fall2"))),
+        (0.7, merge(_FALL, _a("fall"))),
+    ]), 0.7, loop=True)
+    move("Double_Jump" + _sfx, Keys(merge(_RISE, _a("rise")), [
+        (0.0, {}),
+        (0.05, merge(_a("tuck"), {"spine": (12, 0, 0), "head": (14, 0, 0)}), "out"),
+    ] + tumble_keys(0.07, 0.42, 0.0, 360.0, 12, lambda u: -0.15 * math.sin(math.pi * u), (-0.16, -0.32)) + [
+        (0.55, merge(RESET, _FALL, _a("fall")), "smooth"),
+    ]), 0.55)
+    _ground = {"foot_l": (0.13, -0.06, ANKLE_Z), "foot_r": (-0.13, 0.06, ANKLE_Z), "foot_l_rot": (0, 0, 0), "foot_r_rot": (0, 0, 0),
+               "toe_l": 0.0, "toe_r": 0.0, "knee_l": (0.2, -1, 0), "knee_r": (-0.2, -1, 0)}
+    move("Land" + _sfx, Keys(merge(_FALL, _a("fall"), _ground), [
+        (0.0, {}),
+        (0.06, merge({"hips": (0.0, 0.03, -0.28), "hips_rot": (18, 0, 0), "spine": (12, 0, 0), "chest": (4, 0, 0), "head": (-12, 0, 0)},
+                     _a("crouch") if not _armed else {"hand_r": (-0.45, -0.1, 1.1), "grip_r": (-0.6, -0.2, -0.75),
+                                                       "hand_l": (0.32, -0.25, 1.08)}), "snap"),
+        (0.32, merge(RESET, _base), "smooth"),
+    ]), 0.32)
+    _hero = {"hips": (0.0, 0.12, -0.55), "hips_rot": (32.0, 0, -10.0), "spine": (12, 0, 4), "chest": (6, 0, 2), "head": (-24, 0, 6),
+             "foot_l": (0.2, -0.26, ANKLE_Z), "foot_r": (-0.14, 0.34, ANKLE_Z), "foot_l_rot": (0, 0, -6), "foot_r_rot": (55, 0, -20),
+             "toe_r": -50.0, "knee_l": (0.3, -1, 0.2), "knee_r": (-0.1, -1, -0.6)}
+    if _armed:
+        _hero_arms = {"hand_l": (0.24, -0.52, 1.0), "elbow_l": (0.7, 0.3, -0.5),
+                      "hand_r": (-0.52, 0.22, 1.36), "elbow_r": (-0.4, 0.6, -0.6), "grip_r": (-0.45, 0.85, 0.2)}
+    else:
+        _hero_arms = {"hand_r": (-0.24, -0.52, 1.0), "elbow_r": (-0.7, 0.3, -0.5),
+                      "hand_l": (0.46, 0.2, 1.3), "elbow_l": (0.4, 0.6, -0.6)}
+    move("Land_Hard" + _sfx, Keys(merge(_FALL, _a("fall"), _ground), [
+        (0.0, {}),
+        (0.07, merge(_hero, _hero_arms), "snap"),
+        (0.3, {"hips": (0.0, 0.12, -0.52), "head": (-30, 0, 6)}, "lin"),
+        (0.62, merge(RESET, _base), "smooth"),
+    ]), 0.62)
+
+move("Wall_Kick", Keys(merge(_LAUNCH, _air_arms(False, "launch")), [
     (0.0, {}),
-    (0.08, _crouch, "out"),
-    (0.2, {"hips": (0.0, 0.0, 0.02), "hips_rot": (-4.0, 0, 0), "spine": (-4.0, 0, 0),
-           "foot_l": (0.12, 0.05, 0.22), "foot_r": (-0.12, 0.1, 0.16), "foot_l_rot": (30, 0, 0), "foot_r_rot": (35, 0, 0),
-           "hand_l": (0.24, -0.25, 1.62), "hand_r": (-0.24, -0.2, 1.6), "toe_l": -10.0, "toe_r": -10.0}, "snap"),
-]), 0.2)
-
-_air = {"hips": (0.0, 0.0, 0.0), "hips_rot": (6.0, 0, 0), "spine": (4.0, 0, 0),
-        "foot_l": (0.14, -0.22, 0.42), "foot_r": (-0.13, 0.12, 0.22),
-        "foot_l_rot": (25, 0, 0), "foot_r_rot": (30, 0, 0), "knee_l": (0.2, -1, 0.3), "knee_r": (-0.2, -1, 0),
-        "hand_l": (0.42, -0.05, 1.42), "hand_r": (-0.42, 0.0, 1.38), "elbow_l": (0.3, 0.8, -0.6), "elbow_r": (-0.3, 0.8, -0.6)}
-move("Fall", Keys(_air, [
-    (0.0, {}),
-    (0.4, {"foot_l": (0.14, -0.16, 0.36), "foot_r": (-0.13, 0.06, 0.28), "hand_l": (0.44, -0.08, 1.48), "hand_r": (-0.43, 0.03, 1.34)}),
-    (0.8, {"foot_l": (0.14, -0.22, 0.42), "foot_r": (-0.13, 0.12, 0.22), "hand_l": (0.42, -0.05, 1.42), "hand_r": (-0.42, 0.0, 1.38)}),
-]), 0.8, loop=True)
-
-move("Double_Jump", Keys(_air, [(0.0, {})] + tumble_keys(0.04, 0.46, 0.0, 360.0, 12, lambda u: -0.22 * math.sin(math.pi * u), (-0.18, -0.36)) + [
-    (0.55, merge(RESET, _air)),
-]), 0.55)
-
-move("Land", Keys(merge({"hips": (0, 0, 0.0)}, _air), [
-    (0.0, {"foot_l": (0.13, -0.06, ANKLE_Z), "foot_r": (-0.13, 0.06, ANKLE_Z), "foot_l_rot": (0, 0, 0), "foot_r_rot": (0, 0, 0)}),
-    (0.07, merge(_crouch, {"hips": (0.0, 0.03, -0.3), "hips_rot": (20, 0, 0), "spine": (14, 0, 0), "head": (-10, 0, 0),
-                           "hand_l": (0.34, -0.2, 1.08), "hand_r": (-0.34, -0.2, 1.08)}), "snap"),
-    (0.35, merge(RESET, RELAXED_ARMS, {"hips": (0, 0, -0.05), "hips_rot": (3, 0, 0), "spine": (2, 0, 0), "head": (0, 0, 0),
-                                "foot_l": (0.13, -0.06, ANKLE_Z), "foot_r": (-0.13, 0.06, ANKLE_Z)}), "smooth"),
-]), 0.35)
+] + tumble_keys(0.04, 0.4, 0.0, -360.0, 12, lambda u: -0.1 * math.sin(math.pi * u), (-0.16, -0.3)) + [
+    (0.5, merge(RESET, _FALL, _air_arms(False, "fall")), "smooth"),
+]), 0.5)
 
 # Sword attacks ------------------------------------------------------------
 move("Slash_A", Keys(STANCE, [   # forehand, right to left
