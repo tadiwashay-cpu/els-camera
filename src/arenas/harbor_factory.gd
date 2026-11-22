@@ -732,11 +732,49 @@ func tick(m: Match, delta: float) -> void:
 			if f.alive:
 				count("climbed_out")
 	_tick_neon(delta)
+	if not m.authority:
+		_show_press(m)                  # crane, fires and lever come from the host
+		return
 	_tick_oil(m, delta)
 	_tick_belt(m, delta)
 	if m.config.hazards:
 		_tick_lever(m, delta)
 		_tick_crane(m, delta)
+
+
+func net_state() -> Array:
+	var fires := PackedByteArray()
+	for o: Dictionary in oil:
+		fires.append((1 if float(o["burn"]) > 0.0 else 0) | (2 if float(o["gone"]) > 0.0 else 0))
+	return [_gx, _tz, controller.fighter_id if controller else -1, _press_t, fires, _lever_ring.visible]
+
+
+func apply_net_state(st: Array) -> void:
+	if st.size() < 6:
+		return
+	_gx = float(st[0])
+	_tz = float(st[1])
+	_place_crane()
+	var ctrl := int(st[2])
+	var m := get_parent() as Match
+	var f := m.fighter_by_id(ctrl) if m and ctrl >= 0 else null
+	if (f != null) != (controller != null):
+		Audio.play(&"clunk", LEVER, 0.0, 1.3)
+	controller = f
+	_magnet_light.albedo_color = f.body.skin.shirt.lightened(0.2) * 1.5 if f else Color(0.4, 0.8, 1.0)
+	_lever_arm.rotation.x = -0.5 if f else 0.5
+	_press_t = float(st[3])
+	var fires: PackedByteArray = st[4]
+	for i in mini(fires.size(), oil.size()):
+		var o: Dictionary = oil[i]
+		var burning := fires[i] & 1 != 0
+		var gone := fires[i] & 2 != 0
+		var fire := o["fire"] as CPUParticles3D
+		if burning and not fire.emitting:
+			Audio.play(&"boom", o["pos"], -6.0, 1.6)
+		fire.emitting = burning
+		(o["mesh"] as MeshInstance3D).visible = not gone
+	_lever_ring.visible = bool(st[5])
 
 
 func _tick_neon(delta: float) -> void:
@@ -802,6 +840,12 @@ func _tick_belt(m: Match, delta: float) -> void:
 		c.global_position.x = minf(c.global_position.x + BELT_SPEED * delta, CRUSH.end.x - 0.6)
 	# The press: rest, warn, slam, hold, rise.
 	_press_t = fmod(_press_t + delta, CRUSH_PERIOD)
+	if _show_press(m):
+		_slam(m)
+
+
+## Moves the press and its warning light for `_press_t`; true on the slam.
+func _show_press(m: Match) -> bool:
 	var y := 3.6
 	var warn := _press_t > 2.4 and _press_t < 3.2
 	if _press_t < 2.4:
@@ -823,9 +867,14 @@ func _tick_belt(m: Match, delta: float) -> void:
 		_warned = false
 	if _press_t >= 3.3 and not _slammed:
 		_slammed = true
-		_slam(m)
+		if not m.authority:
+			var at := Vector3(CRUSH.get_center().x, BELT_TOP, CRUSH.get_center().y)
+			Audio.play(&"clunk", at, 2.0)
+			Fx.dust(self, at + Vector3.UP * 0.2, 1.1)
+		return true
 	elif _press_t < 3.3:
 		_slammed = false
+	return false
 
 
 func _slam(m: Match) -> void:

@@ -9,7 +9,15 @@ var _ui: Control
 var _main: Control
 var _setup: Control
 var _settings: Control
+var _mp: Control
+var _lobby: Control
 var _coins: Label
+var _mp_status: Label
+var _games_box: VBoxContainer
+var _lobby_players: VBoxContainer
+var _lobby_info: Label
+var _lobby_opts: VBoxContainer
+var _lobby_start: Button
 
 
 func _ready() -> void:
@@ -90,7 +98,7 @@ func _build_ui() -> void:
 	_coins.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_ui.add_child(_coins)
 	var ver := Label.new()
-	ver.text = "v%s  ·  Phase 1 playtest" % Game.version()
+	ver.text = "v%s  ·  Phase 3 playtest" % Game.version()
 	ver.anchor_top = 1.0
 	ver.anchor_bottom = 1.0
 	ver.offset_left = 30
@@ -101,6 +109,17 @@ func _build_ui() -> void:
 	_main = _main_menu()
 	_setup = _match_setup()
 	_settings = _settings_panel()
+	_mp = _multiplayer_panel()
+	_lobby = _lobby_panel()
+	Net.lobby_changed.connect(_refresh_lobby)
+	Net.status_changed.connect(func(t: String) -> void: _mp_status.text = t)
+	Net.left.connect(func(reason: String) -> void:
+		_mp_status.text = reason
+		if is_instance_valid(_mp):
+			_show(_mp))
+	Net.discovery.games_changed.connect(_refresh_games)
+	if Net.active and not Net.in_match:
+		_show.call_deferred(_lobby)
 
 
 func _panel(title: String) -> VBoxContainer:
@@ -121,8 +140,15 @@ func _panel(title: String) -> VBoxContainer:
 
 
 func _show(which: Control) -> void:
-	for c in [_main, _setup, _settings]:
-		c.visible = c == which
+	for c in [_main, _setup, _settings, _mp, _lobby]:
+		if c:
+			c.visible = c == which
+	if which == _mp:
+		Net.discovery.start_listening()
+		_refresh_games()
+	elif which != _lobby:
+		if not Net.is_host:
+			Net.discovery.stop()
 	for c in which.get_children():
 		if c is Button and not (c as Button).disabled:
 			(c as Button).grab_focus.call_deferred()
@@ -143,9 +169,8 @@ func _main_menu() -> Control:
 	var play := UiTheme.big_button("PLAY")
 	play.pressed.connect(func() -> void: _show(_setup))
 	box.add_child(play)
-	var mp := UiTheme.big_button("MULTIPLAYER  (soon)")
-	mp.disabled = true
-	mp.tooltip_text = "LAN and hotspot play arrive in Phase 3"
+	var mp := UiTheme.big_button("MULTIPLAYER")
+	mp.pressed.connect(func() -> void: _show(_mp))
 	box.add_child(mp)
 	var cust := UiTheme.big_button("CUSTOMIZE  (soon)")
 	cust.disabled = true
@@ -247,6 +272,168 @@ func _toggle(box: VBoxContainer, label: String, key: String) -> void:
 	c.custom_minimum_size.y = 64
 	c.toggled.connect(func(on: bool) -> void: Save.set_setting(key, on))
 	box.add_child(c)
+
+
+# ---------------------------------------------------------- multiplayer
+
+## Host or join a game on the same Wi-Fi or phone hotspot.
+func _multiplayer_panel() -> Control:
+	var box := _panel("MULTIPLAYER")
+	var sub := Label.new()
+	sub.text = "Same Wi-Fi or a phone's hotspot. Up to 4 fighters."
+	sub.modulate = Color(1, 1, 1, 0.75)
+	box.add_child(sub)
+	var row := HBoxContainer.new()
+	var l := Label.new()
+	l.text = "Your name"
+	l.custom_minimum_size.x = 260
+	row.add_child(l)
+	var name_edit := LineEdit.new()
+	name_edit.text = str(Save.setting("player_name"))
+	name_edit.max_length = 16
+	name_edit.custom_minimum_size = Vector2(300, 64)
+	name_edit.text_changed.connect(func(t: String) -> void: Save.set_setting("player_name", t.strip_edges() if t.strip_edges() != "" else "Player"))
+	row.add_child(name_edit)
+	box.add_child(row)
+	var host := UiTheme.big_button("HOST A GAME")
+	host.pressed.connect(func() -> void:
+		Audio.play(&"ui_confirm")
+		if Net.host(str(Save.setting("player_name")), Game.match_config.power) == OK:
+			_show(_lobby))
+	box.add_child(host)
+	var found := Label.new()
+	found.text = "Games nearby:"
+	box.add_child(found)
+	_games_box = VBoxContainer.new()
+	box.add_child(_games_box)
+	var ip_row := HBoxContainer.new()
+	var ip := LineEdit.new()
+	ip.placeholder_text = "Host's IP, e.g. 192.168.43.1"
+	ip.text = str(Save.setting("last_ip")) if Save.setting("last_ip") != null else ""
+	ip.custom_minimum_size = Vector2(380, 64)
+	ip_row.add_child(ip)
+	var join := UiTheme.big_button("JOIN", 180)
+	join.pressed.connect(func() -> void:
+		if ip.text.strip_edges() == "":
+			return
+		Save.set_setting("last_ip", ip.text.strip_edges())
+		_join(ip.text.strip_edges()))
+	ip_row.add_child(join)
+	box.add_child(ip_row)
+	_mp_status = Label.new()
+	_mp_status.modulate = Color(1, 0.85, 0.5)
+	_mp_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(_mp_status)
+	var back := UiTheme.big_button("BACK")
+	back.pressed.connect(func() -> void:
+		Net.leave()
+		_show(_main))
+	box.add_child(back)
+	return box
+
+
+func _join(ip: String) -> void:
+	Audio.play(&"ui_confirm")
+	if Net.join(ip, str(Save.setting("player_name")), Game.match_config.power) == OK:
+		_show(_lobby)
+
+
+func _refresh_games() -> void:
+	if _games_box == null:
+		return
+	for c in _games_box.get_children():
+		c.queue_free()
+	if Net.discovery.games.is_empty():
+		var none := Label.new()
+		none.text = "  Looking... (or type the host's IP below)"
+		none.modulate = Color(1, 1, 1, 0.6)
+		_games_box.add_child(none)
+		return
+	for ip: String in Net.discovery.games:
+		var g: Dictionary = Net.discovery.games[ip]
+		var b := UiTheme.big_button("%s   %d/%d" % [str(g.get("name", "?")), int(g.get("players", 1)), int(g.get("max", 4))], 520)
+		b.disabled = bool(g.get("in_match", false)) or str(g.get("version", "")) != Game.version()
+		b.pressed.connect(func() -> void: _join(ip))
+		_games_box.add_child(b)
+
+
+## Who's in, the host's settings, START (host) or waiting (joiners).
+func _lobby_panel() -> Control:
+	var box := _panel("LOBBY")
+	_lobby_info = Label.new()
+	_lobby_info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_lobby_info.modulate = Color(1, 1, 1, 0.8)
+	box.add_child(_lobby_info)
+	_lobby_players = VBoxContainer.new()
+	box.add_child(_lobby_players)
+	_lobby_opts = VBoxContainer.new()
+	box.add_child(_lobby_opts)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override(&"separation", 16)
+	_lobby_start = UiTheme.big_button("START", 300)
+	_lobby_start.pressed.connect(func() -> void:
+		Audio.play(&"ui_confirm")
+		Net.start_match())
+	row.add_child(_lobby_start)
+	var leave := UiTheme.big_button("LEAVE", 240)
+	leave.pressed.connect(func() -> void:
+		Net.leave()
+		_show(_mp))
+	row.add_child(leave)
+	box.add_child(row)
+	return box
+
+
+func _refresh_lobby() -> void:
+	if _lobby == null:
+		return
+	for c in _lobby_players.get_children():
+		c.queue_free()
+	for id: int in Net.players:
+		var p: Dictionary = Net.players[id]
+		var l := Label.new()
+		l.text = "  %s%s%s" % [str(p["name"]), "   (host)" if id == 1 else "", "   (you)" if id == Net.my_id() else ""]
+		l.add_theme_color_override(&"font_color", Registry.skin(int(p.get("skin", 0))).shirt.lightened(0.35))
+		l.add_theme_font_size_override(&"font_size", 30)
+		_lobby_players.add_child(l)
+	var s := Net.settings
+	var arena_name := "Random" if str(s.get("arena_choice", "")) == "random" else Registry.arena(StringName(str(s.get("arena_choice", "blockout_yard")))).display_name
+	var summary := "%d min · %s · %d bot%s · %s" % [int(round(float(s.get("minutes", 3.0)))), arena_name, int(s.get("bots", 0)),
+		"" if int(s.get("bots", 0)) == 1 else "s", MatchConfig.DIFFICULTIES[clampi(int(s.get("difficulty", 1)), 0, 2)]]
+	if Net.is_host:
+		_lobby_info.text = "Others join from MULTIPLAYER on the same Wi-Fi/hotspot, or type: %s" % ", ".join(Net.local_ips())
+	else:
+		_lobby_info.text = "Waiting for the host to start.   " + summary
+	_lobby_start.visible = Net.is_host
+	_lobby_opts.visible = Net.is_host
+	if Net.is_host and _lobby_opts.get_child_count() == 0:
+		_build_lobby_options()
+
+
+func _build_lobby_options() -> void:
+	var s := Net.settings
+	var times: Array = []
+	for mins in MatchConfig.TIMES:
+		times.append("%d min" % mins)
+	_option(_lobby_opts, "Match time", times, maxi(MatchConfig.TIMES.find(int(round(float(s.get("minutes", 3.0))))), 0),
+		func(i: int) -> void: Net.set_setting("minutes", float(MatchConfig.TIMES[i])))
+	_option(_lobby_opts, "Bots", ["None", "1 bot", "2 bots", "3 bots"], clampi(int(s.get("bots", 1)), 0, 3),
+		func(i: int) -> void: Net.set_setting("bots", i))
+	_option(_lobby_opts, "Bot skill", ["Easy", "Normal", "Hard"], clampi(int(s.get("difficulty", 1)), 0, 2),
+		func(i: int) -> void: Net.set_setting("difficulty", i))
+	var ids: Array = Registry.arena_ids()
+	var names: Array = []
+	for id: StringName in ids:
+		names.append(Registry.arena(id).display_name)
+	ids.append(&"random")
+	names.append("Random")
+	_option(_lobby_opts, "Arena", names, maxi(ids.find(StringName(str(s.get("arena_choice", "blockout_yard")))), 0),
+		func(i: int) -> void: Net.set_setting("arena_choice", String(ids[i])))
+	var starts := ["sword", "random", "fists"]
+	_option(_lobby_opts, "Start with", ["Sword", "Random weapon", "Fists"], maxi(starts.find(str(s.get("start_weapon", "sword"))), 0),
+		func(i: int) -> void: Net.set_setting("start_weapon", starts[i]))
+	_option(_lobby_opts, "Hazards", ["On", "Off"], 0 if bool(s.get("hazards", true)) else 1,
+		func(i: int) -> void: Net.set_setting("hazards", i == 0))
 
 
 func _settings_panel() -> Control:

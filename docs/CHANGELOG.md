@@ -4,6 +4,32 @@ Versions are `MAJOR.MINOR.PATCH`; the number lives in `project.godot`
 (`config/version`) and shows on the title screen and next to the FPS counter.
 Bump MINOR for a phase or batch of features, PATCH for fixes.
 
+## 0.3.0: Phase 3 increment A (LAN and hotspot multiplayer)
+
+- **MULTIPLAYER** on the title screen: play with up to 4 phones on the
+  same Wi-Fi, or on one phone's hotspot.
+  - HOST A GAME opens a lobby; it shows the IPs others can type in.
+  - Joiners see nearby games in a list (the host announces itself every
+    second) or type the host's IP. Names come from "Your name".
+  - The host picks match time, bots (0 to 3), bot skill, arena (or
+    Random), start weapon and hazards; everyone sees them; START.
+  - Every phone loads, then the countdown starts for all at once.
+- **How it plays**: the host phone runs the real match (it decides hits,
+  damage, hazards and bots); joiners send their controls 30 times a second
+  and draw what the host sends back 30 times a second. Other fighters are
+  smoothed about 0.1 s behind; your own fighter shows the newest state.
+  Weapons in flight, shots, pickups, broken scenery, the crane, the press,
+  oil fires, the tide and sharks all show the same on every phone. Hits,
+  blasts, lightning, kill feed and callouts are sent as events; death and
+  knockdown ragdolls are replayed on each phone from the same impulse.
+- Online there's no killcam, slow motion or hit-stop (the match never
+  pauses for anyone); the pause button opens a menu while play goes on.
+- A joiner who leaves is replaced by a bot; if the host leaves, everyone
+  goes back to the menu. Phones on different game versions can't join.
+- After a match the host can start a rematch; joiners leave from results.
+- CI now plays a real LAN match between two Godot processes and checks
+  both sides finish with the same scores.
+
 ## 0.2.1: The sea, 23 new weapons, more detail
 
 - **The sea drowns you slowly** instead of killing at once: standing in

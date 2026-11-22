@@ -54,6 +54,9 @@ var _water_credit: Dictionary = {}     # fighter id -> who knocked them in
 var _drip: Dictionary = {}             # fighter id -> damage not yet applied
 ## What the arena did this match (cannon shots, crane grabs...): tests, smoke.
 var stats: Dictionary = {}
+## Breakables built with the arena (the same on every phone, in order); the
+## network mirrors their broken flags by index. Later ones are dynamic.
+var static_breakables := 0
 var _merged: Dictionary = {}           # surface kind -> BoxBuilder
 var _glow: BoxBuilder                  # merged lit windows, lamps (unshaded)
 var _splashed: Dictionary = {}         # fighter id -> was above water
@@ -82,6 +85,7 @@ func _ready() -> void:
 	_sky()
 	build()
 	_commit_merged()
+	static_breakables = breakables.size()
 
 
 ## Turns the boxes collected by block()/deco() into one mesh per surface.
@@ -269,7 +273,7 @@ func tick(m: Match, delta: float) -> void:
 			Fx.splash(self, Vector3(f.global_position.x, water_level, f.global_position.z), 1.2)
 			Audio.play(&"splash", f.global_position, 0.0)
 		_splashed[id] = above
-		var wet := f.alive and m.config.hazards and water_level - f.global_position.y > 0.15 and not f.held()
+		var wet := f.alive and m.authority and m.config.hazards and water_level - f.global_position.y > 0.15 and not f.held()
 		if not wet:
 			_wet_time.erase(id)
 			_water_credit.erase(id)
@@ -289,7 +293,18 @@ func tick(m: Match, delta: float) -> void:
 
 ## Seconds `f` has been standing or swimming in the sea (0 = dry).
 func wet_time(f: Fighter) -> float:
+	if f.puppet:
+		return 1.0 if f.alive and water_level - f.global_position.y > 0.15 else 0.0
 	return float(_wet_time.get(f.fighter_id, 0.0))
+
+
+## The moving parts the network mirrors (crane, press, fires...).
+func net_state() -> Array:
+	return []
+
+
+func apply_net_state(_state: Array) -> void:
+	pass
 
 
 ## Whoever knocked `f` into the water still gets the kill when it finishes them.

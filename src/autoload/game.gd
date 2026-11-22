@@ -75,11 +75,15 @@ func start_match() -> void:
 
 ## Freezes the game for a few milliseconds so a heavy hit "lands".
 func hit_stop(ms: int) -> void:
+	if Net.active:
+		return                 # online, time never stops for anyone
 	_hitstop_until = maxi(_hitstop_until, Time.get_ticks_msec() + ms)
 
 
 ## Everything runs at `scale` speed for `seconds` of real time.
 func slow_motion(scale: float, seconds: float) -> void:
+	if Net.active:
+		return
 	_slowmo_scale = scale
 	_slowmo_until = Time.get_ticks_msec() + int(seconds * 1000.0)
 

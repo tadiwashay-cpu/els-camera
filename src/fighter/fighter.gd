@@ -12,6 +12,8 @@ extends CharacterBody3D
 signal died(victim: Fighter, killer: Fighter)
 signal hurt(victim: Fighter, attacker: Fighter, damage: float, at: Vector3, heavy: bool)
 signal hit_landed(attacker: Fighter, victim: Fighter, damage: float)
+## The body went limp (knockdown or death): the network replays the ragdoll.
+signal went_limp(f: Fighter, impulse: Vector3, vel: Vector3, bone: StringName, dead: bool)
 
 enum State { MOVE, ATTACK, CHARGE, HEAVY, THROW, CATCH, DODGE, HURT, DOWN, GETUP, DEAD, FROZEN, LAND, POWER, HELD }
 
@@ -136,6 +138,8 @@ var _grip := 1.0
 var death_cause := ""
 ## In water too deep to stand: floating, slow, can't swing.
 var swimming := false
+## On a joining phone: drawn from the host's snapshots, never simulated.
+var puppet := false
 
 
 func _ready() -> void:
@@ -227,6 +231,9 @@ func socket_transform() -> Transform3D:
 # ---------------------------------------------------------------- physics
 
 func _physics_process(delta: float) -> void:
+	if puppet:
+		_puppet_tick(delta)
+		return
 	delta *= time_scale
 	powers.tick(delta)
 	body.aura = powers.aura()
@@ -1228,7 +1235,9 @@ func knock_down(impulse: Vector3, at: Vector3) -> void:
 	_down_time = 0.7
 	collision_layer = 0
 	body.stop_action(0.0)
-	ragdoll.start(velocity + impulse * 0.4, impulse, _nearest_body_bone(at))
+	var bone := _nearest_body_bone(at)
+	ragdoll.start(velocity + impulse * 0.4, impulse, bone)
+	went_limp.emit(self, impulse, velocity + impulse * 0.4, bone, false)
 
 
 func die(killer: Fighter, impulse: Vector3, at: Vector3 = Vector3.ZERO) -> void:
@@ -1247,7 +1256,11 @@ func die(killer: Fighter, impulse: Vector3, at: Vector3 = Vector3.ZERO) -> void:
 	collision_mask = 0
 	body.stop_action(0.0)
 	if not ragdoll.active:
-		ragdoll.start(velocity, impulse, _nearest_body_bone(at) if at != Vector3.ZERO else &"UpperChest")
+		var bone := _nearest_body_bone(at) if at != Vector3.ZERO else &"UpperChest"
+		ragdoll.start(velocity, impulse, bone)
+		went_limp.emit(self, impulse, velocity, bone, true)
+	else:
+		went_limp.emit(self, Vector3.ZERO, Vector3.ZERO, &"", true)
 	Audio.play(&"death", global_position + Vector3.UP, 0.0)
 	died.emit(self, killer)
 
@@ -1333,6 +1346,23 @@ func respawn(at: Vector3, yaw: float) -> void:
 	if world:
 		equip(world.start_weapon())
 	Audio.play(&"respawn", at + Vector3.UP, -4.0)
+
+
+## A puppet only shows itself: glow, shield bubble, spawn flash, trail.
+func _puppet_tick(delta: float) -> void:
+	_clock += delta
+	body.aura = powers.aura()
+	_shield_mesh.visible = powers.shield > 0.0
+	if protect > 0.0:
+		body.flash(0.35 + 0.35 * sin(_clock * 18.0))
+	_update_trail()
+
+
+## A puppet lying limp: the root rides along under its own ragdoll.
+func puppet_follow_ragdoll() -> void:
+	if ragdoll.active:
+		var h := ragdoll.hips_position()
+		global_position = Vector3(h.x, h.y - 0.3, h.z)
 
 
 ## Deep water (no floor, chest under): float and swim. Leaves when we're

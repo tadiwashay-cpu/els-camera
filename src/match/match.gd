@@ -41,10 +41,15 @@ var _bullet_by: Fighter
 var _mystery: Breakable
 var _mystery_next := 40.0
 var _rng := RandomNumberGenerator.new()
+## This phone runs the rules (offline, or hosting). Joiners only show.
+var authority := true
+## Network traffic of a LAN match (null offline).
+var net: NetSync
 
 
 func _ready() -> void:
 	config = Game.match_config
+	authority = Net.authority()
 	if config.seed != 0:
 		_rng.seed = config.seed
 	else:
@@ -79,8 +84,15 @@ func _ready() -> void:
 			hud.callout(text, color, sub, 1.3))
 	hud.pause_pressed.connect(toggle_pause)
 	hud.resume_pressed.connect(toggle_pause)
-	hud.rematch_pressed.connect(func() -> void: Game.start_match())
-	hud.menu_pressed.connect(func() -> void: Game.goto_title())
+	hud.rematch_pressed.connect(func() -> void:
+		if Net.active:
+			if Net.is_host:
+				Net.start_match()
+		else:
+			Game.start_match())
+	hud.menu_pressed.connect(func() -> void:
+		Net.leave()
+		Game.goto_title())
 	var ids: Array = []
 	for f in fighters:
 		ids.append(f.fighter_id)
@@ -94,6 +106,13 @@ func _ready() -> void:
 		powerups.append(null)
 	for f in fighters:
 		f.freeze(true)
+	if Net.active:
+		net = NetSync.new()
+		add_child(net)
+		net.setup(self)
+		if not authority:
+			for piece in arena.breakables:
+				piece.net_puppet = true
 	_prepare()
 
 
@@ -125,17 +144,30 @@ func _warm_up() -> void:
 
 
 func _spawn_fighters() -> void:
-	var count := 1 + clampi(config.bots, 1, 3)
 	var starts := arena.spawn_points.duplicate()
-	for i in count:
+	var entries: Array = []
+	if Net.active and not Net.roster.is_empty():
+		entries = Net.roster
+	else:
+		var count := 1 + clampi(config.bots, 1, 3)
+		for i in count:
+			entries.append({"id": i, "name": str(Save.setting("player_name")) if i == 0 else BOT_NAMES[(i - 1) % BOT_NAMES.size()],
+				"skin": i, "peer": 1 if i == 0 else 0,
+				"power": String(config.power if i == 0 else FighterPowers.IDS[(i * 2 + _rng.randi()) % FighterPowers.IDS.size()])})
+	var me := Net.my_id()
+	for e: Dictionary in entries:
+		var i := int(e["id"])
+		var peer := int(e["peer"])
 		var f := Fighter.new()
 		f.fighter_id = i
-		f.is_player = i == 0
-		f.display_name = str(Save.setting("player_name")) if i == 0 else BOT_NAMES[(i - 1) % BOT_NAMES.size()]
-		f.skin = Registry.skin(i)
+		f.is_player = peer == me
+		f.puppet = not authority
+		f.display_name = str(e["name"])
+		f.skin = Registry.skin(int(e["skin"]))
 		f.world = self
 		f.weapon_data = start_weapon()
-		f.powers.power = config.power if i == 0 else FighterPowers.IDS[(i * 2 + _rng.randi()) % FighterPowers.IDS.size()]
+		f.powers.power = StringName(str(e["power"]))
+		f.set_meta("peer", peer)
 		add_child(f)
 		var spot: Vector3 = starts[(i * 3) % starts.size()]
 		f.global_position = spot
@@ -143,15 +175,31 @@ func _spawn_fighters() -> void:
 		f.rotation.y = atan2(to_centre.x, to_centre.z)
 		f.died.connect(_on_died)
 		f.hurt.connect(_on_hurt)
+		f.went_limp.connect(_on_limp)
 		fighters.append(f)
-		if i == 0:
+		if f.is_player:
 			player = f
-		else:
+		elif peer == 0 and authority:
 			brains.append(AIBrain.new(f, self, config.difficulty))
+
+
+## Host: a body went limp; every phone plays the same ragdoll.
+func _on_limp(f: Fighter, impulse: Vector3, vel: Vector3, bone: StringName, dead: bool) -> void:
+	if net:
+		net.event("death" if dead else "down", [f.fighter_id, impulse, vel, String(bone)])
 
 
 ## Called by the loading screen once it has faded out.
 func begin() -> void:
+	if Net.active:
+		Net.report_loaded()          # the host starts everyone's countdown together
+		return
+	countdown()
+
+
+func countdown() -> void:
+	if started:
+		return
 	for n in [3, 2, 1]:
 		hud.callout(str(n), Color.WHITE, "", 0.5)
 		Audio.play(&"beep")
@@ -165,6 +213,14 @@ func begin() -> void:
 
 func _physics_process(delta: float) -> void:
 	if not started or ended:
+		return
+	if not authority:
+		# A joiner: the host's snapshots move everything; the arena's looks
+		# (water, gulls, neon) still run here.
+		arena.tick(self, delta)
+		if touch.visible:
+			touch.set_power_ready(player.powers.ready_to_use())
+			touch.set_swap(player.armed() and player.alive and net != null and net.pickup_near(player.global_position, 1.3))
 		return
 	clock += delta
 	for ev in race.tick(delta):
@@ -249,6 +305,8 @@ func nearest_powerup(pos: Vector3, radius: float, kinds: Array = []) -> PowerUp:
 
 ## Big words for the player, or floating words over a bot.
 func callout_for(f: Fighter, text: String, color: Color) -> void:
+	if net:
+		net.event("float", [f.fighter_id, text, color])
 	if f == player:
 		hud.callout(text, color, "", 0.6)
 	else:
@@ -294,6 +352,8 @@ func _tick_spawners() -> void:
 # ------------------------------------------------------------------ deaths
 
 func _on_hurt(victim: Fighter, attacker: Fighter, damage: float, at: Vector3, heavy: bool) -> void:
+	if net:
+		net.event("hit", [victim.fighter_id, attacker.fighter_id if attacker else -1, damage, at, heavy])
 	Fx.sparks(self, at, Color(1, 0.85, 0.55) if not heavy else Color(1, 0.55, 0.3), 16 if heavy else 10)
 	Fx.damage_number(self, at + Vector3.UP * 0.3, damage, Color(1, 0.95, 0.6) if attacker == player else Color(1, 0.45, 0.4))
 	Audio.play(&"hit_heavy" if heavy else &"hit", at, 0.0 if heavy else -2.0)
@@ -312,36 +372,49 @@ func _on_died(victim: Fighter, killer: Fighter) -> void:
 	var res := race.register_death(victim.fighter_id, killer.fighter_id if killer else -1,
 		last.fighter_id if last and last != victim else -1, age)
 	var credited := fighter_by_id(int(res["id"])) if int(res["points"]) > 0 else null
+	var cause := victim.death_cause
+	victim.death_cause = ""
+	if killer == null and credited and cause == "":
+		cause = "knocked off"
+	_last_kill = {"t": clock, "victim": victim.fighter_id, "killer": credited.fighter_id if credited else -1}
+	if net:
+		net.event("kill", [victim.fighter_id, credited.fighter_id if credited else -1, int(res["points"]), cause])
+	present_death(victim, credited, int(res["points"]), cause)
+	if race.finished:
+		_end_match()
+		return
+	_respawn_at[victim.fighter_id] = clock + RESPAWN_DELAY
+
+
+## What everyone sees of a death (host and joiners): feed, callouts, stats.
+func present_death(victim: Fighter, credited: Fighter, points: int, cause: String) -> void:
+	if victim == null:
+		return
 	hud.refresh_board()
 	Fx.burst(self, victim.global_position + Vector3.UP, victim.body.skin.shirt)
 	if victim == player:
 		Save.add_stat("deaths")
 	if credited == player:
 		Save.add_stat("kills")
-	var cause := victim.death_cause
-	victim.death_cause = ""
 	if credited:
-		var how := ">" if killer != null or cause != "" else "knocked off"
-		var tag := "  (%s)" % cause if cause != "" else ""
+		var how := "knocked off" if cause == "knocked off" else ">"
+		var tag := "  (%s)" % cause if cause != "" and cause != "knocked off" else ""
 		hud.feed("%s  %s  %s%s" % [credited.display_name, how, victim.display_name, tag], credited.body.skin.shirt.lightened(0.3))
 	else:
 		hud.feed("%s  %s  -1" % [victim.display_name, "(%s)" % cause if cause != "" else "fell"], Color(1, 0.5, 0.45))
-	_last_kill = {"t": clock, "victim": victim.fighter_id, "killer": credited.fighter_id if credited else -1}
 	if credited == player:
-		hud.callout("KILL +%d" % int(res["points"]), UiTheme.ACCENT, victim.display_name, 0.8)
+		hud.callout("KILL +%d" % points, UiTheme.ACCENT, victim.display_name, 0.8)
 		Audio.play(&"kill", null, 0.0)
 		Game.slow_motion(0.3, 0.45)
 		camera.shake(0.5)
-	if race.finished:
-		_end_match()
-		return
-	_respawn_at[victim.fighter_id] = clock + RESPAWN_DELAY
-	if victim == player:
+	if victim == player and not ended and not race.finished:
 		if credited:
 			hud.callout("KILLED BY %s" % credited.display_name.to_upper(), Color(1, 0.4, 0.35), "", 1.0)
 		else:
 			hud.callout("YOU FELL", Color(1, 0.4, 0.35), "-1", 1.0)
 		Game.slow_motion(0.35, 0.5)
+		if Net.active:
+			return                 # no killcam online: the match keeps running
 		player_input.enabled = false
 		# Let the fall play out (and be recorded) before replaying it.
 		await get_tree().create_timer(1.0, true, false, true).timeout
@@ -375,7 +448,11 @@ func hazard_kill(f: Fighter, cause: String, impulse: Vector3 = Vector3.ZERO) -> 
 ## Something blew up (a barrel, a bomb): blast everyone and everything
 ## nearby (the kill goes to whoever set it off; nearby barrels chain).
 func explode(at: Vector3, by: Fighter, radius: float = 5.0) -> void:
+	if not authority:
+		return
 	var RADIUS := radius
+	if net:
+		net.event("boom", [at, RADIUS])
 	Fx.explosion(self, at, RADIUS)
 	Audio.play(&"boom", at, 2.0)
 	arena.ignite(at, RADIUS * 0.8, by)
@@ -429,18 +506,42 @@ func _end_match() -> void:
 	player_input.enabled = false
 	touch.release_all()
 	var winner := fighter_by_id(race.winner)
+	if net:
+		net.event("end", [race.winner])
 	for f in fighters:
 		f.freeze(true)
 	Audio.play(&"buzzer")
 	hud.callout("TIME!" if race.time_left <= 0.0 else "FINISH!", UiTheme.ACCENT, "", 1.0)
 	await get_tree().create_timer(1.0, true, false, true).timeout
-	if not _last_kill.is_empty() and int(_last_kill["killer"]) >= 0:
+	if not Net.active and not _last_kill.is_empty() and int(_last_kill["killer"]) >= 0:
 		var v := fighter_by_id(int(_last_kill["victim"]))
 		var k := fighter_by_id(int(_last_kill["killer"]))
 		if v and k:
 			await _replay(v, k, 1.0, 0.7, 0.4, "FINAL KILL   %s" % k.display_name)
+	_results(winner)
+
+
+## A joiner's match ends when the host says so.
+func end_for_joiner(winner_id: int) -> void:
+	if ended:
+		return
+	ended = true
+	started = false
+	race.winner = winner_id
+	race.finished = true
+	player_input.enabled = false
+	touch.release_all()
+	Audio.play(&"buzzer")
+	hud.callout("TIME!" if race.time_left <= 0.0 else "FINISH!", UiTheme.ACCENT, "", 1.0)
+	await get_tree().create_timer(1.0, true, false, true).timeout
+	_results(fighter_by_id(winner_id))
+
+
+func _results(winner: Fighter) -> void:
+	if Net.active:
+		Net.end_match()
 	if winner:
-		if winner.alive:
+		if winner.alive and authority:
 			winner.celebrate()
 		camera.target = winner
 	var rows: Array = []
@@ -462,7 +563,8 @@ func toggle_pause() -> void:
 	if ended or killcam.playing:
 		return
 	paused = not paused
-	get_tree().paused = paused
+	if not Net.active:
+		get_tree().paused = paused          # online the match keeps going
 	hud.show_pause(paused)
 	if paused:
 		player_input.release_mouse()
@@ -497,7 +599,11 @@ func spawn_bolt(by: Fighter, origin: Vector3, dir: Vector3, speed: float, damage
 
 ## A fan's gust: everyone in a cone in front is blown back (handy near water).
 func gust(by: Fighter, origin: Vector3, dir: Vector3) -> void:
+	if not authority:
+		return
 	var flat := Vector3(dir.x, 0, dir.z).normalized()
+	if net:
+		net.event("gust", [origin, flat])
 	Fx.gust(self, origin, flat)
 	for f in fighters:
 		if f == by or not f.alive:
@@ -516,6 +622,10 @@ func gust(by: Fighter, origin: Vector3, dir: Vector3) -> void:
 
 ## Lightning strikes `at`: damage and knockdowns nearby, oil catches fire.
 func lightning(at: Vector3, by: Fighter, radius: float = 3.4) -> void:
+	if not authority:
+		return
+	if net:
+		net.event("zap", [at])
 	Fx.lightning(self, at)
 	Audio.play(&"zap", at, 4.0, 0.8)
 	Audio.play(&"boom", at, -4.0, 1.6)

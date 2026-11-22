@@ -304,8 +304,11 @@ func set_small(text: String) -> void:
 
 func show_pause(on: bool) -> void:
 	if on and _pause_menu == null:
-		_pause_menu = _screen("PAUSED", [["RESUME", func() -> void: resume_pressed.emit()],
-			["RESTART", func() -> void: rematch_pressed.emit()], ["QUIT TO MENU", func() -> void: menu_pressed.emit()]])
+		var buttons: Array = [["RESUME", func() -> void: resume_pressed.emit()],
+			["RESTART", func() -> void: rematch_pressed.emit()], ["QUIT TO MENU", func() -> void: menu_pressed.emit()]]
+		if Net.active:
+			buttons = [["RESUME", func() -> void: resume_pressed.emit()], ["LEAVE MATCH", func() -> void: menu_pressed.emit()]]
+		_pause_menu = _screen("MENU" if Net.active else "PAUSED", buttons)
 	elif not on and _pause_menu:
 		_pause_menu.queue_free()
 		_pause_menu = null
@@ -313,7 +316,10 @@ func show_pause(on: bool) -> void:
 
 func show_results(winner: Fighter, rows: Array, coins: int) -> void:
 	var title := "%s WIN%s" % [winner.display_name.to_upper(), "" if winner.is_player else "S"] if winner else "DRAW"
-	_results = _screen(title, [["REMATCH", func() -> void: rematch_pressed.emit()], ["MENU", func() -> void: menu_pressed.emit()]], rows, coins)
+	var buttons: Array = [["REMATCH", func() -> void: rematch_pressed.emit()], ["MENU", func() -> void: menu_pressed.emit()]]
+	if Net.active and not Net.is_host:
+		buttons = [["LEAVE", func() -> void: menu_pressed.emit()]]      # the host decides on a rematch
+	_results = _screen(title, buttons, rows, coins)
 
 
 func _screen(title: String, buttons: Array, rows: Array = [], coins: int = -1) -> Control:

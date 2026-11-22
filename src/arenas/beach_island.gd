@@ -652,7 +652,7 @@ func tick(m: Match, delta: float) -> void:
 		fin.rotation.y = atan2(-sin(a) * signf(path.w), cos(a) * signf(path.w))
 	_ring.scale = Vector3.ONE * (1.0 + 0.08 * sin(_clock_t * 5.0))
 	for f in m.fighters:
-		if not f.alive:
+		if not f.alive or not m.authority:
 			continue
 		if hazards and f.swimming and in_deep_water(f.global_position):
 			# Sharks circle in, then bite every few seconds.
@@ -688,6 +688,17 @@ func dry_spot(pos: Vector3) -> Vector3:
 
 func _shark_attack(m: Match, f: Fighter) -> void:
 	var at := Vector3(f.global_position.x, water_level, f.global_position.z)
+	_credit_water_kill(m, f)
+	f.drain(SHARK_BITE, "shark")
+	f.velocity += Vector3(randf_range(-3, 3), 0, randf_range(-3, 3))
+	count("shark")
+	if m.net:
+		m.net.event("shark", [at])
+	_shark_show(at)
+
+
+## The jaws coming up out of the water (on every phone).
+func _shark_show(at: Vector3) -> void:
 	var nearest := 0
 	for i in _fins.size():
 		if _fins[i].position.distance_to(at) < _fins[nearest].position.distance_to(at):
@@ -696,10 +707,6 @@ func _shark_attack(m: Match, f: Fighter) -> void:
 	Fx.splash(self, at, 1.6)
 	Audio.play(&"chomp", at, 2.0)
 	Audio.play(&"splash", at, 0.0, 0.8)
-	_credit_water_kill(m, f)
-	f.drain(SHARK_BITE, "shark")
-	f.velocity += Vector3(randf_range(-3, 3), 0, randf_range(-3, 3))
-	count("shark")
 	_shark.visible = true
 	_shark.position = at + Vector3.DOWN * 2.2
 	_shark.rotation = Vector3(deg_to_rad(-35.0), randf() * TAU, 0.0)
@@ -731,6 +738,9 @@ func _cannon(m: Match, f: Fighter, delta: float) -> void:
 	f.launch(ballistic(f.global_position, LIGHTHOUSE_TOP + Vector3.UP * 0.1, CANNON_FLIGHT, f.gravity), CANNON_FLIGHT + 0.4)
 	Audio.play(&"cannon", CANNON_MUZZLE, 2.0, 1.15)
 	count("cannon")
+	if m.net:
+		m.net.event("sound", ["cannon", CANNON_MUZZLE, 2.0, 1.15])
+		m.net.event("fx", ["dust", CANNON_MUZZLE, 1.3])
 	Fx.dust(self, CANNON_MUZZLE, 1.3)
 	Fx.sparks(self, CANNON_MUZZLE, Color(1.0, 0.7, 0.3), 16)
 	if f == m.player:

@@ -40,6 +40,19 @@ jobs:
             ! grep -q "SCRIPT ERROR" smoke.log
           done
 
+      - name: LAN match (a host and a joiner process over localhost)
+        run: |
+          timeout 200 godot --headless --path . res://tools/capture/net_smoke.tscn -- host 40 beach_island > host.log 2>&1 &
+          sleep 3
+          timeout 190 godot --headless --path . res://tools/capture/net_smoke.tscn -- join > join.log 2>&1 || true
+          wait || true
+          grep NETSMOKE host.log join.log
+          h=$(grep "NETSMOKE host end" host.log | sed 's/.*scores=\(.*\) time_left.*/\1/')
+          j=$(grep "NETSMOKE join end" join.log | sed 's/.*scores=\(.*\) time_left.*/\1/')
+          echo "host: $h   joiner: $j"
+          test -n "$h" && test "$h" = "$j"
+          ! grep -q "SCRIPT ERROR" host.log join.log
+
   apk:
     needs: test
     runs-on: ubuntu-latest

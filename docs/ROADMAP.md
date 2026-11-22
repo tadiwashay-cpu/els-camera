@@ -48,8 +48,21 @@ Increment C (arenas, v0.2.0):
 
 - [ ] **Gate:** a 4-fighter, 5-minute match holds 60 fps on Medium with no blocking bugs
 
-## Phase 3: LAN and hotspot multiplayer
-- [ ] ENet host/join, UDP discovery, lobby, input sending, snapshots, interpolation
+## Phase 3: LAN and hotspot multiplayer (v0.3.x)
+Increment A (v0.3.0):
+- [x] ENet host/join (up to 4), UDP discovery of games nearby, manual IP fallback
+- [x] Lobby: names, skins by join order, host's settings (time, bots, skill, arena, start weapon, hazards)
+- [x] Synchronised start (everyone loads, then one countdown)
+- [x] Host-authoritative match: joiners send inputs (30/s), host sends snapshots (30/s, ~0.7 KB)
+- [x] Joiners: other fighters interpolated 100 ms behind, own fighter at the newest state
+- [x] Mirrored: weapons in flight, shots, pickups, map pickups, broken scenery, crane, press, fires
+- [x] Events: hits, deaths and knockdowns (ragdolls replayed on each phone), blasts, lightning, kill feed, notices
+- [x] A joiner who drops out is replaced by a bot; the host leaving ends the match for everyone
+- [x] CI plays a real two-process LAN match and checks both sides agree on the scores
+
+Next (after the two-phone test):
+- [ ] Own-fighter prediction (move locally, reconcile with the host) if movement feels late
+- [ ] Back to the lobby after a match instead of the menu
 - [ ] **Gate:** two phones on a hotspot finish a match with no desync
 
 ## Phase 4: Content and progression

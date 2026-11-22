@@ -27,6 +27,8 @@ var is_broken := false
 var rebuilds := true
 ## false: not part of the bots' nav mesh (crates riding a conveyor).
 var affects_nav := true
+## On a joining phone: breaks and rebuilds only when the host says.
+var net_puppet := false
 var last_hitter: Fighter
 var arena: Arena
 var _mesh: MeshInstance3D
@@ -127,7 +129,7 @@ func _physics_process(delta: float) -> void:
 		_wobble = maxf(_wobble - delta * 4.0, 0.0)
 		var w := _wobble * 0.08
 		_mesh.rotation = Vector3(sin(_clock * 47.0) * w, 0.0, cos(_clock * 53.0) * w)
-	if is_broken and _respawn_at > 0.0 and _clock >= _respawn_at:
+	if is_broken and _respawn_at > 0.0 and _clock >= _respawn_at and not net_puppet:
 		_try_rebuild()
 
 
@@ -138,6 +140,13 @@ func _try_rebuild() -> void:
 		if bounds().grow(0.6).has_point(fighter.global_position + Vector3.UP * 0.9):
 			_respawn_at = _clock + 2.0
 			return
+	restore()
+
+
+## Back in one piece (the host's rebuild, mirrored on joiners too).
+func restore() -> void:
+	if not is_broken:
+		return
 	is_broken = false
 	hp = max_hp
 	last_hitter = null

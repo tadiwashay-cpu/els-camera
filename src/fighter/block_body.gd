@@ -65,6 +65,7 @@ var action := &""             # full-body or upper-body move playing
 var action_upper := false
 var action_time := 0.0        # seconds into the clip (clip time)
 var action_speed := 1.0
+var loco_speed := 1.0
 var _flash := 0.0
 var _act_nodes: Dictionary = {}
 var _guard := 0.0
@@ -265,6 +266,7 @@ func set_loco(clip: StringName, speed: float = 1.0) -> void:
 			anim.play(clip, 0.16)
 		anim.speed_scale = speed
 		return
+	loco_speed = speed
 	if clip != loco:
 		loco = clip
 		tree.set(&"parameters/loco/transition_request", String(clip))
