@@ -196,7 +196,19 @@ func _match_setup() -> Control:
 	for id in FighterPowers.IDS:
 		power_names.append(FighterPowers.INFO[id]["name"])
 	_option(box, "Power", power_names, FighterPowers.IDS.find(cfg.power), func(i: int) -> void: cfg.power = FighterPowers.IDS[i])
-	_option(box, "Arena", ["Blockout Yard"], 0, func(_i: int) -> void: pass)
+	var arena_ids: Array = Registry.arena_ids()
+	var arena_names: Array = []
+	for id: StringName in arena_ids:
+		arena_names.append(Registry.arena(id).display_name)
+	arena_ids.append(&"random")
+	arena_names.append("Random")
+	var saved: Variant = Save.setting("arena")
+	if saved is String and arena_ids.has(StringName(saved)):
+		cfg.arena_choice = StringName(saved)
+	_option(box, "Arena", arena_names, maxi(arena_ids.find(cfg.arena_choice), 0), func(i: int) -> void:
+		cfg.arena_choice = arena_ids[i]
+		Save.set_setting("arena", String(arena_ids[i])))
+	_option(box, "Hazards", ["On", "Off"], 0 if cfg.hazards else 1, func(i: int) -> void: cfg.hazards = i == 0)
 	var go := UiTheme.big_button("START")
 	go.pressed.connect(func() -> void:
 		Audio.play(&"ui_confirm")

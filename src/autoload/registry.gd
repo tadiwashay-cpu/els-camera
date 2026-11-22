@@ -6,7 +6,8 @@ extends Node
 const WEAPON_DIR := "res://src/weapons/data/"
 const SKINS := ["res://src/fighter/skins/ember.tres", "res://src/fighter/skins/frost.tres",
 	"res://src/fighter/skins/moss.tres", "res://src/fighter/skins/violet.tres"]
-const ARENAS := ["res://src/arenas/data/blockout_yard.tres"]
+const ARENAS := ["res://src/arenas/data/blockout_yard.tres", "res://src/arenas/data/beach_island.tres",
+	"res://src/arenas/data/harbor_factory.tres"]
 
 var weapons: Dictionary = {}
 var skins: Array[SkinData] = []
@@ -22,6 +23,8 @@ func _ready() -> void:
 	for p: String in SKINS:
 		skins.append(load(p) as SkinData)
 	for p: String in ARENAS:
+		if not ResourceLoader.exists(p):
+			continue
 		var a := load(p) as ArenaData
 		arenas[a.id] = a
 
@@ -48,3 +51,21 @@ func skin(index: int) -> SkinData:
 
 func arena(id: StringName) -> ArenaData:
 	return arenas.get(id, arenas.values()[0])
+
+
+## Arena ids in menu order.
+func arena_ids() -> Array:
+	var out: Array = []
+	for p: String in ARENAS:
+		for a: ArenaData in arenas.values():
+			if a.resource_path == p:
+				out.append(a.id)
+	return out
+
+
+## The arena to play: `id`, or any of them for &"random".
+func pick_arena(id: StringName) -> ArenaData:
+	if id == &"random":
+		var ids := arena_ids()
+		return arena(ids[randi() % ids.size()])
+	return arena(id)

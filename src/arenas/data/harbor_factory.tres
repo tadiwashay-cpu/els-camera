@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="ArenaData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/arenas/arena_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"harbor_factory"
+display_name = "Harbor Factory"
+tagline = "Rust, rain and a very strong magnet."
+title_color = Color(1, 0.55, 0.25, 1)
+scene_path = "res://src/arenas/harbor_factory.tscn"
+tips = PackedStringArray("Stand on the lever pad by the quay to take over the crane: it hunts your enemies and dunks them.", "The crane's magnet grabs anyone holding a metal weapon. Kick (jump) to break free.", "Oil spills are slippery. A bomb, a barrel or a blaster bolt sets them on fire.", "The conveyor feeds the crusher. Don't nap on the belt.", "Knock them off the quay or the ship: the harbour counts as your kill.", "Wooden, plastic and rubber weapons are magnet-proof.")

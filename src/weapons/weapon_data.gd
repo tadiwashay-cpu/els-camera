@@ -48,6 +48,10 @@ extends Resource
 @export var both_hands := false
 ## Extra sound on a hit (e.g. "clang" for the pan, "squeak").
 @export var hit_sound := &""
+## Iron or steel: crane magnets grab it (and whoever holds it).
+@export var metal := false
+## Hot: its hits, shots or blast set oil alight.
+@export var ignites := false
 
 @export_group("Hitbox")
 ## The striking part runs along the socket's +Y from hit_from to hit_to.

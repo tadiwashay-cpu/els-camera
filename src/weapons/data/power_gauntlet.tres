@@ -24,6 +24,7 @@ ref_speed = 5.5
 knockback = 10
 both_hands = true
 glow = Color(1.0, 0.6, 0.2, 1)
+metal = true
 part_sizes = PackedVector3Array(0.22, 0.24, 0.22, 0.24, 0.06, 0.06)
 part_centres = PackedVector3Array(0, 0.0, 0, 0, 0.06, 0.1)
 part_colors = PackedColorArray(0.32, 0.34, 0.38, 1.0, 1.0, 0.65, 0.25, 1.0)

@@ -215,3 +215,25 @@ static func shockwave(parent: Node, at: Vector3, radius: float, color: Color) ->
 	tw.tween_property(ring, "scale", Vector3(radius, 1.0, radius), 0.3).set_ease(Tween.EASE_OUT)
 	tw.tween_property(ring, "transparency", 1.0, 0.35)
 	tw.chain().tween_callback(func() -> void: ring.visible = false)
+
+
+## Water thrown up where something fell in (or a shark struck).
+static func splash(parent: Node, at: Vector3, scale: float = 1.0) -> void:
+	if parent == null:
+		return
+	var p := _take("splash", parent, func() -> Node:
+		var q := _particles(Color(0.85, 0.95, 1.0), 0.12)
+		q.amount = 26
+		q.lifetime = 0.9
+		q.direction = Vector3.UP
+		q.spread = 28.0
+		q.initial_velocity_min = 4.0
+		q.initial_velocity_max = 8.5
+		q.gravity = Vector3(0, -18, 0)
+		q.color = Color(0.85, 0.95, 1.0)
+		return q) as CPUParticles3D
+	p.global_position = at
+	p.scale_amount_min = 0.6 * scale
+	p.scale_amount_max = 1.4 * scale
+	p.restart()
+	p.emitting = true

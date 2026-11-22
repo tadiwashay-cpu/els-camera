@@ -21,6 +21,7 @@ throw_speed = 32
 throw_spin = 30
 catchable = true
 keep_on_land = false
+metal = true
 part_sizes = PackedVector3Array(0.24, 0.05, 0.02, 0.24, 0.05, 0.02, 0.07, 0.07, 0.03)
 part_centres = PackedVector3Array(0, 0, 0, 0, 0, 0, 0, 0, 0)
 part_colors = PackedColorArray(0.84, 0.87, 0.92, 1.0, 0.84, 0.87, 0.92, 1.0, 0.18, 0.15, 0.13, 1.0)

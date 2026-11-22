@@ -150,6 +150,12 @@ def fmt(v):
     raise TypeError(v)
 
 
+# Crane magnets grab these (Harbor Factory); IGNITES set oil alight.
+METAL = {"sword", "katana", "dagger", "rapier", "hand_axe", "plasma_blade", "hammer", "battle_axe", "pickaxe",
+         "anchor", "spear", "trident", "power_gauntlet", "shuriken", "throwing_knives", "blaster", "frying_pan"}
+IGNITES = {"plasma_blade", "blaster", "bomb"}
+
+
 def write(wid, name, family_key, stats, parts):
     fam = dict(FAMILY[family_key])
     fam.update(stats)
@@ -179,6 +185,10 @@ def write(wid, name, family_key, stats, parts):
         lines.append("%s = %s" % (k, fmt(v)))
     if glow:
         lines.append("glow = Color(%s, %s, %s, 1)" % glow)
+    if wid in METAL:
+        lines.append("metal = true")
+    if wid in IGNITES:
+        lines.append("ignites = true")
     sizes, centres, colors, yaws = [], [], [], []
     for size, centre, color, yaw in parts:
         sizes += size

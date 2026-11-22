@@ -66,7 +66,8 @@ func goto_title() -> void:
 
 
 func start_match() -> void:
-	var arena := Registry.arena(match_config.arena_id)
+	var arena := Registry.pick_arena(match_config.arena_choice)
+	match_config.arena_id = arena.id
 	goto_scene(MATCH_SCENE, {"title": arena.display_name.to_upper(), "color": arena.title_color, "subtitle": arena.tagline})
 
 

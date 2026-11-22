@@ -13,7 +13,7 @@ signal died(victim: Fighter, killer: Fighter)
 signal hurt(victim: Fighter, attacker: Fighter, damage: float, at: Vector3, heavy: bool)
 signal hit_landed(attacker: Fighter, victim: Fighter, damage: float)
 
-enum State { MOVE, ATTACK, CHARGE, HEAVY, THROW, CATCH, DODGE, HURT, DOWN, GETUP, DEAD, FROZEN, LAND, POWER }
+enum State { MOVE, ATTACK, CHARGE, HEAVY, THROW, CATCH, DODGE, HURT, DOWN, GETUP, DEAD, FROZEN, LAND, POWER, HELD }
 
 @export_group("Movement")
 @export var max_health := 100.0
@@ -45,6 +45,8 @@ const HURT_HIGH := 1.75
 ## Where each get-up clip starts the pelvis, in the fighter's local space.
 const GETUP_BACK_HIPS := Vector3(0, 0.14, -0.28)
 const GETUP_FRONT_HIPS := Vector3(0, 0.16, -0.42)
+## Hanging under a crane magnet: feet this far below it.
+const HANG := 2.1
 
 var fighter_id := 0
 var display_name := "Fighter"
@@ -111,6 +113,15 @@ var _dodge_cd := 0.0
 var _dodge_dir := Vector3.ZERO
 var _fall_speed := 0.0
 var _clock := 0.0
+## Fired from a cannon: no air steering for this long.
+var _launch_left := 0.0
+var _held_by: Node3D
+var _held_left := 0.0
+var _held_credit: Fighter
+## Ground grip this frame (oil: low).
+var _grip := 1.0
+## How an arena hazard got us, for the kill feed ("fed to a shark").
+var death_cause := ""
 
 
 func _ready() -> void:
@@ -220,6 +231,9 @@ func _physics_process(delta: float) -> void:
 		State.DEAD:
 			_follow_ragdoll()
 			return
+		State.HELD:
+			_tick_held(delta)
+			return
 		State.DOWN:
 			_follow_ragdoll()
 			if powers.power == &"second_wind" and powers.ready_to_use() and input.consume(&"power"):
@@ -231,6 +245,8 @@ func _physics_process(delta: float) -> void:
 				_get_up()
 			return
 	_track_attack_button()
+	_launch_left = maxf(_launch_left - delta, 0.0)
+	_grip = world.arena.grip_at(global_position) if world and is_on_floor() else 1.0
 	if not is_on_floor():
 		velocity.y -= gravity * delta
 		_air_time += delta
@@ -280,17 +296,27 @@ func _physics_process(delta: float) -> void:
 				_set_state(State.MOVE)
 	var was_floor := is_on_floor()
 	var pre_speed := velocity.length()
+	# Conveyor belts carry whoever stands on them.
+	var push := world.arena.floor_push(global_position) if world and was_floor else Vector3.ZERO
+	velocity += push
 	if time_scale < 0.999:
 		velocity *= time_scale
 		move_and_slide()
 		velocity /= maxf(time_scale, 0.01)
 	else:
 		move_and_slide()
+	velocity -= push
 	if pre_speed > 7.0 and state != State.MOVE and world:
 		_smash_into_scenery(pre_speed)
 	if is_on_floor():
+		if _launch_left > 0.0 and not was_floor:
+			# Cannon flight over: plant the feet, don't skid off the roof.
+			velocity.x *= 0.1
+			velocity.z *= 0.1
+			_fall_speed = maxf(_fall_speed, 16.0)
 		if not was_floor and _air_time > 0.25:
 			_landed()
+		_launch_left = 0.0
 		_air_time = 0.0
 		_jumps = 0
 		_fall_speed = 0.0
@@ -306,8 +332,8 @@ func _set_state(s: State) -> void:
 
 
 func _brake(delta: float, rate: float) -> void:
-	velocity.x = move_toward(velocity.x, 0.0, rate * delta)
-	velocity.z = move_toward(velocity.z, 0.0, rate * delta)
+	velocity.x = move_toward(velocity.x, 0.0, rate * _grip * delta)
+	velocity.z = move_toward(velocity.z, 0.0, rate * _grip * delta)
 
 
 func hspeed() -> float:
@@ -351,6 +377,8 @@ func _state_move(delta: float) -> void:
 		if target and not sprinting:
 			speed = minf(speed, run_speed * 0.8)
 		speed *= powers.speed_mult() * weapon_data.move_speed
+		if world and is_on_floor():
+			speed *= world.arena.speed_factor_at(global_position)
 	# Holding block: walk only, guard up; release to do anything else.
 	var want_block := input.block_held and is_on_floor() and _block_lock <= 0.0
 	if want_block and not blocking:
@@ -359,9 +387,10 @@ func _state_move(delta: float) -> void:
 	if blocking:
 		speed = minf(speed, walk_speed)
 	var want := wish.normalized() * speed if mag > 0.06 else Vector3.ZERO
-	var a := accel if is_on_floor() else air_accel
-	velocity.x = move_toward(velocity.x, want.x, a * delta)
-	velocity.z = move_toward(velocity.z, want.z, a * delta)
+	var a := accel * _grip if is_on_floor() else air_accel
+	if _launch_left <= 0.0:
+		velocity.x = move_toward(velocity.x, want.x, a * delta)
+		velocity.z = move_toward(velocity.z, want.z, a * delta)
 	if target and not sprinting:
 		_face(target.global_position - global_position, delta)
 	elif mag > 0.06:
@@ -1210,6 +1239,74 @@ func respawn(at: Vector3, yaw: float) -> void:
 	if world:
 		equip(world.start_weapon())
 	Audio.play(&"respawn", at + Vector3.UP, -4.0)
+
+
+## Fired out of a cannon (or flung by a hazard): fly on `vel` with no air
+## steering for `seconds` (attacks still work: swing as you come down).
+func launch(vel: Vector3, seconds: float) -> void:
+	if not alive or state in [State.DOWN, State.DEAD, State.HELD, State.FROZEN]:
+		return
+	if state != State.MOVE:
+		body.stop_action(0.1)
+		_set_state(State.MOVE)
+	blocking = false
+	velocity = vel
+	_launch_left = seconds
+	_jumps = 2
+	_air_time = 0.3
+	_fall_speed = 0.0
+
+
+func held() -> bool:
+	return state == State.HELD
+
+
+## A crane magnet caught our metal weapon: hang under `holder` until it lets
+## go, we struggle free (jump/dodge) or `seconds` pass. `by` gets the credit
+## if we fall to our death after.
+func grab(holder: Node3D, seconds: float, by: Fighter = null) -> bool:
+	if not alive or state in [State.DOWN, State.DEAD, State.HELD, State.FROZEN] or protect > 0.0:
+		return false
+	body.stop_action(0.1)
+	_set_state(State.HELD)
+	trail.active = false
+	_held_by = holder
+	_held_left = seconds
+	_held_credit = by if by != self else null
+	invuln = seconds + 0.3
+	input.consume(&"jump")
+	return true
+
+
+func release() -> void:
+	if state != State.HELD:
+		return
+	_held_by = null
+	invuln = 0.0
+	_set_state(State.MOVE)
+	velocity = Vector3(0, -1.0, 0)
+	_air_time = 0.3
+	_jumps = 1
+	if _held_credit and world:
+		last_hitter = _held_credit
+		last_hit_time = world.clock
+	_held_credit = null
+
+
+func _tick_held(delta: float) -> void:
+	_held_left -= delta
+	if input.consume(&"jump") or input.consume(&"dodge"):
+		_held_left -= 0.4
+		body.play(_armed_clip(&"Double_Jump"), false, 1.4, 0.05)
+	input.consume(&"_light")
+	if _held_by == null or not is_instance_valid(_held_by) or _held_left <= 0.0:
+		release()
+		return
+	var want := _held_by.global_position + Vector3.DOWN * HANG
+	global_position = global_position.lerp(want, clampf(delta * 10.0, 0.0, 1.0))
+	velocity = Vector3.ZERO
+	invuln = maxf(invuln, 0.1)
+	body.set_loco(_armed_clip(&"Fall"), 1.0)
 
 
 func freeze(on: bool) -> void:

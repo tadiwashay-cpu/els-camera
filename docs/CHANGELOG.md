@@ -4,6 +4,40 @@ Versions are `MAJOR.MINOR.PATCH`; the number lives in `project.godot`
 (`config/version`) and shows on the title screen and next to the FPS counter.
 Bump MINOR for a phase or batch of features, PATCH for fixes.
 
+## 0.2.0: Phase 2 increment C (two new arenas)
+
+- **Beach Island** (bright midday): a sand beach with a wrecked ship, a
+  lighthouse on a rock, a wooden pier, palms, a waterfall over a cave and a
+  rope bridge to a rock islet.
+  - **The tide** comes in every 2 minutes (first at 0:45) and floods the
+    low beach for about 25 s: wading is slow, so take the high ground.
+  - **Sharks**: past the sand shelf the water is deep. Fall (or get knocked)
+    in and a shark takes you; the kill goes to whoever knocked you in.
+  - **Wreck cannon**: stand in the glowing ring at the cannon's breech and
+    it fires you onto the lighthouse, where the mystery crate lands.
+  - Smashable bridge planks and pier railings, washed-up crates, barrels.
+- **Harbor Factory** (dusk, light rain): a container maze, a warehouse with
+  catwalks, a cargo ship at the quay with two gangways, broken neon. Water
+  on every side: knock people in.
+  - **Gantry crane**: its magnet sweeps the yard and grabs loose metal
+    weapons and anyone holding one (jump to kick free); it lets go over
+    the water. Wood, rubber and plastic weapons are magnet-proof.
+  - **Lever**: stand on the pad by the quay for a second to take over the
+    crane for 10 s: it hunts your enemies and dunks them (your kills).
+  - **Conveyor and crusher**: crates ride the belt into the press every
+    4 s (red light and alarm first). So can you.
+  - **Oil spills** are slippery; a blast, a bomb or a blaster bolt sets
+    them on fire for 8 s.
+- Match setup: **Arena** (Blockout Yard, Beach Island, Harbor Factory or
+  Random, remembered) and **Hazards** on/off.
+- Kill feed says how hazard kills happened ("fed to a shark", "crushed",
+  "dunked").
+- Bots use the cannon (especially to chase someone onto the lighthouse) and
+  pull the crane lever, and kick free of the magnet.
+- Performance: themed arenas merge their static boxes into one mesh per
+  surface type (a handful of draw calls for the whole layout).
+- CI plays a smoke match on every arena.
+
 ## 0.1.4: Phase 2 increment B (24 weapons)
 
 - **24 weapons** (+ fists) in 7 families, each family with its own moves made

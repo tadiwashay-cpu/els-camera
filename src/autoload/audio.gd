@@ -95,6 +95,11 @@ func _build() -> void:
 	_add("crash_stone", [_crash(0.6, 500.0, 0.9, false)])
 	_add("boom", [_boom(1.1)])
 	_add("squeak", [_squeak(0.22), _squeak(0.18)])
+	_add("splash", [_crash(0.7, 2200.0, 0.75, false), _crash(0.6, 2600.0, 0.7, false)])
+	_add("chomp", [_thump(0.14, 160.0, 70.0, 0.9), _crash(0.25, 700.0, 0.8, true)])
+	_add("cannon", [_boom(0.8)])
+	_add("alarm", [_buzz(0.5, 330.0)])
+	_add("clunk", [_metal(0.5, [180.0, 410.0, 760.0, 1210.0])])
 	# Recorded replacements win where present.
 	for sound_name: String in _streams.keys():
 		for ext in ["ogg", "wav"]:

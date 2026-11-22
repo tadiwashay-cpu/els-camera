@@ -40,10 +40,10 @@ Increment B (weapons):
 - [x] 24 weapons (data + box models, tools/gen_weapons.py), mystery crate drops a rare one on the tower
 - [x] Weapon swap / pick-up choice (v0.1.4)
 
-Increment C (arenas):
-- [ ] Beach Island (tide floods the beach, sharks in deep water, wreck cannon)
-- [ ] Abandoned Harbor Factory (crane magnet, conveyor into a crusher, oil that burns)
-- [ ] Arena choice in match setup
+Increment C (arenas, v0.2.0):
+- [x] Beach Island (tide floods the beach, sharks in deep water, wreck cannon to the lighthouse)
+- [x] Abandoned Harbor Factory (crane magnet + lever takeover, conveyor into a crusher, oil that burns, rain)
+- [x] Arena choice in match setup (or Random), hazards on/off
 
 - [ ] **Gate:** a 4-fighter, 5-minute match holds 60 fps on Medium with no blocking bugs
 

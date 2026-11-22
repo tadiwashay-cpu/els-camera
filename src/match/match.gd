@@ -74,6 +74,9 @@ func _ready() -> void:
 	player_input.touch = touch
 	add_child(player_input)
 	arena.explosion.connect(func(at: Vector3, by: Fighter) -> void: explode(at, by, 5.0))
+	arena.notice.connect(func(text: String, color: Color, sub: String) -> void:
+		if not ended:
+			hud.callout(text, color, sub, 1.3))
 	hud.pause_pressed.connect(toggle_pause)
 	hud.resume_pressed.connect(toggle_pause)
 	hud.rematch_pressed.connect(func() -> void: Game.start_match())
@@ -181,6 +184,7 @@ func _physics_process(delta: float) -> void:
 		Audio.play(&"tick", null, -2.0)
 	for b in brains:
 		b.update(delta)
+	arena.tick(self, delta)
 	for f in fighters:
 		var y := f.global_position.y
 		if f.alive and y < arena.kill_y:
@@ -314,11 +318,13 @@ func _on_died(victim: Fighter, killer: Fighter) -> void:
 		Save.add_stat("deaths")
 	if credited == player:
 		Save.add_stat("kills")
+	var cause := victim.death_cause
+	victim.death_cause = ""
 	if credited:
-		var how := "knocked off" if killer == null else ">"
+		var how := (cause if cause != "" else "knocked off") if killer == null else ">"
 		hud.feed("%s  %s  %s" % [credited.display_name, how, victim.display_name], credited.body.skin.shirt.lightened(0.3))
 	else:
-		hud.feed("%s fell  -1" % victim.display_name, Color(1, 0.5, 0.45))
+		hud.feed("%s %s  -1" % [victim.display_name, cause if cause != "" else "fell"], Color(1, 0.5, 0.45))
 	_last_kill = {"t": clock, "victim": victim.fighter_id, "killer": credited.fighter_id if credited else -1}
 	if credited == player:
 		hud.callout("KILL +%d" % int(res["points"]), UiTheme.ACCENT, victim.display_name, 0.8)
@@ -355,12 +361,23 @@ func _replay(victim: Fighter, killer: Fighter, before: float, after: float, spee
 		get_tree().paused = false
 
 
+## An arena hazard got `f` (a shark, the crusher, the harbour): the kill
+## goes to whoever hit them last (doc: environmental kills), with `cause`
+## in the kill feed ("fed to a shark").
+func hazard_kill(f: Fighter, cause: String, impulse: Vector3 = Vector3.ZERO) -> void:
+	if not f.alive or ended:
+		return
+	f.death_cause = cause
+	f.die(null, impulse)
+
+
 ## Something blew up (a barrel, a bomb): blast everyone and everything
 ## nearby (the kill goes to whoever set it off; nearby barrels chain).
 func explode(at: Vector3, by: Fighter, radius: float = 5.0) -> void:
 	var RADIUS := radius
 	Fx.explosion(self, at, RADIUS)
 	Audio.play(&"boom", at, 2.0)
+	arena.ignite(at, RADIUS * 0.8, by)
 	Game.hit_stop(60)
 	var to_cam := camera.global_position.distance_to(at)
 	camera.shake(clampf(1.2 - to_cam / 25.0, 0.2, 1.0))
@@ -506,8 +523,13 @@ func catch_projectile(p: ThrownWeapon, _by: Fighter) -> void:
 
 func projectile_landed(p: ThrownWeapon, at: Vector3) -> void:
 	projectiles.erase(p)
+	var by := p.thrower if p.thrower and is_instance_valid(p.thrower) else null
 	if p.data.explosive:
-		explode(at, p.thrower if p.thrower and is_instance_valid(p.thrower) else null, 4.0)
+		explode(at, by, 4.0)
+	elif p.data.ignites:
+		arena.ignite(at, 1.5, by)
+	if p.data.explosive:
+		pass
 	elif at.y > arena.kill_y and p.data.keep_on_land:
 		drop_pickup(p.data, at + Vector3.UP * 0.3, Vector3.ZERO, p.ammo)
 	else:

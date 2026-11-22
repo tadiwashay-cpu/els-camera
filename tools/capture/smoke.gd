@@ -1,7 +1,7 @@
 extends Node
 ## Dev/CI: plays a whole match with bots only (the "player" is driven by a
 ## bot brain too), headless, and prints what happened.
-##   godot --headless --path . res://tools/capture/smoke.tscn -- [seconds] [bots] [difficulty]
+##   godot --headless --path . res://tools/capture/smoke.tscn -- [seconds] [bots] [difficulty] [weapon|-] [arena]
 
 var _match: Match
 var _brain: AIBrain
@@ -24,8 +24,10 @@ func _ready() -> void:
 	cfg.bots = int(args[1]) if args.size() > 1 else 1
 	cfg.difficulty = int(args[2]) if args.size() > 2 else 2
 	cfg.seed = 7
-	if args.size() > 3:
+	if args.size() > 3 and args[3] != "-":
 		cfg.start_weapon = StringName(args[3])
+	if args.size() > 4:
+		cfg.arena_id = StringName(args[4])
 	Game.match_config = cfg
 	_match = (load(Game.MATCH_SCENE) as PackedScene).instantiate() as Match
 	add_child(_match)
@@ -63,6 +65,7 @@ func _ready() -> void:
 		if Time.get_ticks_msec() - t0 > int(seconds * 1000.0) + 30000:
 			print("SMOKE timeout")
 			break
+	print("SMOKE arena: ", _match.arena.name, " stats=", _match.arena.stats)
 	print("SMOKE end: scores=", _match.race.scores, " winner=", _match.race.winner, " hits=", _hits,
 		" deaths=", _deaths, " throws=", _throws, " catches=", _catches, " knockdowns=", _downs,
 		" pickups_left=", _match.pickups.size(), " kinds=", _kinds, " breaks=", _breaks, " debris_active=", _match.arena.debris.active_count(), "\n  weapons used=", _held.keys(), " fps=", Engine.get_frames_per_second())

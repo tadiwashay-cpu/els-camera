@@ -32,11 +32,13 @@ jobs:
       - name: Unit tests (GUT)
         run: godot --headless -s addons/gut/gut_cmdln.gd -gconfig=res://.gutconfig.json
 
-      - name: Smoke match (60 s, 4 bots, no player input)
+      - name: Smoke matches (60 s, 4 bots, no player input, every arena)
         run: |
-          timeout 300 godot --headless --path . res://tools/capture/smoke.tscn -- 60 3 1 2>&1 | tee smoke.log
-          grep -q "SMOKE end" smoke.log
-          ! grep -q "SCRIPT ERROR" smoke.log
+          for arena in blockout_yard beach_island harbor_factory; do
+            timeout 300 godot --headless --path . res://tools/capture/smoke.tscn -- 60 3 1 - $arena 2>&1 | tee smoke.log
+            grep -q "SMOKE end" smoke.log
+            ! grep -q "SCRIPT ERROR" smoke.log
+          done
 
   apk:
     needs: test

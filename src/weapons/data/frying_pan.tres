@@ -22,6 +22,7 @@ base_damage = 12
 ref_speed = 8.5
 knockback = 9
 throw_damage = 20
+metal = true
 part_sizes = PackedVector3Array(0.04, 0.36, 0.03, 0.34, 0.34, 0.05, 0.28, 0.28, 0.055)
 part_centres = PackedVector3Array(0, 0.08, 0, 0, 0.44, 0, 0, 0.44, 0)
 part_colors = PackedColorArray(0.18, 0.15, 0.13, 1.0, 0.25, 0.26, 0.28, 1.0, 0.15, 0.15, 0.17, 1.0)

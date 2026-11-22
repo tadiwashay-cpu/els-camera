@@ -25,6 +25,8 @@ var hp := 30.0
 var is_broken := false
 ## false: gone for good once broken (the mystery crate).
 var rebuilds := true
+## false: not part of the bots' nav mesh (crates riding a conveyor).
+var affects_nav := true
 var last_hitter: Fighter
 var arena: Arena
 var _mesh: MeshInstance3D
@@ -109,7 +111,8 @@ func shatter(dir: Vector3 = Vector3.ZERO) -> void:
 	Fx.dust(get_parent(), global_position, clampf(size.length(), 0.8, 2.0))
 	if arena:
 		arena.debris.burst(global_position, size, color, int(stats["chunks"]), dir)
-		arena.request_rebake()
+		if affects_nav:
+			arena.request_rebake()
 	_respawn_at = _clock + float(stats["respawn"]) if rebuilds else -1.0
 	broken.emit(self, last_hitter)
 	if not rebuilds:
@@ -144,5 +147,5 @@ func _try_rebuild() -> void:
 	_mesh.scale = Vector3.ONE * 0.05
 	var tw := create_tween()
 	tw.tween_property(_mesh, "scale", Vector3.ONE, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	if arena:
+	if arena and affects_nav:
 		arena.request_rebake()

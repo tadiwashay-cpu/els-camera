@@ -84,6 +84,8 @@ func _physics_process(delta: float) -> void:
 		if piece:
 			piece.hit(damage, hit["position"], velocity * 0.1, owner_fighter)
 		Fx.sparks(get_parent(), hit["position"], Color(0.7, 1.0, 0.8), 6)
+		if gravity == 0.0 and world:
+			world.arena.ignite(hit["position"], 1.0, owner_fighter)       # blaster bolts are hot
 		queue_free()
 		return
 	global_position = to

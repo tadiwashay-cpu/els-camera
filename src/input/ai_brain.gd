@@ -37,6 +37,9 @@ var _barrel: Breakable
 var _block_t := 0.0
 var _guarded_attack := -1          # instance id + clip of the swing we decided on
 var _powerup: PowerUp
+var _arena_goal := Vector3.INF
+## Sticks to an arena goal for a while once chosen (no dithering).
+var _arena_goal_t := 0.0
 
 
 func _init(fighter: Fighter, match_node: Match, difficulty: int) -> void:
@@ -56,6 +59,12 @@ func update(delta: float) -> void:
 	if not me.alive or me.state == Fighter.State.FROZEN:
 		inp.move = Vector2.ZERO
 		inp.attack_held = false
+		return
+	if me.state == Fighter.State.HELD:
+		# Caught by the crane: kick to get free.
+		inp.move = Vector2.ZERO
+		if _rng.randf() < delta * (1.0 + float(level["dodge"]) * 6.0):
+			inp.press(&"jump")
 		return
 	_attack_cd -= delta
 	_throw_cd -= delta
@@ -119,6 +128,11 @@ func update(delta: float) -> void:
 				me.input.press(&"throw")
 				_throw_cd = 6.0 + _rng.randf() * 3.0
 			goal = "chase"
+		"arena":
+			if _arena_goal != Vector3.INF:
+				_go_to(_arena_goal, 1.0, delta)
+			else:
+				goal = "chase"
 		"backoff":
 			if target:
 				var away := me.global_position - target.global_position
@@ -170,6 +184,7 @@ func _decide() -> void:
 		_powerup = world.nearest_powerup(me.global_position, 9.0)
 		if _powerup:
 			scores["powerup"] = 0.7
+	_consider_arena(d, scores)
 	_consider_power(d)
 	if me.health < me.max_health * 0.3 and target.armed() and d < 5.0:
 		scores["backoff"] = 0.75 * (1.0 - float(level["aggression"]))
@@ -184,6 +199,24 @@ func _decide() -> void:
 
 ## An intact barrel `f` is standing next to that we can hit from here
 ## without being in the blast.
+## The arena's signature mechanic (a lever, a cannon), when it's worth it.
+func _consider_arena(d: float, scores: Dictionary) -> void:
+	_arena_goal_t -= 0.1
+	var g := world.arena.bot_goal(me, world)
+	if g.is_empty() or d < 4.5:
+		_arena_goal = Vector3.INF
+		return
+	if goal == "arena" and _arena_goal_t > 0.0:
+		_arena_goal = g["at"]
+		scores["arena"] = 1.05
+		return
+	# Nerve decides how often bots go for it.
+	if _rng.randf() < 0.006 + float(level["aggression"]) * 0.008:
+		_arena_goal = g["at"]
+		_arena_goal_t = 7.0
+		scores["arena"] = float(g["score"])
+
+
 func _barrel_near(f: Fighter) -> Breakable:
 	for piece in world.arena.breakables:
 		if piece.kind != Breakable.Kind.BARREL or piece.is_broken:
