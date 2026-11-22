@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/weapons/weapon_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"snowball"
+display_name = "Snowball"
+family = "thrown"
+kind = &"thrown"
+rarity = &"common"
+light_moves = Array[StringName]([&"Toss"])
+knockdown_move = &""
+heavy_charge = &""
+heavy_move = &"Toss"
+effect = &"chill"
+strikers = {}
+base_damage = 6
+ammo = 6
+throw_damage = 7
+throw_speed = 22
+throw_spin = 4
+effect_time = 2.0
+catchable = true
+keep_on_land = false
+part_sizes = PackedVector3Array(0.18, 0.15, 0.18, 0.15, 0.18, 0.15, 0.16, 0.16, 0.19, 0.04, 0.04, 0.04)
+part_centres = PackedVector3Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0.07, 0.06, 0.06)
+part_colors = PackedColorArray(0.94, 0.97, 1.0, 1.0, 0.94, 0.97, 1.0, 1.0, 0.9, 0.95, 1.0, 1.0, 0.7, 0.85, 1.0, 1.0)
+part_yaws = PackedFloat32Array(0.0, 0.0, 45, 0.0)

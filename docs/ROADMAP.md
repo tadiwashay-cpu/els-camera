@@ -27,6 +27,7 @@ next starts. Claude ticks items as they land; the owner passes the gates.
 Done between playtests:
 - [x] 0.1.1: fixed frozen sliding after one-off moves; new jump/landing animations
 - [x] 0.1.2: breakable arena (crates, pillars, railings, explosive barrels, debris, rebuild)
+- [x] 0.2.1: swimming and slow drowning, 23 more weapons (47), new weapon models, more detailed arenas
 
 Increment A (combat depth):
 - [x] Block (hold) and parry (150 ms window: staggers melee attackers, sends thrown weapons back)

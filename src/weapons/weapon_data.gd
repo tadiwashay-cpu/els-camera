@@ -1,5 +1,7 @@
 class_name WeaponData
 extends Resource
+
+const WEAPON_SHADER := preload("res://src/weapons/weapon.gdshader")
 ## One weapon: how it looks, hits, swings and flies. Adding a weapon is a
 ## new .tres in src/weapons/data/ plus a line in Registry; no fighter code.
 
@@ -52,6 +54,27 @@ extends Resource
 @export var metal := false
 ## Hot: its hits, shots or blast set oil alight.
 @export var ignites := false
+
+@export_group("Special")
+## Status put on whoever it hits ("chill": slowed).
+@export var effect := &""
+@export var effect_time := 0.0
+## Thrown: ricochets off walls this many times and slices through fighters.
+@export var bounces := 0
+## Thrown: calls down lightning where it hits.
+@export var lightning := false
+## Thrown and returning: flies out this long before coming back.
+@export var return_after := 0.55
+## Ranged: what it fires: bolt, arrow, rocket, slug, orb, pebble, plasma, hook, wind.
+@export var projectile := &"bolt"
+## Ranged: seconds between shots.
+@export var fire_cooldown := 0.0
+## Falling while holding it is slow (umbrella).
+@export var glide := false
+## Blocking with it: fraction of the usual chip damage and guard strain (shields < 1).
+@export var block_mult := 1.0
+## Extra parry window in seconds (shields).
+@export var parry_bonus := 0.0
 
 @export_group("Hitbox")
 ## The striking part runs along the socket's +Y from hit_from to hit_to.
@@ -115,9 +138,7 @@ func mesh() -> ArrayMesh:
 			var yaw := part_yaws[i] if i < part_yaws.size() else 0.0
 			b.box(part_sizes[i], part_centres[i], part_colors[i] if i < part_colors.size() else Color.GRAY, 0,
 				Basis(Vector3.BACK, deg_to_rad(yaw)))
-		var mat := BoxBuilder.vertex_color_material(0.35)
-		if glow.a > 0.0:
-			mat.emission_enabled = true
-			mat.emission = glow * 0.6
+		var mat := ShaderMaterial.new()
+		mat.shader = WEAPON_SHADER
 		_mesh = b.commit(mat)
 	return _mesh

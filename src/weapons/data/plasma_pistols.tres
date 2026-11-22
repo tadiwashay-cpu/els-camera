@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/weapons/weapon_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"plasma_pistols"
+display_name = "Plasma Pistols"
+family = "ranged"
+kind = &"ranged"
+rarity = &"common"
+light_moves = Array[StringName]([&"Shoot"])
+knockdown_move = &""
+heavy_charge = &""
+heavy_move = &"Shoot"
+idle_clip = &"Aim"
+projectile = &"plasma"
+strikers = {}
+throwable = true
+base_damage = 8
+ammo = 24
+projectile_speed = 50
+projectile_damage = 6
+fire_cooldown = 0.12
+both_hands = true
+throw_damage = 10
+hit_to = 0.28
+metal = true
+ignites = true
+part_sizes = PackedVector3Array(0.06, 0.2, 0.09, 0.045, 0.12, 0.06, 0.05, 0.08, 0.065, 0.04, 0.03, 0.04, 0.045, 0.05, 0.12)
+part_centres = PackedVector3Array(0, 0.06, 0, 0, 0.2, 0, 0, 0.14, 0, 0, 0.27, 0, 0, -0.02, -0.08)
+part_colors = PackedColorArray(0.85, 0.3, 0.2, 0.5, 0.26, 0.28, 0.32, 0.5, 1.0, 0.35, 0.75, 0.0, 1.0, 0.5, 0.85, 0.0, 0.08, 0.08, 0.09, 1.0)
+part_yaws = PackedFloat32Array(0.0, 0.0, 0.0, 0.0, 0.0)

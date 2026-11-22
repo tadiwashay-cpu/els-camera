@@ -40,7 +40,8 @@ const HEAD_ORIGIN := Vector3(0, 1.58, 0)
 const LOCO: Array[StringName] = [&"Idle", &"Sword_Idle", &"Walk", &"Walk_Sword", &"Run", &"Run_Sword",
 	&"Sprint", &"Sprint_Sword", &"Strafe_L", &"Strafe_L_Sword", &"Strafe_R", &"Strafe_R_Sword",
 	&"Backpedal", &"Backpedal_Sword", &"Jump_Rise", &"Jump_Rise_Sword", &"Fall", &"Fall_Sword",
-	&"Heavy_Charge", &"Victory", &"Heavy_Idle", &"Spear_Idle", &"Aim", &"Bow_Draw", &"Smash_Charge"]
+	&"Heavy_Charge", &"Victory", &"Heavy_Idle", &"Spear_Idle", &"Aim", &"Bow_Draw", &"Smash_Charge",
+	&"Swim", &"Swim_Sword"]
 ## Bones an upper-body move drives.
 const UPPER: Array[StringName] = [&"Spine", &"Chest", &"UpperChest", &"Neck", &"Head",
 	&"LeftShoulder", &"LeftUpperArm", &"LeftLowerArm", &"LeftHand", &"WeaponL",

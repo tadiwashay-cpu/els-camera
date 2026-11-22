@@ -44,7 +44,24 @@ var _cannon_wait: Dictionary = {}       # fighter id -> seconds in the breech
 var _cannon_cd: Dictionary = {}         # fighter id -> clock it may fire again
 var _ring: MeshInstance3D
 var _tide_phase := -1
+var _deep: Dictionary = {}              # fighter id -> seconds since the last shark bite
+## Shark water: the first bite comes after this long, then one every this long.
+const SHARK_EVERY := 2.5
+const SHARK_BITE := 22.0
+## Places bots climb out onto: islet and pier (x0, z0, x1, z1).
+const ISLET := Rect2(-8.5, 27.6, 9.0, 9.0)
+const PIER := Rect2(19.0, -9.0, 19.0, 3.5)
+## High ground bots wait out the tide on.
+const DRY: Array[Vector3] = [Vector3(-14, 2.5, 2.5), Vector3(-13, 4.5, -17), Vector3(13, 4.5, -17),
+	Vector3(15, 2.2, 4), Vector3(25, 0.6, -7.25), Vector3(-20.5, 0.65, 15.5)]
+## Rock outcrops in the shallows: dry even at high tide (jump onto them).
+const OUTCROPS: Array[Vector3] = [Vector3(-27, 0, -10), Vector3(-28, 0, 15), Vector3(27, 0, 15), Vector3(27.5, 0, 2),
+	Vector3(-14, 0, -27), Vector3(14, 0, -27), Vector3(14, 0, 21)]
 var _clock_t := 0.0
+var _clouds: Node3D
+var _gulls: Array[Node3D] = []
+var _buoys: Array[Node3D] = []
+var _boat: Node3D
 
 
 func build() -> void:
@@ -66,6 +83,7 @@ func build() -> void:
 	_wreck()
 	_pier()
 	_bridge_and_islet()
+	_details()
 	for p: Vector3 in [Vector3(-8, 0, 15), Vector3(5, 0, 17), Vector3(-19, 0, -10), Vector3(20, 0, -10),
 			Vector3(-6, 4.5, -21), Vector3(18, 4.5, -21), Vector3(-2, 0.1, 33.5)]:
 		_palm(p, p.x * 3.1 + p.z)
@@ -277,6 +295,225 @@ func _bridge_and_islet() -> void:
 			deco(Vector3(0.25, 1.4, 0.25), Vector3(x, 0.6, z), OLD_WOOD, &"wood")
 
 
+## The things that make it a place: outcrops to escape the water onto, a
+## fishing hut and campfire, driftwood, shells, seaweed, grass, wreck ribs,
+## lighthouse windows and railing, pier lamps, a rowboat, buoys, gulls,
+## clouds and far islands. Static boxes merge into a few meshes.
+func _details() -> void:
+	# Rock outcrops standing out of the shallows.
+	surface = &"rock"
+	for i in OUTCROPS.size():
+		var o := OUTCROPS[i]
+		var yaw := float(i) * 37.0
+		block(Vector3(2.6, 2.4, 2.2), o + Vector3(0, 0.2, 0), ROCK.darkened(0.05 * float(i % 3)), yaw)
+		deco(Vector3(1.5, 0.9, 1.4), o + Vector3(0.35, 1.6, -0.2), ROCK.lightened(0.06), &"rock", yaw + 25.0)
+		deco(Vector3(1.2, 0.8, 1.0), o + Vector3(-1.4, -0.6, 0.9), DARK_ROCK, &"rock", yaw - 30.0)
+		deco(Vector3(2.7, 0.12, 2.3), o + Vector3(0, -0.35, 0), Color(0.3, 0.45, 0.25), &"leaf", yaw)   # weed line
+	# Fishing hut on stilts by the lighthouse rock, with a campfire.
+	surface = &"wood"
+	var hut := Vector3(-20.5, 0, 15.5)
+	block(Vector3(3.2, 0.25, 3.2), hut + Vector3(0, 0.525, 0), WOOD)
+	ramp(hut + Vector3(3.1, 0, 0), hut + Vector3(1.6, 0.65, 0), 1.4, OLD_WOOD, 0.2)
+	block(Vector3(0.15, 2.2, 3.2), hut + Vector3(-1.55, 1.75, 0), OLD_WOOD)
+	block(Vector3(3.2, 2.2, 0.15), hut + Vector3(0, 1.75, 1.55), OLD_WOOD)
+	for c: Vector2 in [Vector2(-1.5, -1.5), Vector2(1.5, -1.5), Vector2(-1.5, 1.5), Vector2(1.5, 1.5)]:
+		deco(Vector3(0.2, 3.4, 0.2), hut + Vector3(c.x, 1.5, c.y), OLD_WOOD.darkened(0.2), &"wood")
+	deco(Vector3(3.9, 0.18, 2.2), hut + Vector3(0, 3.35, -0.85), Color(0.72, 0.6, 0.32), &"leaf", 0.0, -22.0)
+	deco(Vector3(3.9, 0.18, 2.2), hut + Vector3(0, 3.35, 0.85), Color(0.66, 0.55, 0.3), &"leaf", 0.0, 22.0)
+	deco(Vector3(1.2, 0.08, 0.9), hut + Vector3(-0.8, 1.6, -1.2), Color(0.45, 0.4, 0.35), &"wood", 0.0, 0.0, 0.0)   # net shelf
+	deco(Vector3(1.4, 1.0, 0.04), hut + Vector3(-1.45, 1.7, -0.5), Color(0.5, 0.48, 0.4), &"wood", 90.0)            # hanging net
+	var fire_at := Vector3(-15.5, 0, 13.0)
+	for k in 7:
+		var a := TAU * float(k) / 7.0
+		deco(Vector3(0.3, 0.2, 0.3), fire_at + Vector3(cos(a) * 0.65, 0.1, sin(a) * 0.65), DARK_ROCK, &"rock", rad_to_deg(a))
+	deco(Vector3(0.18, 0.18, 1.0), fire_at + Vector3(0, 0.12, 0), OLD_WOOD.darkened(0.3), &"wood", 35.0)
+	deco(Vector3(0.18, 0.18, 1.0), fire_at + Vector3(0, 0.18, 0), OLD_WOOD.darkened(0.3), &"wood", -40.0)
+	deco(Vector3(0.25, 0.4, 1.8), fire_at + Vector3(1.6, 0.2, 0.3), OLD_WOOD, &"wood", 15.0)   # log bench
+	glow_box(Vector3(0.3, 0.2, 0.3), fire_at + Vector3(0, 0.25, 0), Color(1.0, 0.55, 0.15), 1.4)
+	var flames := CPUParticles3D.new()
+	flames.amount = 14
+	flames.lifetime = 0.6
+	flames.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
+	flames.emission_sphere_radius = 0.2
+	flames.direction = Vector3.UP
+	flames.spread = 12.0
+	flames.initial_velocity_min = 0.8
+	flames.initial_velocity_max = 1.6
+	flames.gravity = Vector3(0, 1.5, 0)
+	var fm := BoxMesh.new()
+	fm.size = Vector3.ONE * 0.16
+	var fmat := StandardMaterial3D.new()
+	fmat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	fmat.vertex_color_use_as_albedo = true
+	fm.material = fmat
+	flames.mesh = fm
+	var grad := Gradient.new()
+	grad.set_color(0, Color(1.0, 0.85, 0.3))
+	grad.set_color(1, Color(0.9, 0.2, 0.05))
+	flames.color_ramp = grad
+	flames.position = fire_at + Vector3.UP * 0.3
+	add_child(flames)
+	# Driftwood, shells, starfish, seaweed.
+	for d: Vector4 in [Vector4(-16, 19.0, 2.6, 20), Vector4(12, 18.5, 2.0, -35), Vector4(-21, -2, 2.4, 80), Vector4(21.5, 9, 1.8, 10),
+			Vector4(2, -12.5, 1.6, 60)]:
+		deco(Vector3(0.32, 0.28, d.z), Vector3(d.x, 0.12, d.y), Color(0.62, 0.55, 0.45), &"wood", d.w, 0.0, 6.0)
+		deco(Vector3(0.12, 0.12, 0.6), Vector3(d.x + 0.4, 0.1, d.y + 0.3), Color(0.6, 0.52, 0.42), &"wood", d.w + 50.0)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7
+	for k in 26:
+		var p := Vector3(rng.randf_range(-21, 21), 0.03, rng.randf_range(-13, 19.5))
+		if absf(p.x - 15) < 4 and p.z < 13 or absf(p.x) < 5 and p.z < -11:
+			continue
+		var c := [Color(1.0, 0.85, 0.8), Color(0.95, 0.75, 0.6), Color(1.0, 0.95, 0.9)][k % 3] as Color
+		if k % 5 == 0:
+			deco(Vector3(0.32, 0.04, 0.07), p, Color(1.0, 0.45, 0.2), &"paint", rng.randf() * 180.0)
+			deco(Vector3(0.32, 0.04, 0.07), p, Color(1.0, 0.45, 0.2), &"paint", rng.randf() * 180.0)
+		else:
+			deco(Vector3(0.13, 0.06, 0.1), p, c, &"paint", rng.randf() * 180.0)
+	for k in 14:
+		var side := -1.0 if k % 2 == 0 else 1.0
+		var p := Vector3(side * rng.randf_range(23.0, 29.0), -0.97, rng.randf_range(-26, 20))
+		deco(Vector3(rng.randf_range(0.8, 1.6), 0.04, rng.randf_range(0.4, 0.9)), p, Color(0.2, 0.42, 0.22), &"leaf", rng.randf() * 180.0)
+	# Grass on the rocks, a few dunes on the sand.
+	for k in 40:
+		var on_ridge := k < 26
+		var p := Vector3(rng.randf_range(-21, 21), 4.5, rng.randf_range(-23.5, -14.5)) if on_ridge \
+			else Vector3(rng.randf_range(-21.5, -12.5), 2.5, rng.randf_range(1.5, 10.5))
+		if on_ridge and absf(p.x) < 4.5 or not on_ridge and absf(p.x + 17) < 2.2 and absf(p.z - 6) < 2.2:
+			continue
+		for b in 3:
+			deco(Vector3(0.06, rng.randf_range(0.25, 0.45), 0.06), p + Vector3(b * 0.08 - 0.08, 0.15, rng.randf_range(-0.06, 0.06)),
+				LEAF.lerp(Color(0.6, 0.65, 0.25), rng.randf()), &"leaf", rng.randf() * 90.0, 0.0, rng.randf_range(-15, 15))
+	for d: Vector4 in [Vector4(-12, -10, 6, 15), Vector4(10, 15, 5, -20), Vector4(-2, 18, 7, 5)]:
+		deco(Vector3(d.z, 0.5, d.z * 0.5), Vector3(d.x, -0.17, d.y), SAND.lightened(0.04), &"sand", d.w, 0.0, 2.0)
+	# Wreck: ribs out of the sand, portholes, barnacles.
+	surface = &"wood"
+	for z: float in [12.5, 14.0, 15.5]:
+		deco(Vector3(0.25, 2.4, 0.3), Vector3(19.0, 0.9, z), OLD_WOOD.darkened(0.25), &"wood", 0.0, 0.0, -25.0)
+		deco(Vector3(0.25, 2.4, 0.3), Vector3(11.0, 0.9, z + 0.3), OLD_WOOD.darkened(0.25), &"wood", 0.0, 0.0, 25.0)
+	for z: float in [-1.0, 2.0, 5.0]:
+		deco(Vector3(0.06, 0.4, 0.4), Vector3(11.98, 1.3, z), Color(0.12, 0.12, 0.12), &"metal")
+		deco(Vector3(0.08, 0.5, 0.5), Vector3(11.97, 1.3, z), Color(0.6, 0.45, 0.2), &"metal", 0.0, 45.0)
+		deco(Vector3(0.06, 0.4, 0.4), Vector3(18.02, 1.3, z + 1.0), Color(0.12, 0.12, 0.12), &"metal")
+	for k in 10:
+		deco(Vector3(0.14, 0.1, 0.14), Vector3(rng.randf_range(12.2, 17.8), rng.randf_range(0.1, 0.6), -3.02),
+			Color(0.75, 0.75, 0.7), &"rock", rng.randf() * 90.0)
+	# Lighthouse: a door, windows, a railing round the top, a gallery rim.
+	surface = &"paint"
+	deco(Vector3(1.1, 1.9, 0.06), Vector3(-17, 3.45, 7.82), Color(0.35, 0.22, 0.14), &"wood")
+	deco(Vector3(1.3, 0.12, 0.08), Vector3(-17, 4.45, 7.84), Color(0.25, 0.25, 0.28), &"metal")
+	for y: float in [5.8, 9.0]:
+		deco(Vector3(0.5, 0.7, 0.06), Vector3(-17, y, 7.82), Color(0.15, 0.2, 0.28), &"metal")
+		deco(Vector3(0.06, 0.7, 0.5), Vector3(-15.18, y + 1.0, 6), Color(0.15, 0.2, 0.28), &"metal")
+	for k in 24:
+		var t := float(k) / 24.0 * 4.0
+		var e := 3.15
+		var p := Vector3(-17, 12.95, 6)
+		if t < 1.0:
+			p += Vector3(-e + 2.0 * e * t, 0, -e)
+		elif t < 2.0:
+			p += Vector3(e, 0, -e + 2.0 * e * (t - 1.0))
+		elif t < 3.0:
+			p += Vector3(e - 2.0 * e * (t - 2.0), 0, e)
+		else:
+			p += Vector3(-e, 0, e - 2.0 * e * (t - 3.0))
+		deco(Vector3(0.06, 0.9, 0.06), p, Color(0.2, 0.2, 0.22), &"metal")
+	for r: Vector4 in [Vector4(0, -3.15, 6.4, 0), Vector4(0, 3.15, 6.4, 0), Vector4(-3.15, 0, 6.4, 90), Vector4(3.15, 0, 6.4, 90)]:
+		deco(Vector3(r.z, 0.06, 0.06), Vector3(-17 + r.x, 13.4, 6 + r.y), Color(0.2, 0.2, 0.22), &"metal", r.w)
+	deco(Vector3(6.8, 0.12, 6.8), Vector3(-17, 12.0, 6), Color(0.85, 0.85, 0.82), &"paint")
+	# Pier lamps and a coil of rope.
+	surface = &"wood"
+	for x: float in [24.0, 32.0]:
+		deco(Vector3(0.15, 2.4, 0.15), Vector3(x, 1.8, -9.1), OLD_WOOD, &"wood")
+		deco(Vector3(0.5, 0.08, 0.12), Vector3(x, 3.0, -8.9), OLD_WOOD, &"wood", 90.0)
+		glow_box(Vector3(0.25, 0.32, 0.25), Vector3(x, 2.8, -8.7), Color(1.0, 0.85, 0.5), 1.2)
+	deco(Vector3(0.6, 0.16, 0.6), Vector3(36.6, 0.68, -8.4), Color(0.75, 0.65, 0.45), &"wood", 45.0)
+	deco(Vector3(0.4, 0.3, 0.4), Vector3(37.6, 0.75, -5.7), OLD_WOOD.darkened(0.3), &"wood")   # bollard
+	surface = &"sand"
+	# Far islands on the horizon.
+	for h: Vector4 in [Vector4(-130, -80, 40, 14), Vector4(140, 30, 55, 18), Vector4(30, 150, 35, 10), Vector4(-90, 120, 25, 8)]:
+		deco(Vector3(h.z, h.w, h.z * 0.7), Vector3(h.x, h.w * 0.5 - 2.0, h.y), Color(0.3, 0.45, 0.32), &"leaf", h.x)
+		deco(Vector3(h.z * 0.6, h.w * 0.5, h.z * 0.45), Vector3(h.x + 3, h.w + h.w * 0.2 - 2.0, h.y), Color(0.28, 0.42, 0.3), &"leaf", h.x + 20)
+		deco(Vector3(h.z * 1.1, 1.0, h.z * 0.8), Vector3(h.x, -1.2, h.y), SAND, &"sand", h.x)
+	_life()
+
+
+## Things that move: clouds, gulls, bobbing buoys and a rowboat.
+func _life() -> void:
+	_clouds = Node3D.new()
+	var cb := BoxBuilder.new()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 11
+	for k in 12:
+		var c := Vector3(rng.randf_range(-160, 160), rng.randf_range(42, 60), rng.randf_range(-160, 160))
+		for puff in 4:
+			cb.box(Vector3(rng.randf_range(14, 26), rng.randf_range(4, 7), rng.randf_range(10, 18)),
+				c + Vector3(rng.randf_range(-10, 10), rng.randf_range(-1.5, 2), rng.randf_range(-6, 6)), Color(1, 1, 1))
+	var cm := StandardMaterial3D.new()
+	cm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	cm.albedo_color = Color(1, 1, 1, 0.85)
+	cm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	var cmi := MeshInstance3D.new()
+	cmi.mesh = cb.commit(cm)
+	cmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_clouds.add_child(cmi)
+	add_child(_clouds)
+	var gull := BoxBuilder.new()
+	gull.box(Vector3(0.18, 0.16, 0.6), Vector3.ZERO, Color(0.95, 0.95, 0.95))
+	gull.box(Vector3(0.1, 0.08, 0.16), Vector3(0, 0.05, -0.36), Color(0.95, 0.75, 0.2))
+	gull.box(Vector3(0.9, 0.04, 0.26), Vector3(0.5, 0.1, 0.0), Color(0.85, 0.87, 0.9), 0, Basis(Vector3.BACK, 0.35))
+	gull.box(Vector3(0.9, 0.04, 0.26), Vector3(-0.5, 0.1, 0.0), Color(0.85, 0.87, 0.9), 0, Basis(Vector3.BACK, -0.35))
+	gull.box(Vector3(0.3, 0.03, 0.12), Vector3(0.98, 0.25, 0.0), Color(0.2, 0.2, 0.22), 0, Basis(Vector3.BACK, 0.35))
+	gull.box(Vector3(0.3, 0.03, 0.12), Vector3(-0.98, 0.25, 0.0), Color(0.2, 0.2, 0.22), 0, Basis(Vector3.BACK, -0.35))
+	var gm := gull.commit(BoxBuilder.vertex_color_material(0.8))
+	for k in 3:
+		var g := MeshInstance3D.new()
+		g.mesh = gm
+		g.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(g)
+		_gulls.append(g)
+	var buoy := BoxBuilder.new()
+	buoy.box(Vector3(0.7, 0.6, 0.7), Vector3(0, 0.1, 0), Color(0.9, 0.15, 0.1))
+	buoy.box(Vector3(0.72, 0.18, 0.72), Vector3(0, 0.25, 0), Color(0.95, 0.95, 0.95))
+	buoy.box(Vector3(0.12, 0.8, 0.12), Vector3(0, 0.75, 0), Color(0.3, 0.3, 0.32))
+	buoy.box(Vector3(0.2, 0.2, 0.2), Vector3(0, 1.2, 0), Color(1.0, 0.85, 0.3))
+	var bm := buoy.commit(BoxBuilder.vertex_color_material(0.6))
+	for p: Vector3 in [Vector3(36, 0, -16), Vector3(-36, 0, 6), Vector3(9, 0, 32)]:
+		var bn := MeshInstance3D.new()
+		bn.mesh = bm
+		bn.position = p
+		add_child(bn)
+		_buoys.append(bn)
+	var boat := BoxBuilder.new()
+	boat.box(Vector3(1.4, 0.5, 3.4), Vector3(0, 0.1, 0), Color(0.25, 0.5, 0.65))
+	boat.box(Vector3(1.5, 0.12, 3.5), Vector3(0, 0.38, 0), Color(0.9, 0.9, 0.85))
+	boat.box(Vector3(1.1, 0.3, 3.0), Vector3(0, 0.25, 0), Color(0.5, 0.36, 0.22))
+	boat.box(Vector3(1.2, 0.08, 0.3), Vector3(0, 0.36, 0.4), Color(0.45, 0.32, 0.2))
+	boat.box(Vector3(0.9, 0.5, 0.8), Vector3(0, 0.2, -1.6), Color(0.25, 0.5, 0.65), 0, Basis(Vector3.UP, PI * 0.25))
+	boat.box(Vector3(0.06, 0.06, 1.6), Vector3(0.5, 0.45, 0.6), Color(0.6, 0.48, 0.3), 0, Basis(Vector3.UP, 0.4))
+	_boat = MeshInstance3D.new()
+	(_boat as MeshInstance3D).mesh = boat.commit(BoxBuilder.vertex_color_material(0.7))
+	_boat.position = Vector3(37.0, 0, -3.6)
+	add_child(_boat)
+
+
+func _tick_life(delta: float) -> void:
+	_clouds.position.x = fmod(_clouds.position.x + delta * 0.8 + 160.0, 320.0) - 160.0
+	for i in _gulls.size():
+		var g := _gulls[i]
+		var a := _clock_t * (0.32 + 0.07 * float(i)) + float(i) * 2.1
+		var r := 16.0 + 6.0 * float(i)
+		g.position = Vector3(cos(a) * r - 2.0, 19.0 + 3.0 * float(i) + sin(_clock_t * 0.7 + i) * 1.2, sin(a) * r)
+		g.rotation = Vector3(0, -a, 0.35)
+		g.scale = Vector3(1.0, 1.0 + 0.25 * sin(_clock_t * 7.0 + i * 1.3), 1.0)
+	for i in _buoys.size():
+		var b := _buoys[i]
+		b.position.y = water_level - 0.15 + sin(_clock_t * 1.6 + i) * 0.12
+		b.rotation = Vector3(sin(_clock_t * 1.3 + i) * 0.12, 0, cos(_clock_t * 1.1 + i) * 0.12)
+	_boat.position.y = water_level - 0.2 + sin(_clock_t * 1.4) * 0.06
+	_boat.rotation = Vector3(sin(_clock_t * 1.2) * 0.04, 0.12, cos(_clock_t * 0.9) * 0.05)
+
+
 ## A leaning palm: a trunk you bump into and a crown of drooping leaves.
 func _palm(base: Vector3, seed_value: float) -> void:
 	var lean := 6.0 + fmod(absf(seed_value), 8.0)
@@ -402,7 +639,8 @@ func tick(m: Match, delta: float) -> void:
 			Audio.play(&"splash", null, -4.0, 0.6)
 		_tide_phase = phase
 	super.tick(m, delta)
-	# Lighthouse beam and fins.
+	# Lighthouse beam, fins, clouds, gulls, buoys.
+	_tick_life(delta)
 	_beam.rotation.y += delta * 0.7
 	for i in _fins.size():
 		var fin := _fins[i]
@@ -416,10 +654,36 @@ func tick(m: Match, delta: float) -> void:
 	for f in m.fighters:
 		if not f.alive:
 			continue
-		if hazards and in_deep_water(f.global_position):
-			_shark_attack(m, f)
+		if hazards and f.swimming and in_deep_water(f.global_position):
+			# Sharks circle in, then bite every few seconds.
+			var t: float = float(_deep.get(f.fighter_id, 0.0)) + delta
+			if t >= SHARK_EVERY:
+				t = 0.0
+				_shark_attack(m, f)
+			_deep[f.fighter_id] = t
 			continue
+		_deep.erase(f.fighter_id)
 		_cannon(m, f, delta)
+
+
+func swim_exit(pos: Vector3) -> Vector3:
+	var p := Vector2(pos.x, pos.z)
+	var best := Vector2.INF
+	for r: Rect2 in [SHELF.grow(-1.0), ISLET.grow(-1.0), PIER.grow(-0.6)]:
+		var q := Vector2(clampf(p.x, r.position.x, r.end.x), clampf(p.y, r.position.y, r.end.y))
+		if p.distance_to(q) < p.distance_to(best):
+			best = q
+	return Vector3(best.x, water_level, best.y)
+
+
+func dry_spot(pos: Vector3) -> Vector3:
+	if tide <= 0.0:
+		return Vector3.INF
+	var best := Vector3.INF
+	for d in DRY:
+		if pos.distance_to(d) < pos.distance_to(best):
+			best = d
+	return best
 
 
 func _shark_attack(m: Match, f: Fighter) -> void:
@@ -432,7 +696,9 @@ func _shark_attack(m: Match, f: Fighter) -> void:
 	Fx.splash(self, at, 1.6)
 	Audio.play(&"chomp", at, 2.0)
 	Audio.play(&"splash", at, 0.0, 0.8)
-	m.hazard_kill(f, "fed to a shark", Vector3.UP * 2.0)
+	_credit_water_kill(m, f)
+	f.drain(SHARK_BITE, "shark")
+	f.velocity += Vector3(randf_range(-3, 3), 0, randf_range(-3, 3))
 	count("shark")
 	_shark.visible = true
 	_shark.position = at + Vector3.DOWN * 2.2

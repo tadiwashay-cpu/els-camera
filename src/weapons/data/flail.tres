@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/weapons/weapon_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"flail"
+display_name = "Flail"
+family = "blades"
+kind = &"melee"
+rarity = &"common"
+light_moves = Array[StringName]([&"Slash_A", &"Slash_B", &"Slash_C"])
+knockdown_move = &"Slash_C"
+heavy_charge = &"Heavy_Charge"
+heavy_move = &"Heavy_Release"
+strikers = {}
+hit_from = 0.5
+hit_to = 0.8
+hit_radius = 0.2
+base_damage = 20
+ref_speed = 8.5
+knockback = 9
+attack_speed = 0.88
+throw_damage = 26
+metal = true
+part_sizes = PackedVector3Array(0.05, 0.36, 0.05, 0.056, 0.16, 0.056, 0.065, 0.05, 0.065, 0.06, 0.04, 0.06, 0.03, 0.07, 0.014, 0.014, 0.07, 0.03, 0.03, 0.07, 0.014, 0.014, 0.07, 0.03, 0.03, 0.07, 0.014, 0.19, 0.19, 0.19, 0.19, 0.19, 0.19, 0.3, 0.04, 0.04, 0.04, 0.3, 0.04, 0.04, 0.04, 0.3)
+part_centres = PackedVector3Array(0, 0.0, 0, 0, -0.07, 0, 0, 0.2, 0, 0, -0.18, 0, 0, 0.26, 0, 0, 0.32, 0, 0, 0.38, 0, 0, 0.44, 0, 0, 0.5, 0, 0, 0.66, 0, 0, 0.66, 0, 0, 0.66, 0, 0, 0.66, 0, 0, 0.66, 0)
+part_colors = PackedColorArray(0.45, 0.3, 0.16, 1.0, 0.3, 0.17, 0.08, 1.0, 0.34, 0.36, 0.4, 0.5, 0.34, 0.36, 0.4, 0.5, 0.34, 0.36, 0.4, 0.5, 0.34, 0.36, 0.4, 0.5, 0.34, 0.36, 0.4, 0.5, 0.34, 0.36, 0.4, 0.5, 0.34, 0.36, 0.4, 0.5, 0.34, 0.36, 0.4, 0.5, 0.34, 0.36, 0.4, 0.5, 0.84, 0.87, 0.92, 0.5, 0.84, 0.87, 0.92, 0.5, 0.84, 0.87, 0.92, 0.5)
+part_yaws = PackedFloat32Array(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 45, 0.0, 0.0, 0.0)

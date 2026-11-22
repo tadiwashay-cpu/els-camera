@@ -3,7 +3,7 @@ extends GutTest
 
 
 func test_roster_size_and_pools() -> void:
-	assert_eq(Registry.weapons.size(), 25, "24 weapons + fists")
+	assert_eq(Registry.weapons.size(), 48, "47 weapons + fists")
 	assert_gt(Registry.weapon_pool(false).size(), 10, "spawner pool")
 	var rare := Registry.weapon_pool(true)
 	assert_gt(rare.size(), 3, "mystery crate pool")
@@ -55,3 +55,41 @@ func test_every_weapon_has_a_model() -> void:
 func test_heavy_slam_event_exists() -> void:
 	assert_gte(BlockBody.event_time(&"Smash_Release", "slam"), 0.0)
 	assert_gt(Registry.weapon(&"hammer").slam_radius, 1.0)
+
+
+func test_every_shot_style_exists() -> void:
+	for w: WeaponData in Registry.weapons.values():
+		if w.kind == &"ranged":
+			assert_true(w.projectile == &"wind" or Bolt.STYLES.has(w.projectile), "%s fires a known shot (%s)" % [w.id, w.projectile])
+			assert_gt(w.hit_to, 0.1, "%s has a muzzle" % w.id)
+
+
+func test_finishes_are_matte_metal_or_glow() -> void:
+	for w: WeaponData in Registry.weapons.values():
+		for c in w.part_colors:
+			assert_true(is_equal_approx(c.a, 1.0) or is_equal_approx(c.a, 0.5) or is_equal_approx(c.a, 0.0),
+				"%s part finish %s" % [w.id, c.a])
+
+
+func test_special_weapons_are_wired() -> void:
+	assert_true(Registry.weapon(&"thunderbolt").lightning)
+	assert_gt(Registry.weapon(&"saw_blade").bounces, 0)
+	assert_eq(Registry.weapon(&"snowball").effect, &"chill")
+	assert_eq(Registry.weapon(&"ice_cream").effect, &"chill")
+	assert_true(Registry.weapon(&"umbrella").glide)
+	assert_lt(Registry.weapon(&"shield").block_mult, 0.5, "shields soak blocked hits")
+	assert_eq(Registry.weapon(&"shield").hand, &"left")
+	assert_true(Registry.weapon(&"rocket_fist").returns)
+	assert_gt(Registry.weapon(&"sniper").fire_cooldown, 0.5, "the sniper can't spam")
+	for id: StringName in [&"bazooka", &"sniper", &"thunderbolt", &"scepter"]:
+		assert_eq(Registry.weapon(id).rarity, &"rare", "%s comes from the mystery crate" % id)
+
+
+func test_chill_slows() -> void:
+	var p := FighterPowers.new()
+	assert_eq(p.speed_mult(), 1.0)
+	p.add_effect(&"chill", 2.0)
+	assert_lt(p.speed_mult(), 0.7)
+	assert_eq(FighterPowers.effect_name(&"chill"), "CHILLED")
+	p.tick(2.5)
+	assert_eq(p.speed_mult(), 1.0, "it wears off")

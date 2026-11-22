@@ -293,6 +293,14 @@
    "loop": false,
    "speed": 0.0
   },
+  "Rocket_Punch": {
+   "events": {
+    "release": 0.17
+   },
+   "length": 0.5333,
+   "loop": false,
+   "speed": 0.0
+  },
   "Run": {
    "events": {},
    "length": 0.6,
@@ -510,6 +518,18 @@
    "length": 0.6333,
    "loop": true,
    "speed": 2.6
+  },
+  "Swim": {
+   "events": {},
+   "length": 1.1,
+   "loop": true,
+   "speed": 0.0
+  },
+  "Swim_Sword": {
+   "events": {},
+   "length": 1.1,
+   "loop": true,
+   "speed": 0.0
   },
   "Sword_Idle": {
    "events": {},

@@ -66,6 +66,16 @@ func update(delta: float) -> void:
 		if _rng.randf() < delta * (1.0 + float(level["dodge"]) * 6.0):
 			inp.press(&"jump")
 		return
+	if me.swimming:
+		# In the sea: swim for the nearest ledge and kick up onto it.
+		var exit := world.arena.swim_exit(me.global_position)
+		var to := exit - me.global_position
+		to.y = 0.0
+		_steer(to, 1.0)
+		inp.attack_held = false
+		if to.length() < 1.8 or (me.is_on_wall() and _rng.randf() < delta * 5.0):
+			inp.press(&"jump")
+		return
 	_attack_cd -= delta
 	_throw_cd -= delta
 	_strafe_t -= delta
@@ -185,6 +195,12 @@ func _decide() -> void:
 		if _powerup:
 			scores["powerup"] = 0.7
 	_consider_arena(d, scores)
+	if world.arena.wet_time(me) > 0.3:
+		var dry := world.arena.dry_spot(me.global_position)
+		if dry != Vector3.INF:
+			_arena_goal = dry
+			_arena_goal_t = 0.0
+			scores["arena"] = 0.97          # out of the flood, unless a fight is right here
 	_consider_power(d)
 	if me.health < me.max_health * 0.3 and target.armed() and d < 5.0:
 		scores["backoff"] = 0.75 * (1.0 - float(level["aggression"]))
@@ -311,7 +327,10 @@ func _reach() -> float:
 		return 2.3
 	if not w.light_moves.is_empty() and w.light_moves[0] == &"Stab_A":
 		return 1.7
-	return 2.1
+	if w.kind == &"melee" and w.light_moves.size() > 0 and w.light_moves[0] == &"Jab":
+		return 1.45
+	# One-handed swingers: arm's length plus the weapon (ice cream short, sword long).
+	return clampf(1.15 + w.hit_to * 0.95, 1.5, 2.2)
 
 
 func _fight(_delta: float) -> void:

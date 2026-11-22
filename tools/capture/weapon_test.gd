@@ -26,14 +26,19 @@ func _ready() -> void:
 	var cam := Camera3D.new()
 	add_child(cam)
 	cam.current = true
-	var ids := ["blaster", "bow", "shuriken", "bomb", "boomerang", "hammer", "spear", "boxing_gloves"]
-	var strip := Image.create(240 * 4, 180 * 2, false, Image.FORMAT_RGBA8)
+	var args := OS.get_cmdline_user_args()
+	var ids: Array = ["blaster", "bow", "shuriken", "bomb", "boomerang", "hammer", "spear", "boxing_gloves"]
+	if args.size() > 1:
+		ids = args[1].split(",")
+	var strip := Image.create(240 * 4, 180 * int(ceil(ids.size() / 4.0)), false, Image.FORMAT_RGBA8)
 	for i in ids.size():
 		var id: String = ids[i]
 		b.respawn(Vector3(0, 0.1, 14), PI)
 		b.protect = 0.0
-		var near := id in ["hammer", "spear", "boxing_gloves"]
-		a.respawn(Vector3(0, 0.1, 14 + (2.2 if near else -7.0)) if near else Vector3(0, 0.1, 7.0), 0.0 if not near else PI)
+		var near := id in ["hammer", "spear", "boxing_gloves", "ice_cream", "flail", "scythe", "lance", "guitar", "nunchucks",
+			"wrench", "shovel", "umbrella", "fan", "shield", "sword", "katana", "battle_axe", "frying_pan"]
+		var gap := 1.5 if id in ["ice_cream", "flail", "nunchucks", "wrench", "umbrella", "shield"] else 2.2
+		a.respawn(Vector3(0, 0.1, 14 + (gap if near else -7.0)) if near else Vector3(0, 0.1, 7.0), 0.0 if not near else PI)
 		a.protect = 0.0
 		a.equip(Registry.weapon(StringName(id)))
 		a.input.target = b
@@ -52,6 +57,8 @@ func _ready() -> void:
 		img.resize(240, 180)
 		strip.blit_rect(img, Rect2i(0, 0, 240, 180), Vector2i((i % 4) * 240, (i / 4) * 180))
 		await get_tree().create_timer(1.6).timeout
-		print("%-14s dmg=%5.1f  ammo %d->%d  armed=%s  b.state=%s" % [id, hp0 - b.health, ammo0, a.ammo, a.armed(), Fighter.State.keys()[b.state]])
+		print("%-14s dmg=%5.1f  ammo %d->%d  armed=%s  b.state=%s  b.moved=%.1f  effects=%s  a.pos=%s" % [id, hp0 - b.health,
+			ammo0, a.ammo, a.armed(), Fighter.State.keys()[b.state], Vector2(b.global_position.x, b.global_position.z - 14).length(),
+			b.powers.effects.keys(), a.global_position.snapped(Vector3.ONE * 0.1)])
 	strip.save_png(out + "/weapon_strip.png")
 	get_tree().quit()

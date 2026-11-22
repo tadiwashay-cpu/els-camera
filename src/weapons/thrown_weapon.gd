@@ -22,6 +22,7 @@ var _bounces := 0
 var ammo := -1
 var _returning := false
 var _hit_list: Array[Fighter] = []
+var _ricochets := 0
 
 
 func launch(by: Fighter, weapon: WeaponData, origin: Vector3, dir: Vector3, speed: float, is_boosted: bool, ammo_left: int = -1) -> void:
@@ -57,7 +58,7 @@ func _physics_process(delta: float) -> void:
 	if data.explosive and age > 1.8:
 		_explode()
 		return
-	if data.returns and not _returning and age > 0.55:
+	if data.returns and not _returning and age > data.return_after:
 		_returning = true
 	if _returning:
 		# Boomerang: curve back to whoever threw it.
@@ -94,10 +95,31 @@ func _physics_process(delta: float) -> void:
 			global_position = p + n * 0.2
 			_explode()
 			return
+		if data.lightning:
+			world.lightning(p + n * 0.1, thrower if thrower and is_instance_valid(thrower) else null)
+			world.remove_projectile(self)
+			return
+		if harmful and _ricochets < data.bounces:
+			# Saw blades ricochet and keep cutting.
+			_ricochets += 1
+			velocity = velocity.bounce(n) * 0.9
+			global_position = p + n * 0.1
+			var hit_piece := hit["collider"] as Breakable
+			if hit_piece:
+				hit_piece.hit(data.throw_damage, p, velocity * 0.3, thrower)
+			Fx.sparks(get_parent(), p, Color(1, 0.85, 0.5), 12)
+			Audio.play(&"clang", p, -2.0, 1.5)
+			_hit_list.clear()
+			return
 		if data.returns and not _returning:
 			_returning = true
 			velocity = velocity.bounce(n) * 0.6
 			global_position = p + n * 0.1
+			return
+		if _returning:
+			# On its way home: skim off the ground and walls, never land.
+			velocity = velocity.slide(n) + n * 3.0
+			global_position = p + n * 0.15
 			return
 		var piece := hit["collider"] as Breakable
 		if piece and harmful:
@@ -154,6 +176,10 @@ func _hit_fighter(f: Fighter, at: Vector3) -> void:
 	if data.explosive:
 		_explode()
 		return
+	if data.lightning:
+		world.lightning(at, thrower if thrower and is_instance_valid(thrower) else null)
+		world.remove_projectile(self)
+		return
 	var speed := velocity.length()
 	var dmg := data.throw_damage * clampf(speed / maxf(data.throw_speed, 1.0), 0.6, 1.6) * (1.25 if boosted else 1.0)
 	var by := thrower if thrower and is_instance_valid(thrower) else null
@@ -165,7 +191,10 @@ func _hit_fighter(f: Fighter, at: Vector3) -> void:
 		by.powers.dealt(dealt)
 		by.hit_landed.emit(by, f, dealt)
 	Audio.play(&"hit_heavy", at, 2.0)
-	if data.returns:
+	if dealt > 0.0 and data.effect != &"":
+		f.powers.add_effect(data.effect, data.effect_time)
+		Fx.sparks(get_parent(), at, FighterPowers.effect_color(data.effect), 14)
+	if data.returns or data.bounces > 0:
 		_hit_list.append(f)          # keeps flying (and comes back)
 		return
 	harmful = false

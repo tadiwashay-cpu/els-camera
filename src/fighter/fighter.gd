@@ -45,8 +45,18 @@ const HURT_HIGH := 1.75
 ## Where each get-up clip starts the pelvis, in the fighter's local space.
 const GETUP_BACK_HIPS := Vector3(0, 0.14, -0.28)
 const GETUP_FRONT_HIPS := Vector3(0, 0.16, -0.42)
+## The sound each kind of shot makes, and its pitch.
+const SHOT_SOUNDS := {&"arrow": &"throw", &"pebble": &"throw", &"slug": &"shot", &"rocket": &"cannon",
+	&"orb": &"zap", &"hook": &"throw", &"wind": &"swing_heavy", &"plasma": &"tick"}
+const SHOT_PITCH := {&"arrow": 1.2, &"pebble": 1.6, &"slug": 1.0, &"rocket": 1.5, &"orb": 1.4, &"hook": 0.8,
+	&"wind": 0.7, &"plasma": 2.0}
 ## Hanging under a crane magnet: feet this far below it.
 const HANG := 2.1
+## Treading water: feet this far under the surface (water at the lower chest).
+const SWIM_DEPTH := 1.15
+## Swimming speed and the kick that gets you out onto a ledge.
+const SWIM_SPEED := 3.0
+const SWIM_JUMP := 13.5
 
 var fighter_id := 0
 var display_name := "Fighter"
@@ -67,6 +77,8 @@ var _shot_charge := 0.0
 var _throw_clip := &"Throw"
 var _slammed := false
 var _dropped_ammo := -1
+var _shots := 0
+var _next_shot_at := 0.0
 var trail: BladeTrail
 var world: Match
 
@@ -122,6 +134,8 @@ var _held_credit: Fighter
 var _grip := 1.0
 ## How an arena hazard got us, for the kill feed ("fed to a shark").
 var death_cause := ""
+## In water too deep to stand: floating, slow, can't swing.
+var swimming := false
 
 
 func _ready() -> void:
@@ -236,6 +250,9 @@ func _physics_process(delta: float) -> void:
 			return
 		State.DOWN:
 			_follow_ragdoll()
+			if world and world.arena.water_level - global_position.y > 0.9:
+				_surface()
+				return
 			if powers.power == &"second_wind" and powers.ready_to_use() and input.consume(&"power"):
 				powers.spend()
 				_second_wind()
@@ -247,8 +264,17 @@ func _physics_process(delta: float) -> void:
 	_track_attack_button()
 	_launch_left = maxf(_launch_left - delta, 0.0)
 	_grip = world.arena.grip_at(global_position) if world and is_on_floor() else 1.0
-	if not is_on_floor():
+	_update_swimming(delta)
+	if swimming and velocity.y <= 3.0:
+		# Buoyancy: bob at the surface (a dive sinks a bit, then floats up).
+		var target := world.arena.water_level - SWIM_DEPTH + 0.04 * sin(_clock * 3.0)
+		velocity.y = move_toward(velocity.y, clampf((target - global_position.y) * 4.0, -3.0, 2.5), 30.0 * delta)
+		_air_time = 0.3
+	elif not is_on_floor():
 		velocity.y -= gravity * delta
+		if armed() and weapon_data.glide and velocity.y < -2.6 and state in [State.MOVE, State.THROW]:
+			velocity.y = -2.6          # the umbrella catches the air
+			_fall_speed = 0.0
 		_air_time += delta
 		_fall_speed = maxf(_fall_speed, -velocity.y)
 	match state:
@@ -377,7 +403,9 @@ func _state_move(delta: float) -> void:
 		if target and not sprinting:
 			speed = minf(speed, run_speed * 0.8)
 		speed *= powers.speed_mult() * weapon_data.move_speed
-		if world and is_on_floor():
+		if swimming:
+			speed = minf(speed, SWIM_SPEED)
+		elif world and is_on_floor():
 			speed *= world.arena.speed_factor_at(global_position)
 	# Holding block: walk only, guard up; release to do anything else.
 	var want_block := input.block_held and is_on_floor() and _block_lock <= 0.0
@@ -387,7 +415,7 @@ func _state_move(delta: float) -> void:
 	if blocking:
 		speed = minf(speed, walk_speed)
 	var want := wish.normalized() * speed if mag > 0.06 else Vector3.ZERO
-	var a := accel * _grip if is_on_floor() else air_accel
+	var a := accel * _grip if is_on_floor() else (12.0 if swimming else air_accel)
 	if _launch_left <= 0.0:
 		velocity.x = move_toward(velocity.x, want.x, a * delta)
 		velocity.z = move_toward(velocity.z, want.z, a * delta)
@@ -399,6 +427,18 @@ func _state_move(delta: float) -> void:
 	if input.consume(&"jump"):
 		blocking = false
 		_jump()
+	if swimming:
+		# No swinging, rolling or blocking in the water; throwing still works.
+		blocking = false
+		input.consume(&"dodge")
+		input.consume(&"_light")
+		_attack_down_at = -1.0
+		_queued_attack = false
+		if input.consume(&"power") and powers.ready_to_use():
+			_use_power()
+			return
+		_throw_or_catch()
+		return
 	if input.consume(&"dodge") and _dodge_cd <= 0.0:
 		_dodge(wish if mag > 0.2 else forward())
 		return
@@ -427,6 +467,17 @@ func _state_move(delta: float) -> void:
 
 
 func _jump() -> void:
+	if swimming:
+		# A strong kick up: enough to grab a quay or a pier from the water.
+		velocity.y = SWIM_JUMP
+		_jumps = 1
+		_air_time = coyote_time + 0.01
+		swimming = false
+		body.play(_armed_clip(&"Jump_Start"), false, 1.2, 0.04)
+		Audio.play(&"splash", global_position + Vector3.UP, -8.0, 1.3)
+		if world:
+			Fx.splash(get_parent(), Vector3(global_position.x, world.arena.water_level, global_position.z), 0.6)
+		return
 	if is_on_floor() or (_air_time < coyote_time and _jumps == 0 and velocity.y <= 0.5):
 		velocity.y = jump_velocity
 		_jumps = 1
@@ -710,6 +761,8 @@ func _strike(clip: StringName, delta: float) -> void:
 				if landed > 0.0:
 					powers.dealt(landed)
 					hit_landed.emit(self, f, landed)
+					if weapon_data.effect != &"":
+						f.powers.add_effect(weapon_data.effect, weapon_data.effect_time)
 		# Scenery in the blade's path takes the same blow.
 		for piece in world.arena.breakables_on_segment((a + _prev_a) * 0.5, (b + _prev_b) * 0.5, weapon_data.hit_radius) \
 				+ world.arena.breakables_on_segment(a, b, weapon_data.hit_radius):
@@ -766,6 +819,8 @@ func _start_toss() -> void:
 
 ## Guns and bows: fire (a charged bow shot hits harder and flies faster).
 func _start_shot(charge: float) -> void:
+	if _clock < _next_shot_at:
+		return
 	protect = 0.0
 	_soft_aim()
 	_fired = false
@@ -781,13 +836,23 @@ func _fire() -> void:
 	_fired = true
 	if world == null or ammo <= 0:
 		return
-	var bow := weapon_data.hand == &"left"
+	var kind := weapon_data.projectile
+	var bow := kind == &"arrow"
 	var sock := socket_transform()
-	var origin := sock * Vector3(0, 0.38, 0) if not bow else sock.origin + forward() * 0.35
+	if weapon_data.both_hands and _shots % 2 == 1:
+		sock = body.socket_l.global_transform          # twin pistols take turns
+	_shots += 1
+	_next_shot_at = _clock + weapon_data.fire_cooldown
+	var origin := sock * Vector3(0, weapon_data.hit_to, 0) if not bow else sock.origin + forward() * 0.35
 	var speed := weapon_data.projectile_speed * (0.7 + 0.5 * _shot_charge if bow else 1.0)
 	var dmg := weapon_data.projectile_damage * (1.0 + 1.3 * _shot_charge if bow else 1.0)
-	world.spawn_bolt(self, origin, _aim_direction(origin, speed), speed, dmg, bow)
-	Audio.play(&"throw" if bow else &"tick", origin, 2.0, 1.6 if not bow else 1.2)
+	if kind == &"wind":
+		world.gust(self, origin, _aim_direction(origin, 30.0))
+	else:
+		world.spawn_bolt(self, origin, _aim_direction(origin, speed), speed, dmg, kind)
+	Audio.play(SHOT_SOUNDS.get(kind, &"tick"), origin, 2.0, SHOT_PITCH.get(kind, 1.6))
+	if kind in [&"rocket", &"slug"] and is_player:
+		world.camera.shake(0.18)
 	ammo -= 1
 	if ammo <= 0:
 		Fx.dust(get_parent(), origin, 0.5)
@@ -903,7 +968,7 @@ func take_hit(damage: float, dir: Vector3, attacker: Fighter, heavy: bool, at: V
 	# Blocking and facing the hit?
 	if blocking and forward().dot(-dir) > 0.25:
 		var melee := attacker != null and attacker.state in [State.ATTACK, State.HEAVY]
-		if melee and _clock - _block_since <= parry_window:
+		if melee and _clock - _block_since <= _parry_window():
 			_parry(attacker, at)
 			return 0.0
 		return _blocked(damage, dir, attacker, heavy, at, knock)
@@ -950,8 +1015,8 @@ func take_hit(damage: float, dir: Vector3, attacker: Fighter, heavy: bool, at: V
 ## A hit on the guard: most of it is stopped; too much breaks the guard.
 func _blocked(damage: float, dir: Vector3, attacker: Fighter, heavy: bool, at: Vector3, knock: float) -> float:
 	count("blocks")
-	var through := damage * (0.3 if heavy else 0.15)
-	_guard_meter += damage
+	var through := damage * (0.3 if heavy else 0.15) * weapon_data.block_mult
+	_guard_meter += damage * weapon_data.block_mult
 	health = maxf(health - through, 0.0)
 	last_hitter = attacker
 	last_hit_time = world.clock if world else 0.0
@@ -971,6 +1036,11 @@ func _blocked(damage: float, dir: Vector3, attacker: Fighter, heavy: bool, at: V
 		if world:
 			world.callout_for(self, "GUARD BROKEN", Color(1, 0.5, 0.3))
 	return through
+
+
+## A shield widens the parry window.
+func _parry_window() -> float:
+	return parry_window + (weapon_data.parry_bonus if weapon_data else 0.0)
 
 
 func _armed_clip_parry() -> StringName:
@@ -1014,10 +1084,15 @@ func try_deflect_bolt(b: Bolt) -> bool:
 	var dir := Vector3(b.velocity.x, 0, b.velocity.z).normalized()
 	if forward().dot(-dir) <= 0.25:
 		return false
-	if _clock - _block_since <= parry_window * 1.5:
+	if _clock - _block_since <= _parry_window() * 1.5:
 		count("returns")
 		b.reflect(self)
 		Audio.play(&"clang", b.global_position, 2.0, 1.4)
+		return true
+	if b.style == &"rocket" and world:
+		var at := b.global_position
+		b.queue_free()
+		world.explode(at, b.owner_fighter, 3.6)
 		return true
 	_blocked(b.damage, dir, b.owner_fighter, false, b.global_position, 1.5)
 	b.queue_free()
@@ -1032,7 +1107,7 @@ func try_deflect(p: ThrownWeapon) -> bool:
 	var dir := Vector3(p.velocity.x, 0, p.velocity.z).normalized()
 	if forward().dot(-dir) <= 0.25:
 		return false
-	if _clock - _block_since <= parry_window * 1.5:
+	if _clock - _block_since <= _parry_window() * 1.5:
 		count("returns")
 		p.reflect(self)
 		powers.gain(20.0)
@@ -1142,6 +1217,12 @@ func apply_pickup(kind: StringName) -> String:
 
 
 func knock_down(impulse: Vector3, at: Vector3) -> void:
+	if swimming:
+		# The water catches you: a shove, no ragdoll.
+		velocity += Vector3(impulse.x, 0.0, impulse.z) * 0.5
+		_set_state(State.HURT)
+		body.play(&"Hit_Front", false, 1.2, 0.04)
+		return
 	_drop_on_hit()
 	_set_state(State.DOWN)
 	_down_time = 0.7
@@ -1216,6 +1297,18 @@ func _get_up() -> void:
 	_set_state(State.GETUP)
 
 
+## Knocked flying into deep water: the water breaks the fall, come up swimming.
+func _surface() -> void:
+	var h := ragdoll.hips_position()
+	global_position = Vector3(h.x, minf(h.y - 0.9, world.arena.water_level - SWIM_DEPTH), h.z)
+	velocity = Vector3.ZERO
+	collision_layer = Game.L_FIGHTERS
+	ragdoll.stop(0.25)
+	_set_state(State.MOVE)
+	swimming = true
+	invuln = 0.5
+
+
 ## Back in the fight at a spawn point.
 func respawn(at: Vector3, yaw: float) -> void:
 	ragdoll.stop(0.0)
@@ -1225,6 +1318,7 @@ func respawn(at: Vector3, yaw: float) -> void:
 	health = max_health
 	alive = true
 	protect = 2.0
+	swimming = false
 	collision_layer = Game.L_FIGHTERS
 	collision_mask = Game.L_WORLD | Game.L_FIGHTERS
 	last_hitter = null
@@ -1239,6 +1333,38 @@ func respawn(at: Vector3, yaw: float) -> void:
 	if world:
 		equip(world.start_weapon())
 	Audio.play(&"respawn", at + Vector3.UP, -4.0)
+
+
+## Deep water (no floor, chest under): float and swim. Leaves when we're
+## standing again or kick out.
+func _update_swimming(_delta: float) -> void:
+	var was := swimming
+	if world == null or world.arena.water_level == -INF or state in [State.DOWN, State.DEAD, State.HELD]:
+		swimming = false
+	else:
+		var depth := world.arena.water_level - global_position.y
+		if swimming:
+			swimming = depth > 0.6 and not (is_on_floor() and depth < 0.95)
+		else:
+			swimming = depth > 1.0 and velocity.y <= 3.0
+	if swimming and not was:
+		_jumps = 0
+		_launch_left = 0.0
+		if state in [State.ATTACK, State.HEAVY, State.CHARGE, State.DODGE, State.LAND]:
+			body.stop_action(0.1)
+			_set_state(State.MOVE)
+		trail.active = false
+
+
+## The sea (or a burn) wearing us down: no flinch, no knockback. `cause`
+## goes in the kill feed if it finishes us.
+func drain(amount: float, cause: String) -> void:
+	if not alive or protect > 0.0 or amount <= 0.0:
+		return
+	health = maxf(health - amount, 0.0)
+	body.flash(0.5)
+	if health <= 0.0 and world:
+		world.hazard_kill(self, cause, Vector3.UP * 1.5)
 
 
 ## Fired out of a cannon (or flung by a hazard): fly on `vel` with no air
@@ -1331,6 +1457,9 @@ func _animate() -> void:
 	var sword := armed()
 	var sfx := "_Sword" if sword else ""
 	var hs := hspeed()
+	if swimming:
+		body.set_loco(StringName("Swim" + sfx), clampf(0.8 + hs * 0.25, 0.8, 1.6))
+		return
 	if state == State.CHARGE:
 		body.set_loco(weapon_data.heavy_charge if weapon_data.heavy_charge != &"" else &"Heavy_Charge", 1.0)
 		return

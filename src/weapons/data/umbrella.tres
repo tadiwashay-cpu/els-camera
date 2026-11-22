@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/weapons/weapon_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"umbrella"
+display_name = "Umbrella"
+family = "joke"
+kind = &"melee"
+rarity = &"common"
+light_moves = Array[StringName]([&"Slash_A", &"Slash_B", &"Slash_C"])
+knockdown_move = &"Slash_C"
+heavy_charge = &"Heavy_Charge"
+heavy_move = &"Heavy_Release"
+strikers = {}
+hit_from = 0.3
+hit_to = 0.92
+hit_radius = 0.14
+base_damage = 9
+ref_speed = 8
+knockback = 8
+glide = true
+throw_damage = 14
+part_sizes = PackedVector3Array(0.035, 0.1, 0.035, 0.09, 0.03, 0.035, 0.025, 0.8, 0.025, 0.15, 0.2, 0.15, 0.12, 0.2, 0.12, 0.07, 0.15, 0.07, 0.155, 0.05, 0.155, 0.125, 0.04, 0.125, 0.02, 0.08, 0.02)
+part_centres = PackedVector3Array(0, -0.08, 0, -0.03, -0.14, 0, 0, 0.35, 0, 0, 0.42, 0, 0, 0.62, 0, 0, 0.79, 0, 0, 0.38, 0, 0, 0.6, 0, 0, 0.9, 0)
+part_colors = PackedColorArray(0.08, 0.08, 0.09, 1.0, 0.08, 0.08, 0.09, 1.0, 0.58, 0.62, 0.68, 0.5, 0.15, 0.55, 0.9, 1.0, 0.15, 0.55, 0.9, 1.0, 0.15, 0.55, 0.9, 1.0, 0.95, 0.85, 0.2, 1.0, 0.95, 0.85, 0.2, 1.0, 0.84, 0.87, 0.92, 0.5)
+part_yaws = PackedFloat32Array(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)

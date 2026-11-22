@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/weapons/weapon_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"ice_cream"
+display_name = "Ice Cream"
+family = "joke"
+kind = &"melee"
+rarity = &"common"
+light_moves = Array[StringName]([&"Slash_A", &"Slash_B", &"Slash_C"])
+knockdown_move = &"Slash_C"
+heavy_charge = &"Heavy_Charge"
+heavy_move = &"Heavy_Release"
+effect = &"chill"
+strikers = {}
+hit_from = 0.25
+hit_to = 0.6
+hit_radius = 0.17
+base_damage = 6
+ref_speed = 8
+knockback = 5
+effect_time = 2.5
+throw_damage = 10
+part_sizes = PackedVector3Array(0.07, 0.12, 0.07, 0.1, 0.12, 0.1, 0.13, 0.12, 0.13, 0.135, 0.015, 0.135, 0.105, 0.015, 0.105, 0.2, 0.16, 0.2, 0.2, 0.16, 0.2, 0.16, 0.14, 0.16, 0.05, 0.05, 0.05, 0.04, 0.08, 0.04)
+part_centres = PackedVector3Array(0, 0.0, 0, 0, 0.12, 0, 0, 0.24, 0, 0, 0.2, 0, 0, 0.08, 0, 0, 0.38, 0, 0, 0.38, 0, 0, 0.5, 0, 0, 0.6, 0, 0.08, 0.3, 0.06)
+part_colors = PackedColorArray(0.85, 0.62, 0.32, 1.0, 0.85, 0.62, 0.32, 1.0, 0.85, 0.62, 0.32, 1.0, 0.6, 0.4, 0.18, 1.0, 0.6, 0.4, 0.18, 1.0, 0.55, 0.95, 0.85, 1.0, 0.55, 0.95, 0.85, 1.0, 1.0, 0.6, 0.75, 1.0, 0.82, 0.14, 0.12, 1.0, 0.55, 0.95, 0.85, 1.0)
+part_yaws = PackedFloat32Array(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 45, 0.0, 0.0, 0.0)

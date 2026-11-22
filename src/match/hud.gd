@@ -34,6 +34,7 @@ var _power_label: Label
 var _effects: Label
 var _tint: ColorRect
 var _hp_fill: StyleBoxFlat
+var _water: Label
 
 
 func _ready() -> void:
@@ -84,6 +85,16 @@ func _ready() -> void:
 	_weapon_label.add_theme_font_size_override(&"font_size", 22)
 	_weapon_label.modulate = Color(1, 1, 1, 0.8)
 	hp_box.add_child(_weapon_label)
+
+	# In-the-water warning (upper centre, under the timer).
+	_water = UiTheme.title("IN THE WATER!  JUMP ONTO SOMETHING", 30, Color(0.45, 0.85, 1.0))
+	_water.anchor_left = 0.5
+	_water.anchor_right = 0.5
+	_water.offset_left = -500
+	_water.offset_right = 500
+	_water.offset_top = 150
+	_water.visible = false
+	_root.add_child(_water)
 
 	# Timer (top centre)
 	_timer = UiTheme.title("3:00", 64)
@@ -202,11 +213,15 @@ func _process(_delta: float) -> void:
 		_power_label.text = "%s%s" % [str(info["name"]).to_upper(), "  READY" if pw.ready_to_use() else ""]
 		var fx := []
 		for id: StringName in pw.effects:
-			var n: String = FighterPowers.INFO[id]["name"] if FighterPowers.INFO.has(id) else FighterPowers.PICKUPS[id]["name"]
+			var n := FighterPowers.effect_name(id)
 			fx.append("%s %ds" % [n.to_upper(), int(ceil(pw.time_left(id)))])
 		if pw.shield > 0.0:
 			fx.append("SHIELD %d" % int(pw.shield))
 		_effects.text = "   ".join(fx)
+		var wet := player.alive and match_node.arena.wet_time(player) > 0.4 and match_node.config.hazards
+		_water.visible = wet and int(Time.get_ticks_msec() / 300) % 3 != 0
+		if wet:
+			_water.text = "SWIM TO A LEDGE, JUMP TO CLIMB OUT" if player.swimming else "IN THE WATER!  JUMP ONTO SOMETHING"
 		_update_marker()
 	_fps.visible = bool(Save.setting("show_fps"))
 	if _fps.visible:

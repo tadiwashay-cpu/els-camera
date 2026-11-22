@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/weapons/weapon_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"thunderbolt"
+display_name = "Thunderbolt"
+family = "thrown"
+kind = &"thrown"
+rarity = &"rare"
+light_moves = Array[StringName]([&"Toss"])
+knockdown_move = &""
+heavy_charge = &""
+heavy_move = &"Toss"
+strikers = {}
+base_damage = 10
+ammo = 1
+throw_damage = 20
+throw_speed = 26
+throw_spin = 2
+lightning = true
+catchable = false
+keep_on_land = false
+ignites = true
+part_sizes = PackedVector3Array(0.05, 0.1, 0.04, 0.08, 0.22, 0.04, 0.07, 0.2, 0.04, 0.06, 0.22, 0.04, 0.04, 0.12, 0.04)
+part_centres = PackedVector3Array(0, -0.02, 0, 0.03, 0.12, 0, -0.02, 0.27, 0, 0.03, 0.42, 0, -0.01, 0.56, 0)
+part_colors = PackedColorArray(0.6, 0.45, 0.15, 0.5, 1.0, 0.9, 0.3, 0.0, 1.0, 0.95, 0.5, 0.0, 1.0, 0.9, 0.3, 0.0, 1.0, 1.0, 0.7, 0.0)
+part_yaws = PackedFloat32Array(0.0, -25, 30, -25, 30)

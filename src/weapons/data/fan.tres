@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/weapons/weapon_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"fan"
+display_name = "Gust Fan"
+family = "joke"
+kind = &"ranged"
+rarity = &"common"
+light_moves = Array[StringName]([&"Shoot"])
+knockdown_move = &""
+heavy_charge = &""
+heavy_move = &"Shoot"
+idle_clip = &"Aim"
+projectile = &"wind"
+strikers = {}
+throwable = true
+base_damage = 6
+ammo = 10
+projectile_speed = 30
+projectile_damage = 0
+fire_cooldown = 0.5
+throw_damage = 8
+hit_to = 0.3
+part_sizes = PackedVector3Array(0.03, 0.12, 0.02, 0.02, 0.34, 0.012, 0.02, 0.34, 0.012, 0.02, 0.34, 0.012, 0.02, 0.34, 0.012, 0.02, 0.34, 0.012, 0.13, 0.22, 0.008, 0.13, 0.22, 0.008, 0.13, 0.22, 0.008, 0.13, 0.22, 0.008)
+part_centres = PackedVector3Array(0, -0.02, 0, -0.13022755533022626, 0.2092738936467117, 0, -0.07184510449591891, 0.2540723237962305, 0, 0.0, 0.27, 0, 0.07184510449591891, 0.2540723237962305, 0, 0.13022755533022626, 0.2092738936467117, 0, -0.12036300463040966, 0.2797271020094586, 0.012, -0.04158233816355187, 0.31562952014676116, 0.012, 0.04158233816355187, 0.31562952014676116, 0.012, 0.12036300463040966, 0.2797271020094586, 0.012)
+part_colors = PackedColorArray(0.28, 0.18, 0.1, 1.0, 0.28, 0.18, 0.1, 1.0, 0.28, 0.18, 0.1, 1.0, 0.28, 0.18, 0.1, 1.0, 0.28, 0.18, 0.1, 1.0, 0.28, 0.18, 0.1, 1.0, 0.82, 0.14, 0.12, 1.0, 0.95, 0.95, 0.95, 1.0, 0.82, 0.14, 0.12, 1.0, 0.95, 0.95, 0.95, 1.0)
+part_yaws = PackedFloat32Array(0.0, 50, 25, 0, -25, -50, 37, 12, -12, -37)

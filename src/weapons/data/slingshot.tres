@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/weapons/weapon_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"slingshot"
+display_name = "Slingshot"
+family = "ranged"
+kind = &"ranged"
+rarity = &"common"
+light_moves = Array[StringName]([&"Shoot"])
+knockdown_move = &""
+heavy_charge = &""
+heavy_move = &"Shoot"
+idle_clip = &"Aim"
+projectile = &"pebble"
+strikers = {}
+throwable = true
+base_damage = 6
+ammo = 12
+projectile_speed = 30
+projectile_damage = 11
+fire_cooldown = 0.35
+throw_damage = 8
+hit_to = 0.22
+part_sizes = PackedVector3Array(0.04, 0.16, 0.04, 0.035, 0.16, 0.035, 0.035, 0.16, 0.035, 0.012, 0.012, 0.14, 0.012, 0.012, 0.14, 0.06, 0.03, 0.03, 0.046, 0.02, 0.046, 0.046, 0.02, 0.046)
+part_centres = PackedVector3Array(0, -0.02, 0, 0.05, 0.12, 0, -0.05, 0.12, 0, 0.08, 0.2, -0.06, -0.08, 0.2, -0.06, 0, 0.2, -0.13, 0, -0.06, 0, 0, 0.02, 0)
+part_colors = PackedColorArray(0.45, 0.3, 0.16, 1.0, 0.45, 0.3, 0.16, 1.0, 0.45, 0.3, 0.16, 1.0, 0.82, 0.14, 0.12, 1.0, 0.82, 0.14, 0.12, 1.0, 0.3, 0.17, 0.08, 1.0, 0.3, 0.17, 0.08, 1.0, 0.3, 0.17, 0.08, 1.0)
+part_yaws = PackedFloat32Array(0.0, -20, 20, 0.0, 0.0, 0.0, 0.0, 0.0)

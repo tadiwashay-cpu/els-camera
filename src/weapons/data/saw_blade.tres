@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/weapons/weapon_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"saw_blade"
+display_name = "Saw Blade"
+family = "thrown"
+kind = &"thrown"
+rarity = &"common"
+light_moves = Array[StringName]([&"Toss"])
+knockdown_move = &""
+heavy_charge = &""
+heavy_move = &"Toss"
+strikers = {}
+base_damage = 12
+ammo = 2
+throw_damage = 20
+throw_speed = 26
+throw_spin = 40
+bounces = 3
+catchable = true
+metal = true
+part_sizes = PackedVector3Array(0.32, 0.32, 0.02, 0.32, 0.32, 0.02, 0.06, 0.06, 0.022, 0.06, 0.06, 0.022, 0.06, 0.06, 0.022, 0.06, 0.06, 0.022, 0.06, 0.06, 0.022, 0.06, 0.06, 0.022, 0.06, 0.06, 0.022, 0.06, 0.06, 0.022, 0.1, 0.1, 0.03, 0.04, 0.04, 0.032)
+part_centres = PackedVector3Array(0, 0, 0, 0, 0, 0, 0.19, 0.0, 0, 0.13435028842544405, 0.13435028842544403, 0, 1.1634144591899856e-17, 0.19, 0, -0.13435028842544403, 0.13435028842544405, 0, -0.19, 2.3268289183799712e-17, 0, -0.13435028842544405, -0.13435028842544403, 0, -3.490243377569956e-17, -0.19, 0, 0.134350288425444, -0.13435028842544405, 0, 0, 0, 0, 0, 0, 0)
+part_colors = PackedColorArray(0.84, 0.87, 0.92, 0.5, 0.84, 0.87, 0.92, 0.5, 0.58, 0.62, 0.68, 0.5, 0.58, 0.62, 0.68, 0.5, 0.58, 0.62, 0.68, 0.5, 0.58, 0.62, 0.68, 0.5, 0.58, 0.62, 0.68, 0.5, 0.58, 0.62, 0.68, 0.5, 0.58, 0.62, 0.68, 0.5, 0.58, 0.62, 0.68, 0.5, 0.34, 0.36, 0.4, 0.5, 0.08, 0.08, 0.09, 1.0)
+part_yaws = PackedFloat32Array(0.0, 45, 45, 90, 135, 180, 225, 270, 315, 360, 0.0, 0.0)

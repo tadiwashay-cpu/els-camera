@@ -341,6 +341,35 @@ move("Wall_Kick", Keys(merge(_LAUNCH, _air_arms(False, "launch")), [
     (0.5, merge(RESET, _FALL, _air_arms(False, "fall")), "smooth"),
 ]), 0.5)
 
+# Water -----------------------------------------------------------------------
+# Treading water: upright with a little lean, legs in a slow alternating
+# kick, both hands sculling out and in at chest height. Armed, the weapon
+# hand stays up out of the water. The game floats the fighter so the water
+# line sits at the lower chest.
+
+def swim(armed, T=1.1):
+    def pose(t):
+        u = 2 * math.pi * t / T
+        s, c = math.sin(u), math.cos(u)
+        P = {"hips": (0.0, 0.0, -0.05 + 0.025 * math.sin(2 * u)), "hips_rot": (12.0, 0.0, 0.0),
+             "spine": (6.0, 0.0, 0.0), "chest": (2.0, 0.0, 0.0), "upper": (0.0, 0.0, 0.0),
+             "neck": (-8.0, 0.0, 0.0), "head": (-10.0, 0.0, 3.0 * s),
+             "foot_l": (0.16, 0.05 + 0.16 * s, 0.24 + 0.07 * c), "foot_r": (-0.16, 0.05 - 0.16 * s, 0.24 - 0.07 * c),
+             "foot_l_rot": (35.0 + 15.0 * s, 0.0, -10.0), "foot_r_rot": (35.0 - 15.0 * s, 0.0, 10.0),
+             "knee_l": (0.35, -1.0, 0.2), "knee_r": (-0.35, -1.0, 0.2), "toe_l": -20.0, "toe_r": -20.0,
+             "hand_l": (0.36 + 0.14 * c, -0.3 + 0.05 * s, 1.1), "elbow_l": (0.9, 0.3, -0.3), "wrist_l": (0.0, 0.0, -30.0 * c)}
+        if armed:
+            P.update({"hand_r": (-0.3, -0.22, 1.55 + 0.03 * s), "elbow_r": (-0.8, 0.2, -0.3), "grip_r": (0.1, -0.45, 0.88)})
+        else:
+            P.update({"hand_r": (-0.36 - 0.14 * c, -0.3 + 0.05 * s, 1.1), "elbow_r": (-0.9, 0.3, -0.3),
+                      "wrist_r": (0.0, 0.0, 30.0 * c)})
+        return P
+    return pose
+
+
+move("Swim", swim(False), 1.1, loop=True)
+move("Swim_Sword", swim(True), 1.1, loop=True)
+
 # Sword attacks ------------------------------------------------------------
 move("Slash_A", Keys(STANCE, [   # forehand, right to left
     (0.0, {}),
@@ -428,6 +457,16 @@ move("Cross", Keys(GUARD, [
     (0.22, {}, "lin"),
     (0.45, merge(RESET, GUARD), "smooth"),
 ]), 0.45, events={"hit": [0.11, 0.22]})
+# Rocket Fist: wind up, then a straight right that lets the fist fly.
+move("Rocket_Punch", Keys(GUARD, [
+    (0.0, {}),
+    (0.1, {"hand_r": (-0.2, 0.08, 1.3), "elbow_r": (-0.7, 0.6, -0.6), "hips_rot": (3, 0, -26), "upper": (0, 0, -10),
+           "hips": (0.0, 0.04, -0.1)}, "in"),
+    (0.18, {"hand_r": (-0.03, -0.7, 1.42), "elbow_r": (-0.6, 0.0, -0.8), "hips_rot": (5, 0, 20), "upper": (3, 0, 14),
+            "hips": (0.0, -0.06, -0.12), "foot_r_rot": (20, 0, -10), "toe_r": -18.0, "wrist_r": (0, 0, 60)}, "snap"),
+    (0.3, {}, "lin"),
+    (0.55, merge(RESET, GUARD), "smooth"),
+]), 0.55, events={"release": 0.17})
 move("Kick", Keys(GUARD, [
     (0.0, {}),
     (0.14, {"foot_r": (-0.08, -0.22, 0.58), "foot_r_rot": (10, 0, 0), "knee_r": (0, -0.4, 1.0), "hips_rot": (-6, 0, -4),

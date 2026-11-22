@@ -321,10 +321,11 @@ func _on_died(victim: Fighter, killer: Fighter) -> void:
 	var cause := victim.death_cause
 	victim.death_cause = ""
 	if credited:
-		var how := (cause if cause != "" else "knocked off") if killer == null else ">"
-		hud.feed("%s  %s  %s" % [credited.display_name, how, victim.display_name], credited.body.skin.shirt.lightened(0.3))
+		var how := ">" if killer != null or cause != "" else "knocked off"
+		var tag := "  (%s)" % cause if cause != "" else ""
+		hud.feed("%s  %s  %s%s" % [credited.display_name, how, victim.display_name, tag], credited.body.skin.shirt.lightened(0.3))
 	else:
-		hud.feed("%s %s  -1" % [victim.display_name, cause if cause != "" else "fell"], Color(1, 0.5, 0.45))
+		hud.feed("%s  %s  -1" % [victim.display_name, "(%s)" % cause if cause != "" else "fell"], Color(1, 0.5, 0.45))
 	_last_kill = {"t": clock, "victim": victim.fighter_id, "killer": credited.fighter_id if credited else -1}
 	if credited == player:
 		hud.callout("KILL +%d" % int(res["points"]), UiTheme.ACCENT, victim.display_name, 0.8)
@@ -486,12 +487,54 @@ func spawn_projectile(by: Fighter, data: WeaponData, origin: Vector3, dir: Vecto
 	return p
 
 
-func spawn_bolt(by: Fighter, origin: Vector3, dir: Vector3, speed: float, damage: float, arrow: bool) -> Bolt:
+func spawn_bolt(by: Fighter, origin: Vector3, dir: Vector3, speed: float, damage: float, style: StringName = &"bolt") -> Bolt:
 	var b := Bolt.new()
 	b.world = self
 	add_child(b)
-	b.launch(by, origin, dir, speed, damage, arrow)
+	b.launch(by, origin, dir, speed, damage, style)
 	return b
+
+
+## A fan's gust: everyone in a cone in front is blown back (handy near water).
+func gust(by: Fighter, origin: Vector3, dir: Vector3) -> void:
+	var flat := Vector3(dir.x, 0, dir.z).normalized()
+	Fx.gust(self, origin, flat)
+	for f in fighters:
+		if f == by or not f.alive:
+			continue
+		var to := f.global_position + Vector3.UP - origin
+		var d := to.length()
+		if d > 8.0 or flat.dot(Vector3(to.x, 0, to.z).normalized()) < 0.8:
+			continue
+		var k := 1.0 - d / 8.0
+		f.take_hit(2.0, flat, by, false, f.global_position + Vector3.UP, 9.0 + 9.0 * k)
+		f.velocity += Vector3.UP * (3.0 + 3.0 * k)
+	for p in projectiles:
+		if is_instance_valid(p) and p.global_position.distance_to(origin) < 7.0:
+			p.velocity += flat * 10.0
+
+
+## Lightning strikes `at`: damage and knockdowns nearby, oil catches fire.
+func lightning(at: Vector3, by: Fighter, radius: float = 3.4) -> void:
+	Fx.lightning(self, at)
+	Audio.play(&"zap", at, 4.0, 0.8)
+	Audio.play(&"boom", at, -4.0, 1.6)
+	Game.hit_stop(50)
+	camera.shake(clampf(1.0 - camera.global_position.distance_to(at) / 30.0, 0.15, 0.6))
+	arena.ignite(at, radius, by)
+	for f in fighters:
+		if not f.alive:
+			continue
+		var d := (f.global_position + Vector3.UP).distance_to(at)
+		if d > radius:
+			continue
+		var dir := f.global_position - at
+		dir.y = 0.0
+		f.take_hit(34.0 * (1.0 - d / radius) + 12.0, dir.normalized() if dir.length() > 0.1 else Vector3.FORWARD, by, true,
+			f.global_position + Vector3.UP, 5.0)
+	for piece in arena.breakables:
+		if not piece.is_broken and piece.global_position.distance_to(at) < radius:
+			piece.hit(40.0, piece.global_position, Vector3.UP * 3.0, by)
 
 
 func remove_projectile(p: ThrownWeapon) -> void:

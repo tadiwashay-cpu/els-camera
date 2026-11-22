@@ -125,3 +125,32 @@ func test_conveyor_carries_you_toward_the_crusher() -> void:
 	var on_belt := Vector3(14, HARBOR.BELT_TOP, 14.5)
 	assert_gt(harbor.floor_push(on_belt).x, 1.0, "the belt pushes toward the press")
 	assert_eq(harbor.floor_push(Vector3(14, 0.0, 18)), Vector3.ZERO, "the floor doesn't")
+
+
+func test_you_can_kick_out_of_the_water() -> void:
+	var rise := Fighter.SWIM_JUMP * Fighter.SWIM_JUMP / (2.0 * 24.0)
+	var quay_above_feet := Fighter.SWIM_DEPTH + (0.0 - HARBOR.WATER_Y)
+	assert_gt(rise, quay_above_feet, "a swimmer's kick clears the harbour quay")
+
+
+func test_outcrops_stay_dry_at_high_tide() -> void:
+	var beach := (load("res://src/arenas/beach_island.tscn") as PackedScene).instantiate() as Arena
+	add_child_autofree(beach)
+	await wait_physics_frames(2)
+	for o: Vector3 in BEACH.OUTCROPS:
+		var q := PhysicsRayQueryParameters3D.create(o + Vector3.UP * 6.0, o + Vector3.DOWN * 2.0, Game.L_WORLD)
+		var hit := beach.get_world_3d().direct_space_state.intersect_ray(q)
+		assert_false(hit.is_empty(), "outcrop at %s is solid" % o)
+		if not hit.is_empty():
+			assert_gt((hit["position"] as Vector3).y, BEACH.TIDE_HIGH + 0.3, "outcrop at %s is above high tide" % o)
+
+
+func test_water_wears_you_down_slowly() -> void:
+	var beach := (load("res://src/arenas/beach_island.tscn") as PackedScene).instantiate() as Arena
+	add_child_autofree(beach)
+	assert_between(beach.wade_dps, 1.0, 5.0, "wading is a slow drain")
+	assert_gt(beach.swim_dps, beach.wade_dps, "swimming drains faster")
+	var exit: Vector3 = beach.swim_exit(Vector3(-36, -1.5, 0))
+	assert_gt(exit.x, -30.0, "swimmers head back to the shelf")
+	var pier: Vector3 = beach.swim_exit(Vector3(40, -1.5, -4))
+	assert_lt(pier.distance_to(Vector3(40, pier.y, -4)), 4.0, "or the nearest pier")

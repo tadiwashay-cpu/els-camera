@@ -44,9 +44,18 @@ var surface := &""
 var merge := false
 ## Height of the sea / harbour surface (-INF = no water): splashes, drowning.
 var water_level := -INF
+## Sea water wears you down: wading slowly, swimming faster (hazards on).
+@export var wade_dps := 3.0
+@export var swim_dps := 6.0
+## Kill feed text when the water finishes someone.
+var drown_cause := "drowned"
+var _wet_time: Dictionary = {}         # fighter id -> seconds in the water
+var _water_credit: Dictionary = {}     # fighter id -> who knocked them in
+var _drip: Dictionary = {}             # fighter id -> damage not yet applied
 ## What the arena did this match (cannon shots, crane grabs...): tests, smoke.
 var stats: Dictionary = {}
 var _merged: Dictionary = {}           # surface kind -> BoxBuilder
+var _glow: BoxBuilder                  # merged lit windows, lamps (unshaded)
 var _splashed: Dictionary = {}         # fighter id -> was above water
 var _rebake_due := -1.0
 var _clock := 0.0
@@ -77,6 +86,17 @@ func _ready() -> void:
 
 ## Turns the boxes collected by block()/deco() into one mesh per surface.
 func _commit_merged() -> void:
+	if _glow:
+		var g := MeshInstance3D.new()
+		g.name = "Merged_glow"
+		var m := StandardMaterial3D.new()
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		m.vertex_color_use_as_albedo = true
+		m.disable_fog = true
+		g.mesh = _glow.commit(m)
+		g.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(g)
+		_glow = null
 	for kind: StringName in _merged:
 		var mi := MeshInstance3D.new()
 		mi.name = "Merged_%s" % kind
@@ -238,16 +258,56 @@ func bot_goal(_f: Fighter, _m: Match) -> Dictionary:
 
 ## Per-frame arena life and hazards (tides, sharks, cranes...). Subclasses
 ## call super() for splashes.
-func tick(m: Match, _delta: float) -> void:
+func tick(m: Match, delta: float) -> void:
 	if water_level == -INF:
 		return
 	for f in m.fighters:
+		var id := f.fighter_id
 		var above := f.global_position.y > water_level
-		var was: bool = _splashed.get(f.fighter_id, true)
+		var was: bool = _splashed.get(id, true)
 		if was and not above and f.velocity.y < -3.0:
 			Fx.splash(self, Vector3(f.global_position.x, water_level, f.global_position.z), 1.2)
 			Audio.play(&"splash", f.global_position, 0.0)
-		_splashed[f.fighter_id] = above
+		_splashed[id] = above
+		var wet := f.alive and m.config.hazards and water_level - f.global_position.y > 0.15 and not f.held()
+		if not wet:
+			_wet_time.erase(id)
+			_water_credit.erase(id)
+			_drip.erase(id)
+			continue
+		if not _wet_time.has(id) and f.last_hitter and f.last_hitter != f \
+				and m.clock - f.last_hit_time <= KillRace.CREDIT_WINDOW:
+			_water_credit[id] = f.last_hitter      # knocked in: their kill if we drown
+		_wet_time[id] = float(_wet_time.get(id, 0.0)) + delta
+		var acc: float = float(_drip.get(id, 0.0)) + (swim_dps if f.swimming else wade_dps) * delta
+		if acc >= 2.0:
+			_credit_water_kill(m, f)
+			f.drain(acc, drown_cause)
+			acc = 0.0
+		_drip[id] = acc
+
+
+## Seconds `f` has been standing or swimming in the sea (0 = dry).
+func wet_time(f: Fighter) -> float:
+	return float(_wet_time.get(f.fighter_id, 0.0))
+
+
+## Whoever knocked `f` into the water still gets the kill when it finishes them.
+func _credit_water_kill(m: Match, f: Fighter) -> void:
+	var by: Variant = _water_credit.get(f.fighter_id)
+	if by != null and is_instance_valid(by) and (by as Fighter).alive and f.last_hitter in [null, by]:
+		f.last_hitter = by
+		f.last_hit_time = m.clock
+
+
+## Where a swimmer should head to climb out (bots).
+func swim_exit(pos: Vector3) -> Vector3:
+	return Vector3(clampf(pos.x, -bounds, bounds), 0.0, clampf(pos.z, -bounds, bounds))
+
+
+## Dry ground near `pos` for bots to wait out a flood (INF = nowhere better).
+func dry_spot(_pos: Vector3) -> Vector3:
+	return Vector3.INF
 
 
 ## A one-way bot shortcut (jump off a ledge, ride a cannon).
@@ -258,6 +318,13 @@ func nav_link(from: Vector3, to: Vector3, bidirectional: bool = false) -> Naviga
 	link.bidirectional = bidirectional
 	add_child(link)
 	return link
+
+
+## A box of steady light merged with the others (windows, distant lamps).
+func glow_static(size: Vector3, centre: Vector3, color: Color, yaw_deg: float = 0.0) -> void:
+	if _glow == null:
+		_glow = BoxBuilder.new()
+	_glow.box(size, centre, color, 0, Basis(Vector3.UP, deg_to_rad(yaw_deg)))
 
 
 ## A pole with a box of light on top that flickers (signs, lamps).

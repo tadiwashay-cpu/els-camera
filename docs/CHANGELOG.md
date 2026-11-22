@@ -4,6 +4,56 @@ Versions are `MAJOR.MINOR.PATCH`; the number lives in `project.godot`
 (`config/version`) and shows on the title screen and next to the FPS counter.
 Bump MINOR for a phase or batch of features, PATCH for fixes.
 
+## 0.2.1: The sea, 23 new weapons, more detail
+
+- **The sea drowns you slowly** instead of killing at once: standing in
+  sea water drains 3 HP a second, swimming 6. Deep water floats you:
+  swim to a ledge and press JUMP to kick up onto it (a strong kick, enough
+  for the quay or a pier). No swinging or rolling while swimming; throwing
+  works. Get knocked in and drown, and whoever knocked you in still gets
+  the kill. The HUD warns you while you're in the water.
+  - Beach Island: the tide now floods the beach for real (get onto the
+    rocks, crates, the wreck, the hut or the ridge). Sharks bite swimmers
+    in deep water every few seconds instead of killing outright. New rock
+    outcrops in the shallows stay dry at high tide.
+  - Harbor Factory: falling in is a swim back to a ladder, not an instant
+    KO. The crane still dumps people in.
+  - New treading-water Swim animation (Blender); getting knocked flying
+    into deep water ends the ragdoll and you come up swimming.
+- **23 new weapons** (47 in all), each our own design:
+  - Melee: Scythe (wide sweeps), Lance (long charging thrust), Flail,
+    Nunchucks (very fast), Shield (on the left arm: shield bashes, blocks
+    soak 80% more, a longer parry window), Wrench, Shovel, Guitar (sends
+    people flying), Umbrella (float down slowly), Ice Cream (chills:
+    slows whoever it hits).
+  - Thrown: Kunai, Snowball (chills), Saw Blade (ricochets off walls and
+    slices through), Thunderbolt (calls down lightning: area damage and
+    knockdowns, lights oil), Yo-yo (snaps back), Rocket Fist (a punch that
+    flies out and comes back; new Blender move).
+  - Ranged: Slingshot (pebbles that knock back), Twin Plasma Pistols
+    (rapid, alternating hands), Bazooka (rockets that explode), Sniper
+    Rifle (one big shot, slow to reload), Magic Scepter (homing orbs),
+    Grapple Gun (pulls you to a wall, or yanks a fighter to you), Gust Fan
+    (blows everyone in front back: great near water).
+  - Rare (mystery crate): Bazooka, Sniper Rifle, Thunderbolt, Magic
+    Scepter join the Plasma Blade, Anchor, Trident, Gauntlet and Bow.
+- **Every weapon remodelled** with more parts (grips and wraps, guards,
+  edges, bevels) and real finishes: polished metal shines, plasma and
+  magic glow, wood and leather stay matte. Still one draw call each.
+- **More detail on the new arenas** (merged into a few meshes, so it stays
+  fast):
+  - Beach Island: a fishing hut on stilts and a campfire, rock outcrops,
+    driftwood, shells, starfish, seaweed, grass, wreck ribs and portholes,
+    lighthouse door, windows and railing, pier lamps, a rowboat and buoys
+    bobbing on the waves, gulls, drifting clouds and far islands.
+  - Harbor Factory: a city skyline across the bay with lit windows and
+    blinking beacons, ladders, mooring ropes, lifebuoys, a forklift,
+    pallets, tyres, drums, barriers, cones, rain puddles, corrugated and
+    windowed warehouse walls, a rolled-up door, a storage rack, steaming
+    vents, ship railings, portholes, rust streaks, a lifeboat and mast light.
+- Bots swim to the nearest ledge and climb out, wait out the tide on high
+  ground, and judge reach from each weapon's length.
+
 ## 0.2.0: Phase 2 increment C (two new arenas)
 
 - **Beach Island** (bright midday): a sand beach with a wrecked ship, a

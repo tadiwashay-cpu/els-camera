@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/weapons/weapon_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"wrench"
+display_name = "Wrench"
+family = "blades"
+kind = &"melee"
+rarity = &"common"
+light_moves = Array[StringName]([&"Slash_A", &"Slash_B", &"Slash_C"])
+knockdown_move = &"Slash_C"
+heavy_charge = &"Heavy_Charge"
+heavy_move = &"Heavy_Release"
+hit_sound = &"clang"
+strikers = {}
+hit_from = 0.3
+hit_to = 0.58
+hit_radius = 0.13
+base_damage = 14
+ref_speed = 8.5
+knockback = 7.5
+throw_damage = 22
+metal = true
+part_sizes = PackedVector3Array(0.05, 0.5, 0.025, 0.058, 0.22, 0.035, 0.06, 0.03, 0.036, 0.2, 0.08, 0.035, 0.05, 0.13, 0.035, 0.05, 0.1, 0.035, 0.04, 0.04, 0.05)
+part_centres = PackedVector3Array(0, 0.15, 0, 0, -0.01, 0, 0, -0.13, 0, 0, 0.45, 0, -0.075, 0.53, 0, 0.075, 0.52, 0, 0.03, 0.42, 0)
+part_colors = PackedColorArray(0.58, 0.62, 0.68, 0.5, 0.82, 0.14, 0.12, 1.0, 0.82, 0.14, 0.12, 1.0, 0.84, 0.87, 0.92, 0.5, 0.84, 0.87, 0.92, 0.5, 0.84, 0.87, 0.92, 0.5, 0.8, 0.6, 0.28, 0.5)
+part_yaws = PackedFloat32Array(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)

@@ -237,3 +237,57 @@ static func splash(parent: Node, at: Vector3, scale: float = 1.0) -> void:
 	p.scale_amount_max = 1.4 * scale
 	p.restart()
 	p.emitting = true
+
+
+## A lightning strike: a jagged bolt from the sky and a flash of sparks.
+static func lightning(parent: Node, at: Vector3) -> void:
+	if parent == null:
+		return
+	var root := Node3D.new()
+	parent.add_child(root)
+	root.global_position = at
+	var b := BoxBuilder.new()
+	var p := Vector3.ZERO
+	var rng := RandomNumberGenerator.new()
+	rng.randomize()
+	for i in 9:
+		var q := p + Vector3(rng.randf_range(-0.7, 0.7), 2.2, rng.randf_range(-0.7, 0.7))
+		var d := q - p
+		var basis := Basis.looking_at(d.normalized(), Vector3.RIGHT) if absf(d.normalized().y) > 0.99 else Basis.looking_at(d.normalized(), Vector3.UP)
+		b.box(Vector3(0.16, 0.16, d.length() + 0.1), (p + q) * 0.5, Color(0.85, 0.9, 1.0), 0, basis)
+		p = q
+	var mi := MeshInstance3D.new()
+	mi.mesh = b.commit(_material(Color(0.9, 0.95, 1.0)))
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	root.add_child(mi)
+	sparks(parent, at + Vector3.UP * 0.3, Color(0.75, 0.85, 1.0), 24)
+	dust(parent, at, 1.0)
+	var tw := root.create_tween()
+	tw.tween_interval(0.07)
+	tw.tween_callback(func() -> void: mi.visible = false)
+	tw.tween_interval(0.05)
+	tw.tween_callback(func() -> void: mi.visible = true)
+	tw.tween_interval(0.1)
+	tw.tween_callback(root.queue_free)
+
+
+## A fan's gust: pale streaks rushing forward.
+static func gust(parent: Node, at: Vector3, dir: Vector3) -> void:
+	if parent == null:
+		return
+	var p := _take("gust", parent, func() -> Node:
+		var q := _particles(Color(0.9, 0.95, 1.0), 0.06)
+		q.amount = 22
+		q.lifetime = 0.45
+		q.spread = 14.0
+		q.gravity = Vector3.ZERO
+		q.initial_velocity_min = 12.0
+		q.initial_velocity_max = 18.0
+		q.color = Color(0.9, 0.95, 1.0, 0.7)
+		q.scale_amount_min = 0.6
+		q.scale_amount_max = 1.6
+		return q) as CPUParticles3D
+	p.global_position = at
+	p.direction = dir
+	p.restart()
+	p.emitting = true

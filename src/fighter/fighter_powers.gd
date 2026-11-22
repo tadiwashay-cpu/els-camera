@@ -22,6 +22,11 @@ const PICKUPS := {
 	&"battery": {"name": "POWER CHARGED", "color": Color(1.0, 0.9, 0.3)},
 }
 
+## Statuses weapons put on you.
+const STATUS := {
+	&"chill": {"name": "CHILLED", "color": Color(0.55, 0.85, 1.0)},
+}
+
 const FULL := 100.0
 const DEAL_GAIN := 0.9         # meter per point of damage dealt
 const TAKE_GAIN := 0.35        # ... and taken
@@ -94,7 +99,10 @@ func can_be_knocked_down() -> bool:
 
 
 func speed_mult() -> float:
-	return 1.3 if has(&"speed") else 1.0
+	var m := 1.3 if has(&"speed") else 1.0
+	if has(&"chill"):
+		m *= 0.55
+	return m
 
 
 ## Takes what the shield can soak up; returns the damage left over.
@@ -124,9 +132,22 @@ func on_death() -> void:
 
 ## The colour of the strongest active effect (for the body's glow), or black.
 func aura() -> Color:
-	for id: StringName in [&"rage", &"iron_skin", &"bullet_time", &"damage", &"speed"]:
+	for id: StringName in [&"rage", &"iron_skin", &"bullet_time", &"damage", &"speed", &"chill"]:
 		if has(id):
-			if INFO.has(id):
-				return INFO[id]["color"]
-			return PICKUPS[id]["color"]
+			return effect_color(id)
 	return Color.BLACK
+
+
+## The HUD name of any effect (power, pickup or status).
+static func effect_name(id: StringName) -> String:
+	for table: Dictionary in [INFO, PICKUPS, STATUS]:
+		if table.has(id):
+			return str(table[id]["name"])
+	return String(id).to_upper()
+
+
+static func effect_color(id: StringName) -> Color:
+	for table: Dictionary in [INFO, PICKUPS, STATUS]:
+		if table.has(id):
+			return table[id]["color"]
+	return Color.WHITE

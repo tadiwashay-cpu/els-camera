@@ -100,6 +100,9 @@ func _build() -> void:
 	_add("cannon", [_boom(0.8)])
 	_add("alarm", [_buzz(0.5, 330.0)])
 	_add("clunk", [_metal(0.5, [180.0, 410.0, 760.0, 1210.0])])
+	_add("shot", [_crash(0.35, 5000.0, 0.9, false)])
+	_add("zap", [_zap(0.45)])
+	_add("strum", [_notes([196.0, 246.9, 293.7, 392.0], 0.05, 0.5)])
 	# Recorded replacements win where present.
 	for sound_name: String in _streams.keys():
 		for ext in ["ogg", "wav"]:
@@ -263,6 +266,21 @@ func _boom(length: float) -> PackedFloat32Array:
 		phase += TAU * lerpf(60.0, 28.0, minf(t * 2.0, 1.0)) / RATE
 		var s := sin(phase) * exp(-t * 4.0) * 1.2 + lp * 3.0 * exp(-t * 3.0)
 		out[i] = tanh(s * 1.8) * 0.9
+	return out
+
+
+## Electricity: crackling noise bursts over a falling buzz.
+func _zap(length: float) -> PackedFloat32Array:
+	var n := int(length * RATE)
+	var out := PackedFloat32Array()
+	out.resize(n)
+	var phase := 0.0
+	for i in n:
+		var t := float(i) / RATE
+		phase += TAU * lerpf(900.0, 120.0, t / length) / RATE
+		var crackle := _rng.randf_range(-1.0, 1.0) * (1.0 if _rng.randf() < 0.3 else 0.15)
+		var s := (signf(sin(phase)) * 0.35 + crackle) * exp(-t * 6.0)
+		out[i] = tanh(s * 1.5) * 0.8
 	return out
 
 

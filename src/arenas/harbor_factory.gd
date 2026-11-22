@@ -56,8 +56,12 @@ var _belt_crates: Array[Breakable] = []
 var _next_crate := 3.0
 var oil: Array = []                    # [{"pos", "r", "burn", "gone", "mesh", "fire", "by", "tick"}]
 var _neon: Array = []                  # [{"mesh", "base", "broken", "off"}]
+var _beacons: Array[MeshInstance3D] = []
 var _rain: GPUParticles3D
 var _t := 0.0
+var _swimmers: Dictionary = {}
+## The quay you climb back onto (x0, z0, x1, z1).
+const QUAY := Rect2(-28.0, -20.0, 56.0, 44.0)
 
 
 func build() -> void:
@@ -82,6 +86,7 @@ func build() -> void:
 	_lever_booth()
 	_conveyor()
 	_oil_and_lamps()
+	_details()
 
 	# Crates and explosive barrels (some parked next to the oil).
 	surface = &"wood"
@@ -442,6 +447,184 @@ func _oil_and_lamps() -> void:
 		add_child(l)
 
 
+## What makes it a real dock: a city skyline over the water, mooring
+## ropes and ladders, pallets, tyres, a forklift, barriers, cones, drums,
+## puddles, warehouse windows, racks and pipes, ship railings, a lifeboat,
+## portholes and rust. Static boxes merge into a few meshes.
+func _details() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 21
+	# City across the bay (north) and the far shore (east): dark silhouettes
+	# against the sunset (no fog on them), lit windows.
+	var city := BoxBuilder.new()
+	for k in 34:
+		var north := k < 24
+		var w := rng.randf_range(8, 18)
+		var h := rng.randf_range(14, 62)
+		var c := Vector3(-200 + k * 17.0 + rng.randf_range(-3, 3), h * 0.5 - 2.0, -170 + rng.randf_range(-15, 15)) if north \
+			else Vector3(170 + rng.randf_range(-12, 12), h * 0.5 - 2.0, -80 + (k - 24) * 20.0)
+		var tint := Color(0.05, 0.05, 0.09).lerp(Color(0.1, 0.09, 0.14), rng.randf())
+		city.box(Vector3(w, h, w * 0.8), c, tint)
+		for floor_y in range(3, int(h) - 2, 3):
+			if rng.randf() < 0.55:
+				var lit := Color(1.0, 0.85, 0.55) if rng.randf() < 0.8 else Color(0.6, 0.85, 1.0)
+				var face := w * 0.4 + 0.05
+				var off := Vector3(0, floor_y - h * 0.5, face * (1 if north else 0))
+				if not north:
+					off = Vector3(-face, floor_y - h * 0.5, 0)
+				var size := Vector3(w * rng.randf_range(0.3, 0.8), 0.6, 0.1) if north else Vector3(0.1, 0.6, w * 0.8 * rng.randf_range(0.3, 0.8))
+				glow_static(size, c + off, lit * rng.randf_range(0.5, 0.9))
+		if h > 45.0 and rng.randf() < 0.6:
+			var beacon := glow_box(Vector3(0.8, 0.8, 0.8), c + Vector3(0, h * 0.5 + 0.6, 0), Color(1.0, 0.15, 0.1), 2.0)
+			((beacon.mesh as BoxMesh).material as StandardMaterial3D).disable_fog = true
+			_beacons.append(beacon)
+	var cm := StandardMaterial3D.new()
+	cm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	cm.vertex_color_use_as_albedo = true
+	cm.disable_fog = true
+	var skyline := MeshInstance3D.new()
+	skyline.mesh = city.commit(cm)
+	skyline.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(skyline)
+	# Ladders down the quay walls (where you climb out of the water).
+	for l: Vector4 in [Vector4(-18, -20.08, 0, 0), Vector4(0, -20.08, 0, 0), Vector4(20, -20.08, 0, 0),
+			Vector4(-28.08, -12, 90, 0), Vector4(-28.08, 21, 90, 0), Vector4(-15, 24.08, 0, 0), Vector4(28.08, -10, 90, 0)]:
+		var along := Vector3(1, 0, 0) if l.z == 0 else Vector3(0, 0, 1)
+		for sgn: float in [-0.25, 0.25]:
+			deco(Vector3(0.06, 2.9, 0.06), Vector3(l.x, -1.05, l.y) + along * sgn, Color(0.25, 0.27, 0.3), &"metal")
+		for r in 6:
+			deco(Vector3(0.5, 0.05, 0.05) if l.z == 0 else Vector3(0.05, 0.05, 0.5), Vector3(l.x, 0.05 - r * 0.48, l.y), Color(0.25, 0.27, 0.3), &"metal")
+	# Mooring ropes from the bollards to the ship, lifebuoys on posts.
+	for x: float in [-22.0, -12.0, -2.0]:
+		var a := Vector3(x, 0.55, -19.5)
+		var b := Vector3(x + 1.5, 3.7, -23.1)
+		var d := b - a
+		deco(Vector3(0.06, 0.06, d.length()), (a + b) * 0.5, Color(0.7, 0.62, 0.45), &"wood",
+			rad_to_deg(atan2(d.x, d.z)), -rad_to_deg(atan2(d.y, Vector2(d.x, d.z).length())))
+	for x: float in [-6.0, 15.0]:
+		deco(Vector3(0.12, 1.4, 0.12), Vector3(x, 0.7, -19.6), Color(0.3, 0.3, 0.33), &"metal")
+		for k in 4:
+			var a := float(k) * 90.0
+			deco(Vector3(0.36, 0.1, 0.1), Vector3(x, 1.1, -19.52) + Vector3(cos(deg_to_rad(a)), sin(deg_to_rad(a)), 0) * 0.22,
+				Color(1.0, 0.4, 0.1) if k % 2 == 0 else Color(0.95, 0.95, 0.9), &"paint", 0.0, 0.0, a + 90.0)
+	# Yard props you can stand on or hide behind.
+	surface = &"metal"
+	var fork := Vector3(6.5, 0, 1.0)
+	block(Vector3(1.3, 1.2, 2.0), fork + Vector3(0, 0.75, 0), YELLOW.darkened(0.1), 20.0)
+	deco(Vector3(1.2, 0.06, 1.0), fork + Vector3(-0.1, 2.3, 0.3), DARK, &"metal", 20.0)
+	for c: Vector2 in [Vector2(-0.6, -0.2), Vector2(0.55, -0.6), Vector2(-0.4, 0.8), Vector2(0.7, 0.4)]:
+		deco(Vector3(0.06, 1.0, 0.06), fork + Vector3(c.x, 1.8, c.y), DARK, &"metal", 20.0)
+	deco(Vector3(0.8, 2.4, 0.12), fork + Vector3(-0.38, 1.2, -1.05), DARK, &"metal", 20.0)
+	deco(Vector3(0.12, 0.06, 1.0), fork + Vector3(-0.6, 0.12, -1.5), STEEL, &"metal", 20.0)
+	deco(Vector3(0.12, 0.06, 1.0), fork + Vector3(-0.1, 0.12, -1.65), STEEL, &"metal", 20.0)
+	for c: Vector2 in [Vector2(-0.65, -0.55), Vector2(0.65, -0.55), Vector2(-0.65, 0.7), Vector2(0.65, 0.7)]:
+		deco(Vector3(0.25, 0.5, 0.5), fork + Vector3(c.x, 0.25, c.y), Color(0.1, 0.1, 0.1), &"rust", 20.0)
+	surface = &"wood"
+	for p: Vector3 in [Vector3(-1.5, 0, 14.0), Vector3(-24.5, 0, -17.0), Vector3(12.0, 0, -12.5)]:
+		block(Vector3(1.2, 0.9, 1.0), p + Vector3(0, 0.45, 0), Color(0.62, 0.5, 0.32))
+		for k in 6:
+			deco(Vector3(1.24, 0.03, 1.04), p + Vector3(0, 0.07 + k * 0.15, 0), Color(0.45, 0.36, 0.22), &"wood")
+	surface = &"rust"
+	for p: Vector3 in [Vector3(24.0, 0, 2.0), Vector3(-25.0, 0, 13.0)]:
+		block(Vector3(1.0, 1.25, 1.0), p + Vector3(0, 0.625, 0), Color(0.1, 0.1, 0.11))
+		for k in 5:
+			deco(Vector3(1.05, 0.08, 1.05), p + Vector3(0, 0.12 + k * 0.25, 0), Color(0.18, 0.18, 0.19), &"rust", float(k) * 18.0)
+		deco(Vector3(0.95, 0.25, 0.95), p + Vector3(1.0, 0.125, 0.4), Color(0.1, 0.1, 0.11), &"rust", 30.0)
+	for p: Vector3 in [Vector3(25.5, 0, 6.0), Vector3(26.3, 0, 6.6), Vector3(25.6, 0, 7.3)]:
+		block(Vector3(0.7, 1.0, 0.7), p + Vector3(0, 0.5, 0), Color(0.15, 0.35, 0.65))
+		deco(Vector3(0.72, 0.06, 0.72), p + Vector3(0, 0.7, 0), Color(0.1, 0.25, 0.5), &"rust")
+	surface = &"concrete"
+	for b: Vector4 in [Vector4(1.0, -2.5, 20, 0), Vector4(-23.0, -7.5, 90, 0), Vector4(4.0, 21.5, 0, 0)]:
+		block(Vector3(3.0, 0.8, 0.6), Vector3(b.x, 0.4, b.y), Color(0.7, 0.7, 0.68), b.z)
+		deco(Vector3(3.02, 0.1, 0.62), Vector3(b.x, 0.62, b.y), Color(0.9, 0.3, 0.2), &"paint", b.z)
+	for k in 9:
+		var p := Vector3(rng.randf_range(-20, 4), 0.0, rng.randf_range(-16, 20))
+		if p.distance_to(Vector3(-16, 0, -7)) < 2.5 or p.distance_to(Vector3(-7, 0, 1.5)) < 2.5:
+			continue
+		deco(Vector3(0.32, 0.06, 0.32), p + Vector3(0, 0.03, 0), Color(0.15, 0.15, 0.15), &"paint")
+		deco(Vector3(0.18, 0.5, 0.18), p + Vector3(0, 0.3, 0), Color(1.0, 0.45, 0.1), &"paint")
+		deco(Vector3(0.19, 0.08, 0.19), p + Vector3(0, 0.36, 0), Color(0.95, 0.95, 0.95), &"paint")
+	# Rain puddles (shiny, not slippery).
+	var pb := BoxBuilder.new()
+	for k in 10:
+		var p := Vector3(rng.randf_range(-24, 26), 0.008, rng.randf_range(-18, 7))
+		var r := rng.randf_range(0.6, 1.4)
+		pb.box(Vector3(r * 2.0, 0.01, r * 1.4), p, Color(0.2, 0.22, 0.26), 0, Basis(Vector3.UP, rng.randf() * PI))
+		pb.box(Vector3(r * 1.4, 0.012, r * 2.0), p, Color(0.2, 0.22, 0.26), 0, Basis(Vector3.UP, rng.randf() * PI))
+	var pm := BoxBuilder.vertex_color_material(0.05)
+	pm.metallic = 0.5
+	var puddles := MeshInstance3D.new()
+	puddles.mesh = pb.commit(pm)
+	puddles.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(puddles)
+	# Warehouse: corrugated walls, high windows, a rolled-up door, pipes, a rack.
+	for x in range(7, 28):
+		deco(Vector3(0.12, 6.8, 0.08), Vector3(float(x), 3.4, 24.04), Color(0.4, 0.38, 0.37), &"rust")
+	for z in range(9, 24):
+		deco(Vector3(0.08, 6.8, 0.12), Vector3(28.04, 3.4, float(z)), Color(0.4, 0.38, 0.37), &"rust")
+	for x: float in [9.0, 13.0, 21.0, 25.0]:
+		glow_static(Vector3(1.6, 0.7, 0.06), Vector3(x, 5.6, 7.97), Color(0.9, 0.75, 0.45) * 0.7)
+	for z: float in [11.0, 15.0, 19.0]:
+		glow_static(Vector3(0.06, 0.7, 1.6), Vector3(28.03, 5.6, z), Color(0.9, 0.75, 0.45) * 0.6)
+	deco(Vector3(10.2, 0.6, 0.6), Vector3(17, 4.75, 8.3), Color(0.55, 0.5, 0.45), &"rust")
+	for k in 9:
+		deco(Vector3(10.0, 0.04, 0.05), Vector3(17, 4.45 - k * 0.04, 8.55), Color(0.5, 0.46, 0.42), &"rust")
+	for y: float in [5.2, 5.6]:
+		deco(Vector3(20.5, 0.18, 0.18), Vector3(17, y, 23.25), Color(0.5, 0.35, 0.25), &"metal")
+	deco(Vector3(0.18, 5.6, 0.18), Vector3(7.2, 2.8, 23.25), Color(0.5, 0.35, 0.25), &"metal")
+	surface = &"metal"
+	block(Vector3(5.0, 2.4, 1.0), Vector3(12.5, 1.2, 19.5), DARK.lightened(0.1))
+	for y: float in [0.6, 1.4, 2.2]:
+		deco(Vector3(5.1, 0.06, 1.05), Vector3(12.5, y, 19.5), YELLOW.darkened(0.2), &"paint")
+	for k in 6:
+		deco(Vector3(0.7, 0.55, 0.7), Vector3(10.6 + k * 0.75, 2.68, 19.5), Color(0.72, 0.58, 0.38), &"wood")
+	surface = &"concrete"
+	for v: Vector3 in [Vector3(12, 7.3, 23.4), Vector3(23, 7.3, 23.4)]:
+		deco(Vector3(0.6, 0.6, 0.6), v, Color(0.45, 0.45, 0.48), &"metal")
+		var steam := CPUParticles3D.new()
+		steam.amount = 10
+		steam.lifetime = 2.2
+		steam.direction = Vector3.UP
+		steam.spread = 10.0
+		steam.initial_velocity_min = 0.8
+		steam.initial_velocity_max = 1.4
+		steam.gravity = Vector3(0.4, 0.2, 0)
+		steam.scale_amount_min = 1.0
+		steam.scale_amount_max = 2.2
+		var sm := BoxMesh.new()
+		sm.size = Vector3.ONE * 0.4
+		var smat := StandardMaterial3D.new()
+		smat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		smat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		smat.albedo_color = Color(0.75, 0.75, 0.8, 0.25)
+		sm.material = smat
+		steam.mesh = sm
+		steam.position = v + Vector3.UP * 0.4
+		add_child(steam)
+	# Ship: railings, portholes, rust streaks, a lifeboat, a mast light, hatches, an anchor.
+	for x in range(-17, 12):
+		deco(Vector3(0.06, 1.0, 0.06), Vector3(float(x), 4.0, -32.95), Color(0.85, 0.85, 0.82), &"paint")
+	for x in range(-17, 3):
+		deco(Vector3(0.06, 1.0, 0.06), Vector3(float(x), 4.0, -23.05), Color(0.85, 0.85, 0.82), &"paint")
+	for x in range(-22, 11, 2):
+		deco(Vector3(0.35, 0.35, 0.04), Vector3(float(x), 1.6, -22.98), Color(0.08, 0.08, 0.1), &"metal")
+		if rng.randf() < 0.5:
+			deco(Vector3(0.2, rng.randf_range(0.8, 2.0), 0.03), Vector3(float(x) + 0.6, 0.6, -22.97), Color(0.45, 0.25, 0.15), &"rust")
+	deco(Vector3(1.4, 0.9, 4.2), Vector3(-21.0, 6.2, -33.0), Color(1.0, 0.45, 0.1), &"paint")
+	deco(Vector3(1.5, 0.25, 4.3), Vector3(-21.0, 6.75, -33.0), Color(0.95, 0.95, 0.92), &"paint")
+	deco(Vector3(0.15, 5.0, 0.15), Vector3(-20.0, 13.5, -28.0), Color(0.85, 0.85, 0.82), &"paint")
+	deco(Vector3(2.0, 0.12, 0.12), Vector3(-20.0, 15.0, -28.0), Color(0.85, 0.85, 0.82), &"paint", 90.0)
+	var mast := glow_box(Vector3(0.3, 0.3, 0.3), Vector3(-20.0, 16.1, -28.0), Color(1.0, 0.15, 0.1), 2.0)
+	_beacons.append(mast)
+	for x: float in [-8.0, 4.0]:
+		deco(Vector3(3.0, 0.3, 2.6), Vector3(x, 3.65, -25.0 if x > 0 else -28.0), Color(0.3, 0.32, 0.36), &"metal")
+	deco(Vector3(0.5, 1.2, 0.2), Vector3(14.0, 1.2, -23.4), Color(0.2, 0.2, 0.22), &"metal")
+	deco(Vector3(1.0, 0.2, 0.2), Vector3(14.0, 0.6, -23.4), Color(0.2, 0.2, 0.22), &"metal")
+	for k in 6:
+		deco(Vector3(0.12, 0.2, 0.06) if k % 2 == 0 else Vector3(0.06, 0.2, 0.12), Vector3(14.0, 2.0 - k * 0.22, -23.45 + float(k) * 0.05),
+			Color(0.25, 0.22, 0.2), &"metal")
+
+
 func _rain_fx() -> void:
 	_rain = GPUParticles3D.new()
 	var q := clampi(int(Save.setting("quality")), 0, 2)
@@ -521,6 +704,11 @@ func ignite(at: Vector3, radius: float, by: Fighter) -> void:
 			count("fire")
 
 
+func swim_exit(pos: Vector3) -> Vector3:
+	var r := QUAY.grow(-1.0)
+	return Vector3(clampf(pos.x, r.position.x, r.end.x), 0.0, clampf(pos.z, r.position.y, r.end.y))
+
+
 func lever_available(clock: float) -> bool:
 	return controller == null and clock >= _lever_ready_at
 
@@ -537,9 +725,12 @@ func tick(m: Match, delta: float) -> void:
 	if _rain:
 		_rain.global_position = m.camera.global_position + Vector3(0, 10, 0)
 	for f in m.fighters:
-		if f.alive and f.global_position.y < WATER_Y - 0.9 and f.global_position.y > kill_y:
-			m.hazard_kill(f, "dunked", Vector3.ZERO)
-			count("dunk")
+		if f.alive and f.swimming:
+			_swimmers[f.fighter_id] = true
+		elif _swimmers.has(f.fighter_id):
+			_swimmers.erase(f.fighter_id)
+			if f.alive:
+				count("climbed_out")
 	_tick_neon(delta)
 	_tick_oil(m, delta)
 	_tick_belt(m, delta)
@@ -549,6 +740,8 @@ func tick(m: Match, delta: float) -> void:
 
 
 func _tick_neon(delta: float) -> void:
+	for i in _beacons.size():
+		_beacons[i].visible = fmod(_t + float(i) * 0.37, 1.6) < 0.5
 	for n: Dictionary in _neon:
 		var mesh := n["mesh"] as MeshInstance3D
 		n["off"] = float(n["off"]) - delta
