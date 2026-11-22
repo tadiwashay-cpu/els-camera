@@ -6,9 +6,10 @@ extends Node3D
 ## weapon socket and the ragdoll.
 ##
 ## Animation tree:
-##   loco (crossfade between loops) -> loco_speed -> upper (upper-body
-##   one-shot: attack while the legs keep running) -> act (crossfade to any
-##   full-body move and back) -> output
+##   loco (crossfade between loops) -> loco_speed -> guard (upper-body block
+##   pose, blended in while blocking) -> upper (upper-body one-shot: attack
+##   while the legs keep running) -> act (crossfade to any full-body move and
+##   back) -> time (Bullet Time) -> output
 
 const RIG := preload("res://assets/fighters/block_fighter.glb")
 const MOVES_JSON := "res://assets/fighters/block_fighter.moves.json"
@@ -64,6 +65,14 @@ var action_time := 0.0        # seconds into the clip (clip time)
 var action_speed := 1.0
 var _flash := 0.0
 var _act_nodes: Dictionary = {}
+var _guard := 0.0
+var _guard_want := 0.0
+var _guard_clip := &""
+## Effect glow (rage, iron skin...), black = none.
+var aura := Color.BLACK
+## Bullet Time: this body's moves run at this speed.
+var time_scale := 1.0
+var _clock := 0.0
 ## Final bone poses (after the ragdoll), refreshed on every skeleton update.
 var final_pose: Array = []
 var keep_final_pose := false
@@ -185,6 +194,12 @@ func _build_tree() -> void:
 		bt.connect_node(&"loco", i, StringName("l_" + LOCO[i]))
 	bt.add_node(&"loco_speed", AnimationNodeTimeScale.new())
 	bt.connect_node(&"loco_speed", 0, &"loco")
+	var guard := AnimationNodeBlend2.new()
+	guard.filter_enabled = true
+	bt.add_node(&"guard", guard)
+	bt.add_node(&"guard_anim", AnimationNodeAnimation.new())
+	bt.connect_node(&"guard", 0, &"loco_speed")
+	bt.connect_node(&"guard", 1, &"guard_anim")
 
 	var upper := AnimationNodeOneShot.new()
 	upper.fadein_time = 0.08
@@ -193,11 +208,12 @@ func _build_tree() -> void:
 	var skel_path := String(rig.get_path_to(skeleton))
 	for bone in UPPER:
 		upper.set_filter_path(NodePath(skel_path + ":" + bone), true)
+		guard.set_filter_path(NodePath(skel_path + ":" + bone), true)
 	bt.add_node(&"upper", upper)
 	bt.add_node(&"upper_anim", AnimationNodeAnimation.new())
 	bt.add_node(&"upper_ts", AnimationNodeTimeScale.new())
 	bt.connect_node(&"upper_ts", 0, &"upper_anim")
-	bt.connect_node(&"upper", 0, &"loco_speed")
+	bt.connect_node(&"upper", 0, &"guard")
 	bt.connect_node(&"upper", 1, &"upper_ts")
 
 	var acts: Array[StringName] = []
@@ -221,7 +237,9 @@ func _build_tree() -> void:
 		bt.connect_node(StringName("ts_" + clip), 0, StringName("a_" + clip))
 		bt.connect_node(&"act", i + 1, StringName("ts_" + clip))
 		_act_nodes[clip] = true
-	bt.connect_node(&"output", 0, &"act")
+	bt.add_node(&"time", AnimationNodeTimeScale.new())
+	bt.connect_node(&"time", 0, &"act")
+	bt.connect_node(&"output", 0, &"time")
 
 	tree = AnimationTree.new()
 	tree.name = "Tree"
@@ -292,9 +310,12 @@ func stop_action(fade: float = 0.15) -> void:
 ## a finished move always hands the body back to locomotion, so nothing can
 ## leave a fighter stuck on a move's last frame, sliding around.
 func _physics_process(delta: float) -> void:
+	if tree and absf(_guard - _guard_want) > 0.001:
+		_guard = move_toward(_guard, _guard_want, delta * 12.0)
+		tree.set(&"parameters/guard/blend_amount", _guard)
 	if action == &"":
 		return
-	action_time += delta * action_speed
+	action_time += delta * action_speed * time_scale
 	if action_time >= move_length(action) and not bool(move_info(action)["loop"]):
 		stop_action(0.15)
 
@@ -331,12 +352,33 @@ func flash(amount: float) -> void:
 	_flash = maxf(_flash, amount)
 
 
+## Raises the guard (block pose on the upper body) or drops it.
+func set_guard(on: bool, armed: bool) -> void:
+	if tree == null:
+		return
+	var clip := &"Block" if armed else &"Block_Fists"
+	if on and clip != _guard_clip:
+		_guard_clip = clip
+		(tree.tree_root.get_node(&"guard_anim") as AnimationNodeAnimation).animation = clip
+	_guard_want = 1.0 if on else 0.0
+
+
+func set_time_scale(scale: float) -> void:
+	time_scale = scale
+	if tree:
+		tree.set(&"parameters/time/scale", scale)
+
+
 func _process(delta: float) -> void:
-	if _flash > 0.0:
-		_flash = maxf(_flash - delta * 4.0, 0.0)
-		material.emission = Color(1, 1, 1) * _flash * 0.8
-	elif material and material.emission != Color.BLACK:
-		material.emission = Color.BLACK
+	_clock += delta
+	if material == null:
+		return
+	_flash = maxf(_flash - delta * 4.0, 0.0)
+	var glow := Color(1, 1, 1) * _flash * 0.8
+	if aura != Color.BLACK:
+		glow += aura * (0.25 + 0.15 * sin(_clock * 9.0))
+	if glow != material.emission:
+		material.emission = glow
 
 
 func build_ragdoll() -> Ragdoll:

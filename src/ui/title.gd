@@ -191,6 +191,10 @@ func _match_setup() -> Control:
 	var targets := [0, 5, 10, 20]
 	_option(box, "Kill target", ["Off", "First to 5", "First to 10", "First to 20"], targets.find(cfg.kill_target),
 		func(i: int) -> void: cfg.kill_target = targets[i])
+	var power_names: Array = []
+	for id in FighterPowers.IDS:
+		power_names.append(FighterPowers.INFO[id]["name"])
+	_option(box, "Power", power_names, FighterPowers.IDS.find(cfg.power), func(i: int) -> void: cfg.power = FighterPowers.IDS[i])
 	_option(box, "Arena", ["Blockout Yard"], 0, func(_i: int) -> void: pass)
 	var go := UiTheme.big_button("START")
 	go.pressed.connect(func() -> void:

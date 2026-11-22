@@ -23,11 +23,28 @@ next starts. Claude ticks items as they land; the owner passes the gates.
 - [x] Killcam replay of your death; final-kill replay; results with coins
 - [x] **Gate:** owner played it on the tablet: "everything looks good", smooth on max settings
 
-## Phase 2: Offline game
-- [ ] 24 weapons, 6 powers and the power meter, map pickups, block and parry
-- [ ] Beach Island and Abandoned Harbor Factory arenas (with hazards)
-- [ ] Bots for up to 4 fighters at 60 fps, custom match time
-- [ ] More signature moves (Blender), better hit reacts
+## Phase 2: Offline game (v0.2.x)
+Done between playtests:
+- [x] 0.1.1: fixed frozen sliding after one-off moves; new jump/landing animations
+- [x] 0.1.2: breakable arena (crates, pillars, railings, explosive barrels, debris, rebuild)
+
+Increment A (combat depth):
+- [x] Block (hold) and parry (150 ms window: staggers melee attackers, sends thrown weapons back)
+- [x] Power meter (fills by dealing and taking damage) and 6 powers: Blink, Bullet Time,
+      Shockwave Stomp, Rage, Iron Skin, Second Wind; power picked in match setup
+- [x] Map pickups: health, speed boots, double damage, shield bubble, power battery
+- [x] Bots block, parry and use powers (v0.1.3)
+
+Increment B (weapons):
+- [ ] Weapon families with their own Blender movesets (blades, heavy, polearms, fists, thrown, joke)
+- [ ] 24 weapons (data + box models), mystery crate drops a rare one in the middle
+- [ ] Weapon swap / pick-up choice
+
+Increment C (arenas):
+- [ ] Beach Island (tide floods the beach, sharks in deep water, wreck cannon)
+- [ ] Abandoned Harbor Factory (crane magnet, conveyor into a crusher, oil that burns)
+- [ ] Arena choice in match setup
+
 - [ ] **Gate:** a 4-fighter, 5-minute match holds 60 fps on Medium with no blocking bugs
 
 ## Phase 3: LAN and hotspot multiplayer

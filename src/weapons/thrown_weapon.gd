@@ -119,12 +119,33 @@ func _home(delta: float) -> void:
 
 
 func _hit_fighter(f: Fighter, at: Vector3) -> void:
+	if f.try_deflect(self):
+		return
 	var speed := velocity.length()
 	var dmg := data.throw_damage * clampf(speed / maxf(data.throw_speed, 1.0), 0.6, 1.6) * (1.25 if boosted else 1.0)
+	var by := thrower if thrower and is_instance_valid(thrower) else null
+	if by:
+		dmg *= by.powers.damage_dealt_mult()
 	var dir := Vector3(velocity.x, 0, velocity.z).normalized()
-	f.take_hit(dmg, dir, thrower, speed > 20.0 or boosted, at, 6.0)
-	if thrower and is_instance_valid(thrower):
-		thrower.hit_landed.emit(thrower, f, dmg)
+	var dealt := f.take_hit(dmg, dir, by, speed > 20.0 or boosted, at, 6.0)
+	if by and dealt > 0.0:
+		by.powers.dealt(dealt)
+		by.hit_landed.emit(by, f, dealt)
 	Audio.play(&"hit_heavy", at, 2.0)
 	harmful = false
 	velocity = -velocity * 0.15 + Vector3.UP * 4.0
+
+
+## Parried: fly back at whoever threw it, faster, now "thrown" by `by`.
+func reflect(by: Fighter) -> void:
+	var back_to := global_position - velocity
+	if thrower and is_instance_valid(thrower) and thrower.alive:
+		back_to = thrower.global_position + Vector3.UP * 1.1
+	var speed := velocity.length() * 1.15
+	velocity = (back_to - global_position).normalized() * speed
+	thrower = by
+	age = 0.0
+	harmful = true
+	boosted = true
+	_axis = velocity.cross(Vector3.UP).normalized()
+	_base = Basis.looking_at(velocity.normalized(), Vector3.UP) * Basis(Vector3.RIGHT, -PI * 0.5)

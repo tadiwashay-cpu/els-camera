@@ -13,10 +13,13 @@ const BUTTONS := [
 	[&"throw", "THROW", Vector2(-150, -352), 62.0],
 	[&"dodge", "DODGE", Vector2(-318, -292), 58.0],
 	[&"lock_on", "LOCK", Vector2(-108, -520), 48.0],
+	[&"block", "BLOCK", Vector2(-486, -236), 56.0],
+	[&"power", "POWER", Vector2(-322, -470), 56.0],
 ]
 
 var joystick: VirtualJoystick
 var catch_hint := false           # an incoming weapon: THROW reads CATCH
+var power_ready := false
 var _look := Vector2.ZERO
 var _look_index := -1
 var _held: Dictionary = {}        # touch index -> button index
@@ -101,6 +104,12 @@ func release_all() -> void:
 	_look_index = -1
 
 
+func set_power_ready(on: bool) -> void:
+	if on != power_ready:
+		power_ready = on
+		queue_redraw()
+
+
 func set_catch_hint(on: bool) -> void:
 	if on != catch_hint:
 		catch_hint = on
@@ -114,6 +123,8 @@ func _draw() -> void:
 		var r := _button_radius(i)
 		var pressed := _held.values().has(i)
 		var accent := Color(1.0, 0.6, 0.15) if not (i == 2 and catch_hint) else Color(0.35, 1.0, 0.55)
+		if BUTTONS[i][0] == &"power":
+			accent = Color(1.0, 0.9, 0.25) if power_ready else Color(0.45, 0.45, 0.5)
 		draw_circle(p, r, Color(0.04, 0.05, 0.07, _alpha * 0.75) if not pressed else Color(accent, _alpha))
 		draw_arc(p, r, 0, TAU, 48, Color(accent, minf(_alpha + 0.25, 1.0)), 4.0 * _scale, true)
 		var label: String = BUTTONS[i][1]

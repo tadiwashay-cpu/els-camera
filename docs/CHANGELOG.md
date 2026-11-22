@@ -4,6 +4,25 @@ Versions are `MAJOR.MINOR.PATCH`; the number lives in `project.godot`
 (`config/version`) and shows on the title screen and next to the FPS counter.
 Bump MINOR for a phase or batch of features, PATCH for fixes.
 
+## 0.1.3: Phase 2 increment A (block, parry, powers, pickups)
+
+- **Block** (hold BLOCK): walk with your guard up; blocked hits do 15% (heavy
+  30%) and push you back; too much and the guard breaks.
+- **Parry**: raise the guard within 150 ms of a hit: the attacker staggers
+  open, you take nothing and gain power. Parrying a thrown weapon sends it
+  back at the thrower, faster.
+- **Power meter** fills as you deal (and take) damage; when it's full, POWER:
+  Rage (double damage 5 s), Shockwave Stomp (everyone within 5 m flies),
+  Blink (teleport 8 m, never off the edge), Iron Skin (70% less damage, no
+  knockdowns 4 s), Bullet Time (everyone else at half speed 3 s), Second Wind
+  (heal 50%, and it gets you up off the floor). Pick yours in match setup;
+  bots get one each.
+- **Map pickups** on 6 spots: health, speed boots, double damage, shield
+  bubble, power battery.
+- Bots block, parry, use their powers and go for health when hurt.
+- New Blender moves: block (sword and fists), parries, stagger, stomp, roar, blink.
+- HUD: power meter and active effects; touch BLOCK and POWER buttons.
+
 ## 0.1.2: Breakable arena
 
 - Most cover in Blockout Yard can be smashed: crates and crate stacks,

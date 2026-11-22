@@ -62,6 +62,6 @@ func _ready() -> void:
 		" deaths=", _deaths, " throws=", _throws, " catches=", _catches, " knockdowns=", _downs,
 		" pickups_left=", _match.pickups.size(), " kinds=", _kinds, " breaks=", _breaks, " debris_active=", _match.arena.debris.active_count(), " fps=", Engine.get_frames_per_second())
 	for f in _match.fighters:
-		print("  ", f.display_name, " hp=", f.health, " state=", Fighter.State.keys()[f.state], " pos=", f.global_position.snapped(Vector3.ONE * 0.1), " armed=", f.armed())
+		print("  ", f.display_name, " power=", f.powers.power, " stats=", f.stats, " hp=", f.health, " state=", Fighter.State.keys()[f.state], " pos=", f.global_position.snapped(Vector3.ONE * 0.1), " armed=", f.armed())
 	await get_tree().create_timer(1.5, true, false, true).timeout
 	get_tree().quit()

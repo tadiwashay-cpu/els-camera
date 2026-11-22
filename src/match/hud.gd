@@ -28,6 +28,11 @@ var _cross: Control
 var _pause_menu: Control
 var _results: Control
 var _center_tween: Tween
+var _power: ProgressBar
+var _power_fill: StyleBoxFlat
+var _power_label: Label
+var _effects: Label
+var _tint: ColorRect
 var _hp_fill: StyleBoxFlat
 
 
@@ -55,6 +60,26 @@ func _ready() -> void:
 	hp_box.add_child(_hp)
 	_hp_fill = (UiTheme.get_theme().get_stylebox(&"fill", &"ProgressBar") as StyleBoxFlat).duplicate()
 	_hp.add_theme_stylebox_override(&"fill", _hp_fill)
+	_power = ProgressBar.new()
+	_power.custom_minimum_size = Vector2(300, 14)
+	_power.show_percentage = false
+	_power.max_value = FighterPowers.FULL
+	_power_fill = (UiTheme.get_theme().get_stylebox(&"fill", &"ProgressBar") as StyleBoxFlat).duplicate() as StyleBoxFlat
+	_power.add_theme_stylebox_override(&"fill", _power_fill)
+	hp_box.add_child(_power)
+	_power_label = Label.new()
+	_power_label.add_theme_font_size_override(&"font_size", 20)
+	hp_box.add_child(_power_label)
+	_effects = Label.new()
+	_effects.add_theme_font_size_override(&"font_size", 20)
+	_effects.add_theme_color_override(&"font_color", Color(1, 0.9, 0.5))
+	hp_box.add_child(_effects)
+	_tint = ColorRect.new()
+	_tint.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_tint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_tint.color = Color(0, 0, 0, 0)
+	_root.add_child(_tint)
+	_root.move_child(_tint, 0)
 	_weapon_label = Label.new()
 	_weapon_label.add_theme_font_size_override(&"font_size", 22)
 	_weapon_label.modulate = Color(1, 1, 1, 0.8)
@@ -167,6 +192,18 @@ func _process(_delta: float) -> void:
 		_hp_fill.bg_color = Color(0.35, 0.95, 0.45).lerp(Color(1, 0.25, 0.2), 1.0 - player.health / player.max_health)
 		_hp_label.text = "%s   %d HP" % [player.display_name, int(ceil(player.health))]
 		_weapon_label.text = player.weapon_data.display_name.to_upper() if player.armed() else "UNARMED - find a weapon"
+		var pw := player.powers
+		var info: Dictionary = FighterPowers.INFO[pw.power]
+		_power.value = pw.meter
+		_power_fill.bg_color = info["color"] if pw.ready_to_use() and int(Time.get_ticks_msec() / 250) % 2 == 0 else Color(info["color"]).darkened(0.35)
+		_power_label.text = "%s%s" % [str(info["name"]).to_upper(), "  READY" if pw.ready_to_use() else ""]
+		var fx := []
+		for id: StringName in pw.effects:
+			var n: String = FighterPowers.INFO[id]["name"] if FighterPowers.INFO.has(id) else FighterPowers.PICKUPS[id]["name"]
+			fx.append("%s %ds" % [n.to_upper(), int(ceil(pw.time_left(id)))])
+		if pw.shield > 0.0:
+			fx.append("SHIELD %d" % int(pw.shield))
+		_effects.text = "   ".join(fx)
 		_update_marker()
 	_fps.visible = bool(Save.setting("show_fps"))
 	if _fps.visible:
@@ -184,6 +221,11 @@ func _update_marker() -> void:
 	_cross.visible = false
 	_marker.position = cam.unproject_position(t.global_position + Vector3.UP * 2.25)
 	_marker.queue_redraw()
+
+
+func set_tint(c: Color) -> void:
+	var tw := create_tween()
+	tw.tween_property(_tint, "color", c, 0.25)
 
 
 func refresh_board() -> void:

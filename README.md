@@ -4,7 +4,7 @@ A third-person arena fighter for Android. Block fighters with swords race for
 kills against the clock: swing, throw your sword, catch theirs out of the air
 and send it back faster, knock them off the edge.
 
-**Version 0.1.2: Phase 1 playtest + fixes, new jumps, breakable arena.**
+**Version 0.1.3: Phase 2 in progress: block and parry, powers, pickups, breakable arena.**
 Made with Godot 4.7.2 (Mobile renderer, Jolt physics). Built for a 4 GB
 tablet (Redmi Pad 2) and up.
 
@@ -49,6 +49,8 @@ Android editor app) and press Play.
 | Throw / catch | THROW | K / right click | Y |
 | Dodge roll | DODGE | L / Ctrl | B |
 | Lock on | LOCK | Q / Tab | RB |
+| Block (hold; tap just before a hit to parry) | BLOCK | F / middle click | LB |
+| Power (when the meter is full) | POWER | E | RT |
 | Pause | II | Esc | Start |
 
 ## Project

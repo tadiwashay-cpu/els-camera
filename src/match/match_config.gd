@@ -14,6 +14,8 @@ var spawners := true
 var spawner_seconds := 15.0
 var hazards := true
 var kill_target := 0                # 0 = off; first to N ends the match
+var power := &"rage"                # the player's power (FighterPowers.IDS)
+var pickups := true                 # map pickups (health, speed, ...)
 var seed := 0
 
 

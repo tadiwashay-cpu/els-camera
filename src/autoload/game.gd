@@ -155,18 +155,20 @@ const _KEYS := {
 	&"move_forward": [KEY_W, KEY_UP], &"move_back": [KEY_S, KEY_DOWN],
 	&"sprint": [KEY_SHIFT], &"attack": [KEY_J], &"jump": [KEY_SPACE], &"throw": [KEY_K],
 	&"dodge": [KEY_L, KEY_CTRL], &"lock_on": [KEY_Q, KEY_TAB], &"pause": [KEY_ESCAPE, KEY_P],
+	&"block": [KEY_F], &"power": [KEY_E],
 	&"look_left": [], &"look_right": [], &"look_up": [], &"look_down": [],
 }
 const _PAD_BUTTONS := {
 	&"attack": [JOY_BUTTON_X], &"jump": [JOY_BUTTON_A], &"throw": [JOY_BUTTON_Y],
 	&"dodge": [JOY_BUTTON_B], &"lock_on": [JOY_BUTTON_RIGHT_SHOULDER, JOY_BUTTON_RIGHT_STICK],
-	&"sprint": [JOY_BUTTON_LEFT_STICK], &"pause": [JOY_BUTTON_START],
+	&"sprint": [JOY_BUTTON_LEFT_STICK], &"pause": [JOY_BUTTON_START], &"block": [JOY_BUTTON_LEFT_SHOULDER],
 }
 const _PAD_AXES := {
 	&"move_left": [JOY_AXIS_LEFT_X, -1.0], &"move_right": [JOY_AXIS_LEFT_X, 1.0],
 	&"move_forward": [JOY_AXIS_LEFT_Y, -1.0], &"move_back": [JOY_AXIS_LEFT_Y, 1.0],
 	&"look_left": [JOY_AXIS_RIGHT_X, -1.0], &"look_right": [JOY_AXIS_RIGHT_X, 1.0],
 	&"look_up": [JOY_AXIS_RIGHT_Y, -1.0], &"look_down": [JOY_AXIS_RIGHT_Y, 1.0],
+	&"power": [JOY_AXIS_TRIGGER_RIGHT, 1.0],
 }
 
 
@@ -197,6 +199,9 @@ func _setup_inputs() -> void:
 		var rmb := InputEventMouseButton.new()
 		rmb.button_index = MOUSE_BUTTON_RIGHT
 		InputMap.action_add_event(&"throw", rmb)
+		var mmb := InputEventMouseButton.new()
+		mmb.button_index = MOUSE_BUTTON_MIDDLE
+		InputMap.action_add_event(&"block", mmb)
 
 
 func vibrate(ms: int) -> void:

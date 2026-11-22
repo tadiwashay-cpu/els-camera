@@ -11,6 +11,7 @@ var aim_yaw := 0.0
 var sprint := false
 var attack_held := false
 var jump_held := false
+var block_held := false
 ## Who to face and aim at (lock-on), or null.
 var target: Node3D
 ## A spot to throw at instead of a fighter (bots aiming at barrels), or null.
@@ -42,6 +43,8 @@ func clear() -> void:
 	sprint = false
 	attack_held = false
 	jump_held = false
+	block_held = false
+	aim_point = null
 	_presses.clear()
 
 

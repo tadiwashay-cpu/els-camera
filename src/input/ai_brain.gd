@@ -7,9 +7,9 @@ extends RefCounted
 ## and nerve, never what it can do.
 
 const LEVELS := [
-	{"reaction": 0.45, "catch": 0.15, "dodge": 0.1, "aggression": 0.45, "heavy": 0.1, "cadence": 0.62, "aim": 0.35},
-	{"reaction": 0.28, "catch": 0.45, "dodge": 0.28, "aggression": 0.65, "heavy": 0.2, "cadence": 0.42, "aim": 0.18},
-	{"reaction": 0.16, "catch": 0.75, "dodge": 0.5, "aggression": 0.85, "heavy": 0.3, "cadence": 0.3, "aim": 0.06},
+	{"reaction": 0.45, "catch": 0.15, "dodge": 0.1, "aggression": 0.45, "heavy": 0.1, "cadence": 0.62, "aim": 0.35, "block": 0.12, "parry": 0.05},
+	{"reaction": 0.28, "catch": 0.45, "dodge": 0.22, "aggression": 0.65, "heavy": 0.2, "cadence": 0.42, "aim": 0.18, "block": 0.3, "parry": 0.2},
+	{"reaction": 0.16, "catch": 0.75, "dodge": 0.35, "aggression": 0.85, "heavy": 0.3, "cadence": 0.3, "aim": 0.06, "block": 0.45, "parry": 0.45},
 ]
 
 var me: Fighter
@@ -34,6 +34,9 @@ var _decided_catch: Dictionary = {}       # projectile id -> bool
 var _react := 0.0
 var _pickup: WeaponPickup
 var _barrel: Breakable
+var _block_t := 0.0
+var _guarded_attack := -1          # instance id + clip of the swing we decided on
+var _powerup: PowerUp
 
 
 func _init(fighter: Fighter, match_node: Match, difficulty: int) -> void:
@@ -46,6 +49,10 @@ func _init(fighter: Fighter, match_node: Match, difficulty: int) -> void:
 func update(delta: float) -> void:
 	var inp := me.input
 	inp.sprint = false
+	if me.state == Fighter.State.DOWN and me.powers.power == &"second_wind" and me.powers.ready_to_use():
+		inp.press(&"power")
+	_block_t -= delta
+	inp.block_held = _block_t > 0.0
 	if not me.alive or me.state == Fighter.State.FROZEN:
 		inp.move = Vector2.ZERO
 		inp.attack_held = false
@@ -63,6 +70,11 @@ func update(delta: float) -> void:
 		"pickup":
 			if _pickup and is_instance_valid(_pickup):
 				_go_to(_pickup.global_position, 1.0, delta)
+			else:
+				goal = "chase"
+		"powerup":
+			if _powerup and is_instance_valid(_powerup):
+				_go_to(_powerup.global_position, 1.0, delta)
 			else:
 				goal = "chase"
 		"chase":
@@ -125,6 +137,15 @@ func _decide() -> void:
 		if barrel:
 			_barrel = barrel
 			scores["barrel"] = 1.0 * float(level["aggression"]) + 0.2
+	if me.health < me.max_health * 0.55:
+		_powerup = world.nearest_powerup(me.global_position, 18.0, [&"health", &"shield"])
+		if _powerup:
+			scores["powerup"] = 0.97
+	elif d > 8.0:
+		_powerup = world.nearest_powerup(me.global_position, 9.0)
+		if _powerup:
+			scores["powerup"] = 0.7
+	_consider_power(d)
 	if me.health < me.max_health * 0.3 and target.armed() and d < 5.0:
 		scores["backoff"] = 0.75 * (1.0 - float(level["aggression"]))
 	var best := "chase"
@@ -235,12 +256,25 @@ func _fight(_delta: float) -> void:
 		_steer(-to.normalized(), 0.5)
 	else:
 		_steer(to.normalized().cross(Vector3.UP) * _strafe, 0.35)
-	# Dodge a swing that's coming.
-	if target.state in [Fighter.State.ATTACK, Fighter.State.HEAVY] and d < 3.2 and _react <= 0.0:
-		_react = float(level["reaction"])
-		if _rng.randf() < float(level["dodge"]):
-			me.input.press(&"dodge")
-			return
+	# A swing is coming: parry it, block it or roll away.
+	if target.state in [Fighter.State.ATTACK, Fighter.State.HEAVY] and d < 3.4:
+		var swing := target.get_instance_id() + hash(target._attack_clip)
+		if swing != _guarded_attack:
+			_guarded_attack = swing
+			var roll := _rng.randf()
+			if roll < float(level["parry"]):
+				_parry_pending = true
+			elif roll < float(level["parry"]) + float(level["block"]):
+				_block_t = _rng.randf_range(0.45, 0.8)
+			elif _rng.randf() < float(level["dodge"]):
+				me.input.press(&"dodge")
+				return
+		if _parry_pending:
+			var w := BlockBody.hit_window(target._attack_clip)
+			var until := (w.x - target.body.action_time) / maxf(target.body.action_speed, 0.1)
+			if until <= 0.1:
+				_parry_pending = false
+				_block_t = 0.35
 	_react -= 0.1
 	if _attack_cd <= 0.0 and me.state == Fighter.State.MOVE and d < reach + 0.3:
 		_attack_cd = float(level["cadence"]) * _rng.randf_range(0.8, 1.3)
@@ -249,6 +283,32 @@ func _fight(_delta: float) -> void:
 		else:
 			_hold = 0.03
 		me.input.attack_held = true
+
+
+var _parry_pending := false
+
+
+func _consider_power(d: float) -> void:
+	if not me.powers.ready_to_use() or me.state != Fighter.State.MOVE:
+		return
+	var use := false
+	match me.powers.power:
+		&"stomp":
+			var near := 0
+			for f in world.fighters:
+				if f != me and f.alive and f.global_position.distance_to(me.global_position) < 4.0:
+					near += 1
+			use = near >= 1
+		&"rage", &"iron_skin", &"bullet_time":
+			use = d < 4.5
+		&"blink":
+			use = d > 7.0 and d < 14.0 and _clear_line(target)
+			if use:
+				me.input.steer(target.global_position - me.global_position, 1.0)
+		&"second_wind":
+			use = me.health < me.max_health * 0.45
+	if use:
+		me.input.press(&"power")
 
 
 func _handle_attack_button(delta: float) -> void:

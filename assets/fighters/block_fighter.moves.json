@@ -13,6 +13,18 @@
    "loop": true,
    "speed": 2.6
   },
+  "Block": {
+   "events": {},
+   "length": 1.0,
+   "loop": true,
+   "speed": 0.0
+  },
+  "Block_Fists": {
+   "events": {},
+   "length": 1.0,
+   "loop": true,
+   "speed": 0.0
+  },
   "Catch": {
    "events": {
     "catch": 0.08
@@ -179,11 +191,71 @@
    "loop": false,
    "speed": 0.0
   },
+  "Parry": {
+   "events": {},
+   "length": 0.3333,
+   "loop": false,
+   "speed": 0.0
+  },
+  "Parry_Fists": {
+   "events": {},
+   "length": 0.3,
+   "loop": false,
+   "speed": 0.0
+  },
   "Pickup": {
    "events": {
     "grab": 0.18
    },
    "length": 0.4667,
+   "loop": false,
+   "speed": 0.0
+  },
+  "Power_Blink": {
+   "events": {
+    "power": 0.08
+   },
+   "length": 0.3,
+   "loop": false,
+   "speed": 0.0
+  },
+  "Power_Blink_Sword": {
+   "events": {
+    "power": 0.08
+   },
+   "length": 0.3,
+   "loop": false,
+   "speed": 0.0
+  },
+  "Power_Roar": {
+   "events": {
+    "power": 0.3
+   },
+   "length": 0.7333,
+   "loop": false,
+   "speed": 0.0
+  },
+  "Power_Roar_Sword": {
+   "events": {
+    "power": 0.3
+   },
+   "length": 0.7333,
+   "loop": false,
+   "speed": 0.0
+  },
+  "Power_Stomp": {
+   "events": {
+    "power": 0.3
+   },
+   "length": 0.6667,
+   "loop": false,
+   "speed": 0.0
+  },
+  "Power_Stomp_Sword": {
+   "events": {
+    "power": 0.3
+   },
+   "length": 0.6667,
    "loop": false,
    "speed": 0.0
   },
@@ -243,6 +315,12 @@
    "length": 0.5333,
    "loop": true,
    "speed": 6.4
+  },
+  "Stagger": {
+   "events": {},
+   "length": 0.6333,
+   "loop": false,
+   "speed": 0.0
   },
   "Strafe_L": {
    "events": {},

@@ -158,3 +158,60 @@ static func explosion(parent: Node, at: Vector3, radius: float) -> void:
 	tw.tween_property(ball, "scale", Vector3.ONE * radius, 0.28).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
 	tw.tween_property(ball, "transparency", 1.0, 0.32)
 	tw.chain().tween_callback(func() -> void: ball.visible = false)
+
+
+## Words that pop up over a fighter (PARRY!, RAGE...).
+static func floating_text(parent: Node, at: Vector3, text: String, color: Color) -> void:
+	if parent == null:
+		return
+	var l := _take("words", parent, func() -> Node:
+		var lab := Label3D.new()
+		lab.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
+		lab.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		lab.no_depth_test = true
+		lab.font_size = 56
+		lab.outline_size = 14
+		lab.pixel_size = 0.006
+		return lab) as Label3D
+	l.text = text
+	l.modulate = color
+	l.outline_modulate = Color(0, 0, 0, 0.8)
+	l.global_position = at
+	l.scale = Vector3.ONE
+	l.visible = true
+	var tw := l.create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(l, "global_position", at + Vector3.UP * 0.8, 0.9).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	tw.tween_property(l, "modulate:a", 0.0, 0.5).set_delay(0.5)
+	tw.chain().tween_callback(func() -> void: l.visible = false)
+
+
+## A ring of force spreading along the ground (stomp).
+static func shockwave(parent: Node, at: Vector3, radius: float, color: Color) -> void:
+	if parent == null:
+		return
+	var ring := _take("rings", parent, func() -> Node:
+		var mi := MeshInstance3D.new()
+		mi.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
+		var tm := TorusMesh.new()
+		tm.inner_radius = 0.85
+		tm.outer_radius = 1.0
+		tm.rings = 24
+		tm.ring_segments = 6
+		var m := StandardMaterial3D.new()
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		tm.material = m
+		mi.mesh = tm
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		return mi) as MeshInstance3D
+	((ring.mesh as TorusMesh).material as StandardMaterial3D).albedo_color = Color(color, 0.8)
+	ring.global_position = at + Vector3.UP * 0.15
+	ring.scale = Vector3(0.3, 0.3, 0.3)
+	ring.transparency = 0.0
+	ring.visible = true
+	var tw := ring.create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(ring, "scale", Vector3(radius, 1.0, radius), 0.3).set_ease(Tween.EASE_OUT)
+	tw.tween_property(ring, "transparency", 1.0, 0.35)
+	tw.chain().tween_callback(func() -> void: ring.visible = false)

@@ -34,6 +34,10 @@ var _spawner_next: Array[float] = []
 var _spawner_pickup: Array = []
 var _last_tick := -1
 var _last_kill: Dictionary = {}        # for the final replay
+var powerups: Array = []               # PowerUp or null per pickup point
+var _powerup_next: Array[float] = []
+var _bullet_until := -1.0
+var _bullet_by: Fighter
 var _rng := RandomNumberGenerator.new()
 
 
@@ -80,6 +84,9 @@ func _ready() -> void:
 	for i in arena.spawner_points.size():
 		_spawner_next.append(0.0 if config.spawners else INF)
 		_spawner_pickup.append(null)
+	for i in arena.pickup_points.size():
+		_powerup_next.append(8.0 + i * 1.5 if config.pickups else INF)
+		powerups.append(null)
 	for f in fighters:
 		f.freeze(true)
 	_prepare()
@@ -123,6 +130,7 @@ func _spawn_fighters() -> void:
 		f.skin = Registry.skin(i)
 		f.world = self
 		f.weapon_data = Registry.weapon(config.start_weapon)
+		f.powers.power = config.power if i == 0 else FighterPowers.IDS[(i * 2 + _rng.randi()) % FighterPowers.IDS.size()]
 		add_child(f)
 		var spot: Vector3 = starts[(i * 3) % starts.size()]
 		f.global_position = spot
@@ -180,9 +188,82 @@ func _physics_process(delta: float) -> void:
 			_respawn_at.erase(id)
 			_respawn(fighter_by_id(id))
 	_tick_spawners()
+	_tick_powerups()
+	if _bullet_until > 0.0 and clock >= _bullet_until:
+		_end_bullet_time()
 	killcam.record(clock)
 	if touch.visible:
 		touch.set_catch_hint(incoming_projectile(player, 0.6) != null)
+		touch.set_power_ready(player.powers.ready_to_use())
+
+
+func _tick_powerups() -> void:
+	for i in arena.pickup_points.size():
+		var p: PowerUp = powerups[i]
+		if p == null:
+			if clock >= _powerup_next[i]:
+				var roll := _rng.randf()
+				var kind: StringName = &"health" if roll < 0.3 else (&"speed" if roll < 0.5 else (&"damage" if roll < 0.7 else (&"shield" if roll < 0.85 else &"battery")))
+				p = PowerUp.new()
+				add_child(p)
+				p.setup(kind, arena.pickup_points[i], i)
+				powerups[i] = p
+			continue
+		for f in fighters:
+			if f.alive and (f.global_position + Vector3.UP).distance_to(p.global_position) < 1.25:
+				var text := f.apply_pickup(p.kind)
+				var color: Color = FighterPowers.PICKUPS[p.kind]["color"]
+				Audio.play(&"pickup", p.global_position, 0.0, 1.2)
+				Fx.sparks(self, p.global_position, color, 16)
+				callout_for(f, text, color)
+				powerups[i] = null
+				_powerup_next[i] = clock + 22.0
+				p.queue_free()
+				break
+
+
+## The nearest map pickup (optionally only some kinds), for bots.
+func nearest_powerup(pos: Vector3, radius: float, kinds: Array = []) -> PowerUp:
+	var best: PowerUp
+	var best_d := radius
+	for p in powerups:
+		if p == null or not is_instance_valid(p):
+			continue
+		if not kinds.is_empty() and not kinds.has((p as PowerUp).kind):
+			continue
+		var d := (p as PowerUp).global_position.distance_to(pos)
+		if d < best_d:
+			best_d = d
+			best = p
+	return best
+
+
+## Big words for the player, or floating words over a bot.
+func callout_for(f: Fighter, text: String, color: Color) -> void:
+	if f == player:
+		hud.callout(text, color, "", 0.6)
+	else:
+		Fx.floating_text(self, f.global_position + Vector3.UP * 2.5, text, color)
+
+
+## Bullet Time: everyone but `by` at half speed for `seconds`.
+func bullet_time(by: Fighter, seconds: float) -> void:
+	_bullet_by = by
+	_bullet_until = clock + seconds
+	by.powers.add_effect(&"bullet_time", seconds)
+	for f in fighters:
+		var scale := 1.0 if f == by else 0.5
+		f.time_scale = scale
+		f.body.set_time_scale(scale)
+	hud.set_tint(Color(0.35, 0.5, 1.0, 0.16))
+
+
+func _end_bullet_time() -> void:
+	_bullet_until = -1.0
+	for f in fighters:
+		f.time_scale = 1.0
+		f.body.set_time_scale(1.0)
+	hud.set_tint(Color(0, 0, 0, 0))
 
 
 func _tick_spawners() -> void:

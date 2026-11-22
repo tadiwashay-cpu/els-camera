@@ -547,3 +547,82 @@ move("Victory", Keys(_victory, [
     (1.5, {"hand_r": (-0.2, 0.0, 1.98), "hips": (0, 0, -0.01), "head": (-20, 0, 0)}, "out"),
     (2.0, {"hand_r": (-0.2, 0.0, 1.9), "hips": (0, 0, -0.04), "head": (-14, 0, 0)}, "smooth"),
 ]), 2.0, loop=True)
+
+# Block, parry, stagger ---------------------------------------------------------
+# Block / Block_Fists are held as an upper-body layer while the legs keep
+# moving; Parry is a quick upper-body flick; Stagger is what a parried
+# attacker does.
+_BLOCK = {"hand_r": (-0.18, -0.38, 1.42), "elbow_r": (-0.8, 0.3, -0.4), "grip_r": (0.85, -0.12, 0.5),
+          "hand_l": (0.2, -0.42, 1.5), "elbow_l": (0.8, 0.3, -0.4), "wrist_l": (0, -60, 0),
+          "spine": (6.0, 0, 4.0), "chest": (4.0, 0, 3.0), "upper": (3.0, 0, 2.0), "head": (-2.0, 0, 0)}
+_BLOCK_FISTS = {"hand_l": (0.1, -0.27, 1.62), "elbow_l": (0.4, -0.3, -1.0), "hand_r": (-0.1, -0.25, 1.6), "elbow_r": (-0.4, -0.3, -1.0),
+                "wrist_l": (0, 0, -40), "wrist_r": (0, 0, 40), "grip_r": None,
+                "spine": (8.0, 0, 0), "chest": (6.0, 0, 0), "upper": (4.0, 0, 0), "head": (6.0, 0, 0)}
+
+
+def _breathing(base, T=1.0):
+    def pose(t):
+        P = dict(base)
+        b = math.sin(2 * math.pi * t / T)
+        P["chest"] = add(base.get("chest", (0, 0, 0)), (-1.2 * b, 0, 0))
+        for h in ("hand_l", "hand_r"):
+            P[h] = add(base[h], (0.0, 0.0, 0.006 * b))
+        return P
+    return pose
+
+
+move("Block", _breathing(merge(STANCE, _BLOCK)), 1.0, loop=True)
+move("Block_Fists", _breathing(merge(GUARD, _BLOCK_FISTS)), 1.0, loop=True)
+move("Parry", Keys(merge(STANCE, _BLOCK), [
+    (0.0, {}),
+    (0.07, {"hand_r": (-0.46, -0.4, 1.5), "elbow_r": (-0.6, 0.4, -0.6), "grip_r": (-0.4, -0.8, 0.45),
+            "upper": (3, 0, -12.0), "hand_l": (0.3, -0.25, 1.4)}, "snap"),
+    (0.32, merge(STANCE, _BLOCK), "smooth"),
+]), 0.32)
+move("Parry_Fists", Keys(merge(GUARD, _BLOCK_FISTS), [
+    (0.0, {}),
+    (0.07, {"hand_l": (0.46, -0.46, 1.48), "elbow_l": (0.6, 0.2, -0.7), "wrist_l": (0, -70, 0), "upper": (3, 0, 14.0)}, "snap"),
+    (0.3, merge(GUARD, _BLOCK_FISTS), "smooth"),
+]), 0.3)
+move("Stagger", Keys(STANCE, [
+    (0.0, {}),
+    (0.1, {"hips": (0.0, 0.14, -0.06), "hips_rot": (-8, 2, -20), "spine": (-14, 0, 6), "chest": (-8, 0, 0), "head": (-22, 0, 8),
+           "hand_l": (0.46, 0.22, 1.42), "hand_r": (-0.46, 0.26, 1.36), "grip_r": (-0.5, 0.6, 0.6),
+           "foot_r": (-0.16, 0.42, ANKLE_Z), "foot_r_rot": (0, 0, -40)}, "snap"),
+    (0.32, {"hips": (0.0, 0.2, -0.1), "spine": (-8, 0, 4), "head": (-10, 0, 4)}, "smooth"),
+    (0.62, merge(RESET, STANCE), "smooth"),
+]), 0.62)
+
+# Powers ------------------------------------------------------------------------
+for _armed, _sfx in ((False, ""), (True, "_Sword")):
+    _base = STANCE if _armed else GUARD
+    _g = (lambda d: {"grip_r": d}) if _armed else (lambda d: {"grip_r": None})
+    move("Power_Stomp" + _sfx, Keys(_base, [
+        (0.0, {}),
+        (0.2, merge({"foot_r": (-0.1, -0.12, 0.62), "foot_r_rot": (10, 0, 0), "knee_r": (0, -0.6, 1.0), "hips": (0.02, 0.0, 0.02),
+                     "hips_rot": (-4, 0, -6), "spine": (-6, 0, 0), "hand_l": (0.3, -0.2, 1.72), "hand_r": (-0.3, -0.2, 1.72),
+                     "elbow_l": (0.8, 0.2, -0.3), "elbow_r": (-0.8, 0.2, -0.3)}, _g((0.0, 0.1, 1.0))), "smooth"),
+        (0.3, merge({"foot_r": (-0.15, -0.1, ANKLE_Z), "foot_r_rot": (0, 0, 0), "knee_r": (-0.2, -1, 0), "hips": (0.0, 0.02, -0.24),
+                     "hips_rot": (16, 0, 0), "spine": (12, 0, 0), "head": (-8, 0, 0), "hand_l": (0.3, -0.36, 1.0), "hand_r": (-0.3, -0.36, 1.0)},
+                    _g((0.1, -0.5, -0.86))), "snap"),
+        (0.44, {"hips": (0.0, 0.02, -0.26)}, "lin"),
+        (0.65, merge(RESET, _base), "smooth"),
+    ]), 0.65, events={"power": 0.3})
+    move("Power_Roar" + _sfx, Keys(_base, [
+        (0.0, {}),
+        (0.16, merge({"hips": (0.0, 0.03, -0.16), "hips_rot": (14, 0, 0), "spine": (12, 0, 0), "chest": (8, 0, 0), "head": (10, 0, 0),
+                      "hand_l": (-0.12, -0.24, 1.36), "hand_r": (0.12, -0.24, 1.36), "elbow_l": (0.7, 0.2, -0.6), "elbow_r": (-0.7, 0.2, -0.6)},
+                     _g((0.2, -0.3, 0.93))), "smooth"),
+        (0.3, merge({"hips": (0.0, 0.0, 0.0), "hips_rot": (-6, 0, 0), "spine": (-10, 0, 0), "chest": (-8, 0, 0), "head": (-22, 0, 0),
+                     "hand_l": (0.62, -0.05, 1.68), "hand_r": (-0.62, -0.05, 1.68), "elbow_l": (0.4, 0.3, -0.8), "elbow_r": (-0.4, 0.3, -0.8)},
+                    _g((-0.4, 0.0, 0.92))), "snap"),
+        (0.5, {"hand_l": (0.6, -0.05, 1.64), "hand_r": (-0.6, -0.05, 1.64)}, "lin"),
+        (0.72, merge(RESET, _base), "smooth"),
+    ]), 0.72, events={"power": 0.3})
+    move("Power_Blink" + _sfx, Keys(_base, [
+        (0.0, {}),
+        (0.08, merge({"hips": (0.0, -0.06, -0.18), "hips_rot": (24, 0, 0), "spine": (14, 0, 0), "head": (-14, 0, 0),
+                      "hand_l": (0.3, 0.32, 1.1), "hand_r": (-0.3, 0.32, 1.1), "elbow_l": (0.3, 0.8, 0.2), "elbow_r": (-0.3, 0.8, 0.2)},
+                     _g((0.0, 0.7, -0.7))), "snap"),
+        (0.3, merge(RESET, _base), "smooth"),
+    ]), 0.3, events={"power": 0.08})
