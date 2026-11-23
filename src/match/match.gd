@@ -600,7 +600,9 @@ func _end_match() -> void:
 	touch.release_all()
 	var winner := fighter_by_id(race.winner)
 	if net:
-		net.event("end", [race.winner])
+		# The final scores ride along: snapshots are unreliable, and a kill in
+		# the last moment might otherwise never reach the joiners.
+		net.event("end", [race.winner, race.scores.duplicate()])
 	for f in fighters:
 		f.freeze(true)
 	Audio.play(&"buzzer")
@@ -615,9 +617,12 @@ func _end_match() -> void:
 
 
 ## A joiner's match ends when the host says so.
-func end_for_joiner(winner_id: int) -> void:
+func end_for_joiner(winner_id: int, final_scores: Dictionary = {}) -> void:
 	if ended:
 		return
+	if not final_scores.is_empty():
+		race.scores = final_scores
+		hud.refresh_board()
 	ended = true
 	started = false
 	race.winner = winner_id

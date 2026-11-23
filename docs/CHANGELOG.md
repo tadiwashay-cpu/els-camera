@@ -32,6 +32,8 @@ Bump MINOR for a phase or batch of features, PATCH for fixes.
     spawner; pads to it and back, up onto the stacked containers, and onto
     the ship's deck.
   - Every arena now has at least 9 spawn points (for 8 bots).
+- Fix (LAN): a kill in the match's last moment could be missing from a
+  joiner's results; the host now sends the final scores with the end.
 
 ## 0.4.1: Curved weapon models, a big round shield with its own moves
 

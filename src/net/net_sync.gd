@@ -577,4 +577,4 @@ func receive_event(kind: String, d: Array) -> void:
 		"shark":
 			m.arena.call(&"_shark_show", d[0])
 		"end":
-			m.end_for_joiner(int(d[0]))
+			m.end_for_joiner(int(d[0]), d[1] if d.size() > 1 and d[1] is Dictionary else {})
