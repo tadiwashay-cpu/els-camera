@@ -10,6 +10,11 @@ const DEFAULTS := {
 	"owned": ["sword", "fists"],   # weapons bought in the Armory (Armory)
 	"equipped": "sword",           # the weapon you start with ("Your weapon")
 	"welcome_bonus": false,
+	"upgrades": {"health": 0, "damage": 0, "speed": 0, "power": 0},   # levels 0..5 (Upgrades)
+	# Your fighter's look (Look): palette indices and part ids.
+	"look": {"skin": 1, "shirt": 0, "pants": 9, "shoes": 11, "hair": "band", "hair_color": 0,
+		"hat": "none", "hat_color": 0, "face": "fierce"},
+	"looks_owned": [],             # bought parts, "hair:spiky", "hat:crown"... (Look)
 	"settings": {
 		"quality": 1,             # 0 low, 1 medium (Redmi Pad 2 default), 2 high
 		"show_fps": false,

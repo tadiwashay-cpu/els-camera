@@ -156,6 +156,9 @@ var _skill_id := &""
 var _skill_done := false
 ## A joiner's copy of the host's cooldown (seconds left).
 var net_skill_left := 0.0
+## Upgrades (Upgrades.apply): weapon power cooldown factor, and the levels.
+var skill_cd_mult := 1.0
+var upgrades: Dictionary = {}
 var _glow_was := -1.0
 
 
@@ -1242,7 +1245,7 @@ func _use_skill() -> void:
 	var s := WeaponSkills.info(_skill_id)
 	if s.is_empty():
 		return
-	_skill_cd[_skill_id] = _clock + float(s["cd"])
+	_skill_cd[_skill_id] = _clock + float(s["cd"]) * skill_cd_mult
 	_skill_done = false
 	protect = 0.0
 	_soft_aim()

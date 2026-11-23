@@ -1,6 +1,6 @@
 extends Node
 ## Dev: screenshots of the Armory (a locked and an owned weapon), the
-## Controls screen, the touch layout editor, the Multiplayer screen and the
+## Locker (look and upgrades), the Controls screen, the touch layout editor, the Multiplayer screen and the
 ## host's lobby.
 ##   xvfb-run -a godot --path . --resolution 1600x1000 res://tools/capture/lobby_shots.tscn -- OUT_DIR
 
@@ -28,6 +28,23 @@ func _ready() -> void:
 	armory.call(&"_select", Registry.weapon(&"bazooka"))
 	await get_tree().create_timer(0.6).timeout
 	await _shot(out, "armory_bazooka")
+	var locker: LockerScreen = title.get(&"_locker")
+	title.call(&"_show", locker)
+	await get_tree().create_timer(0.4).timeout
+	var look := Look.mine()
+	look["hat"] = "crown"
+	look["face"] = "grin"
+	look["hair"] = "spiky"
+	look["shirt"] = 5
+	locker.set(&"_look", look)
+	locker.call(&"_changed")
+	await get_tree().create_timer(0.6).timeout
+	await _shot(out, "locker_look")
+	locker.call(&"_tab", 1)
+	await get_tree().create_timer(0.4).timeout
+	await _shot(out, "locker_upgrades")
+	locker.call(&"_tab", 0)
+	locker.call(&"_on_back")
 	title.call(&"_refresh_bindings")
 	title.call(&"_show", title.get(&"_controls"))
 	await get_tree().create_timer(0.6).timeout

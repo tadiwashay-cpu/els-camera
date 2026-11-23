@@ -37,6 +37,9 @@ const SHIELD := 50.0
 
 var power := &"rage"
 var meter := 0.0
+## Upgrades (Upgrades.apply): damage dealt and how fast the meter fills.
+var damage_bonus := 1.0
+var gain_mult := 1.0
 var shield := 0.0
 var effects: Dictionary = {}   # effect id -> seconds left
 
@@ -46,7 +49,7 @@ func ready_to_use() -> bool:
 
 
 func gain(amount: float) -> void:
-	meter = clampf(meter + amount, 0.0, FULL)
+	meter = clampf(meter + amount * (gain_mult if amount > 0.0 else 1.0), 0.0, FULL)
 
 
 func dealt(damage: float) -> void:
@@ -92,7 +95,7 @@ func damage_dealt_mult() -> float:
 		m *= 2.0
 	if has(&"overclock"):
 		m *= 1.3
-	return minf(m, 2.5)
+	return minf(m, 2.5) * damage_bonus
 
 
 func damage_taken_mult() -> float:

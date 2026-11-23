@@ -142,6 +142,14 @@ func _fix_loops() -> void:
 
 # ------------------------------------------------------------------ mesh
 
+## A new look on the same rig (the Locker preview).
+func set_skin(s: SkinData) -> void:
+	skin = s
+	if mesh_instance:
+		mesh_instance.free()
+	_build_mesh()
+
+
 func _build_mesh() -> void:
 	var b := BoxBuilder.new(true)
 	var skin_res := Skin.new()
@@ -166,14 +174,7 @@ func _build_mesh() -> void:
 	# Head, face and hair: scaled about the head bone.
 	var head: int = bind.call(&"Head")
 	var h := func(v: Vector3) -> Vector3: return HEAD_ORIGIN + v * hs
-	b.box(Vector3(0.3, 0.3, 0.3) * hs, h.call(Vector3(0, 0.14, 0.01)), skin.skin, head)
-	var front := 0.01 + 0.15 + 0.008
-	b.box(Vector3(0.055, 0.075, 0.018) * hs, h.call(Vector3(0.07, 0.16, front)), skin.eyes, head)
-	b.box(Vector3(0.055, 0.075, 0.018) * hs, h.call(Vector3(-0.07, 0.16, front)), skin.eyes, head)
-	b.box(Vector3(0.085, 0.02, 0.018) * hs, h.call(Vector3(0.072, 0.215, front)), skin.eyes, head, Basis(Vector3.BACK, 0.32))
-	b.box(Vector3(0.085, 0.02, 0.018) * hs, h.call(Vector3(-0.072, 0.215, front)), skin.eyes, head, Basis(Vector3.BACK, -0.32))
-	b.box(Vector3(0.1, 0.022, 0.018) * hs, h.call(Vector3(0, 0.07, front)), skin.eyes, head)
-	b.box(Vector3(0.32, 0.07, 0.32) * hs, h.call(Vector3(0, 0.29, 0.0)), skin.shirt.darkened(0.35), head)   # headband / hair block
+	Look.build_head(b, skin, head, h, hs)
 	material = BoxBuilder.vertex_color_material(0.7)
 	material.emission_enabled = true
 	material.emission = Color.BLACK

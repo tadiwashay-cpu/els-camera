@@ -16,6 +16,7 @@ var _settings: Control
 var _mp: Control
 var _lobby: Control
 var _armory: ArmoryScreen
+var _locker: LockerScreen
 var _controls: Control
 var _bind_buttons: Dictionary = {}       # action -> [key Button, pad Button]
 var _bind_status: Label
@@ -71,7 +72,7 @@ func _build_world() -> void:
 	for i in 2:
 		var b := BlockBody.new()
 		add_child(b)
-		b.setup(Registry.skin(i * 1), false)
+		b.setup(Look.skin_data(Look.mine()) if i == 0 else Registry.skin(1), false)
 		b.position = Vector3(-1.1 if i == 0 else 1.1, 0, 0)
 		b.rotation.y = PI * 0.5 if i == 0 else -PI * 0.5
 		var w := MeshInstance3D.new()
@@ -88,7 +89,15 @@ func _build_world() -> void:
 
 func _process(delta: float) -> void:
 	_t += delta * 0.18
-	if _armory and _armory.visible:
+	if _locker and _locker.visible:
+		# The Locker: your fighter up close, turning slowly.
+		var b := _bodies[0]
+		b.rotation.y += delta * 0.6
+		_cam.position = b.position + Vector3(0, 1.45, 4.6)
+		_cam.look_at(b.position + Vector3(0, 1.15, 0), Vector3.UP)
+		_cam.h_offset = 1.25
+		_cam.v_offset = -0.05
+	elif _armory and _armory.visible:
 		# The Armory: one fighter, turning slowly, holding the selected weapon.
 		var b := _bodies[0]
 		b.rotation.y += delta * 0.5
@@ -140,6 +149,12 @@ func _build_ui() -> void:
 	_ui.add_child(_armory)
 	_armory.back.connect(func() -> void: _show(_main))
 	_armory.selected.connect(_preview_weapon)
+	_locker = LockerScreen.new()
+	_ui.add_child(_locker)
+	_locker.back.connect(func() -> void: _show(_main))
+	_locker.look_changed.connect(func(look: Dictionary) -> void:
+		if not _bodies.is_empty():
+			_bodies[0].set_skin(Look.skin_data(look)))
 	Net.lobby_changed.connect(_refresh_lobby)
 	Net.status_changed.connect(func(t: String) -> void: _mp_status.text = t)
 	Net.left.connect(func(reason: String) -> void:
@@ -169,18 +184,23 @@ func _panel(title: String) -> VBoxContainer:
 
 
 func _show(which: Control) -> void:
-	for c in [_main, _setup, _settings, _mp, _lobby, _armory, _controls]:
+	for c in [_main, _setup, _settings, _mp, _lobby, _armory, _controls, _locker]:
 		if c:
 			c.visible = c == which
+	var solo := which == _armory or which == _locker
 	if _version:
-		_version.visible = which != _armory
+		_version.visible = not solo
 	if _bodies.size() > 1:
-		_bodies[1].visible = which != _armory
-		if which != _armory:
+		_bodies[1].visible = not solo
+		if not solo:
 			_bodies[0].rotation.y = PI * 0.5
 			_preview_weapon(Registry.weapon(&"sword"))
-		else:
+		elif which == _armory:
 			_preview_weapon(_armory.current)
+		else:
+			_preview_weapon(Registry.weapon(Armory.equipped()))
+	if which == _locker:
+		_locker.open()
 	if which == _mp:
 		Net.discovery.start_listening()
 		_refresh_games()
@@ -234,6 +254,9 @@ func _main_menu() -> Control:
 	var arm := UiTheme.big_button("ARMORY")
 	arm.pressed.connect(func() -> void: _show(_armory))
 	box.add_child(arm)
+	var lock := UiTheme.big_button("LOCKER")
+	lock.pressed.connect(func() -> void: _show(_locker))
+	box.add_child(lock)
 	var st := UiTheme.big_button("SETTINGS")
 	st.pressed.connect(func() -> void: _show(_settings))
 	box.add_child(st)

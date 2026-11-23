@@ -165,8 +165,12 @@ func _spawn_fighters() -> void:
 			if i == 0:
 				e["owned"] = Armory.owned()
 				e["loadout"] = String(Armory.equipped())
+				e["look"] = Look.mine()
+				e["upgrades"] = Upgrades.levels()
 			else:
 				e["loadout"] = String(bot_loadout(_rng))
+				e["look"] = Look.random(_rng)
+				e["upgrades"] = Upgrades.for_bot(config.difficulty)
 			entries.append(e)
 	var spots := start_spots(arena.spawn_points, entries.size(), config.seed)
 	var me := Net.my_id()
@@ -178,7 +182,8 @@ func _spawn_fighters() -> void:
 		f.is_player = peer == me
 		f.puppet = not authority
 		f.display_name = str(e["name"])
-		f.skin = Registry.skin(int(e["skin"]))
+		f.skin = Look.skin_data(e["look"], StringName("look_%d" % i)) if e.has("look") else Registry.skin(int(e["skin"]))
+		Upgrades.apply(f, e.get("upgrades", {}))
 		f.world = self
 		f.set_locker(e.get("owned", []))
 		f.loadout = StringName(str(e.get("loadout", "")))

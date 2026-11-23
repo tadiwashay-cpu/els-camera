@@ -18,6 +18,12 @@ extends Resource
 ## Width of torso and limbs.
 @export_range(0.8, 1.3) var bulk := 1.0
 @export var unlock_cost := 0
+## Customisation (Look): hair style and colour, hat and its colour, face.
+@export var hair := &"band"
+@export var hair_color := Color(0.12, 0.09, 0.07)
+@export var hat := &"none"
+@export var hat_color := Color(0.2, 0.25, 0.6)
+@export var face := &"fierce"
 
 
 func color(role: StringName) -> Color:

@@ -69,7 +69,8 @@ func host(player_name: String, power: StringName) -> Error:
 	active = true
 	is_host = true
 	players = {1: {"name": player_name, "power": String(power), "skin": 0,
-		"owned": Array(Armory.owned()), "loadout": String(Armory.equipped())}}
+		"owned": Array(Armory.owned()), "loadout": String(Armory.equipped()),
+		"look": Look.mine(), "upgrades": Upgrades.levels()}}
 	settings = _settings_from(Game.match_config)
 	discovery.start_broadcast(_announce())
 	_set_status("Hosting on %s" % ", ".join(local_ips()))
@@ -129,7 +130,7 @@ func set_setting(key: String, value: Variant) -> void:
 func _on_connected() -> void:
 	var hello: Dictionary = get_meta("pending_hello", {})
 	_hello.rpc_id(1, str(hello.get("name", "Player")), str(hello.get("power", "rage")), Game.version(),
-		Array(Armory.owned()), String(Armory.equipped()))
+		Array(Armory.owned()), String(Armory.equipped()), Look.mine(), Upgrades.levels())
 	_set_status("Connected, waiting for the host")
 
 
@@ -190,7 +191,8 @@ func _sorted_ids() -> Array:
 
 
 @rpc("any_peer", "reliable")
-func _hello(player_name: String, power: String, version: String, owned: Array = [], loadout: String = "sword") -> void:
+func _hello(player_name: String, power: String, version: String, owned: Array = [], loadout: String = "sword",
+		look: Dictionary = {}, upgrades: Dictionary = {}) -> void:
 	if not is_host:
 		return
 	var id := multiplayer.get_remote_sender_id()
@@ -202,7 +204,8 @@ func _hello(player_name: String, power: String, version: String, owned: Array = 
 		return
 	var locker := Armory.clean_locker(owned)
 	players[id] = {"name": player_name.substr(0, 16), "power": power, "skin": 0,
-		"owned": Array(locker), "loadout": loadout if locker.has(loadout) else "sword"}
+		"owned": Array(locker), "loadout": loadout if locker.has(loadout) else "sword",
+		"look": Look.clean(look), "upgrades": Upgrades.clean(upgrades)}
 	_push_lobby()
 
 
@@ -229,7 +232,8 @@ func start_match() -> void:
 	for id: int in _sorted_ids():
 		var p: Dictionary = players[id]
 		roster.append({"id": fid, "name": p["name"], "skin": int(p["skin"]), "peer": id, "power": p["power"],
-			"owned": p.get("owned", ["sword", "fists"]), "loadout": str(p.get("loadout", "sword"))})
+			"owned": p.get("owned", ["sword", "fists"]), "loadout": str(p.get("loadout", "sword")),
+			"look": Look.clean(p.get("look", {})), "upgrades": Upgrades.clean(p.get("upgrades", {}))})
 		fid += 1
 	var bots := clampi(int(settings.get("bots", 1)), 0, Match.MAX_FIGHTERS - roster.size())
 	if roster.size() == 1:
@@ -239,7 +243,8 @@ func start_match() -> void:
 		rng.randomize()
 		roster.append({"id": fid, "name": Match.BOT_NAMES[b % Match.BOT_NAMES.size()], "skin": fid, "peer": 0,
 			"power": String(FighterPowers.IDS[(fid * 2 + randi()) % FighterPowers.IDS.size()]),
-			"loadout": String(Match.bot_loadout(rng))})
+			"loadout": String(Match.bot_loadout(rng)), "look": Look.random(rng),
+			"upgrades": Upgrades.for_bot(int(settings.get("difficulty", 1)))})
 		fid += 1
 	var s := settings.duplicate()
 	s["arena_id"] = String(Registry.pick_arena(StringName(str(s.get("arena_choice", "blockout_yard")))).id)
