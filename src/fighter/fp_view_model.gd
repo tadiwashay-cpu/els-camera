@@ -28,8 +28,8 @@ const FROM_MOVE := {
 	&"Shield_Bash": &"FP_ShieldBash", &"Shield_Bash_B": &"FP_ShieldBash", &"Shield_Slam": &"FP_ShieldSlam",
 	&"Shield_Raise": &"FP_ShieldRaise",
 	&"Power_Roar": &"FP_Cast", &"Power_Roar_Sword": &"FP_Cast", &"Power_Stomp": &"FP_Cast", &"Power_Stomp_Sword": &"FP_Cast",
-	&"Power_Blink": &"FP_Cast", &"Power_Blink_Sword": &"FP_Cast", &"Cast_Forward": &"FP_Cast", &"Cast_Sky": &"FP_Cast",
-	&"Cast_Ground": &"FP_Cast", &"Cast_Buff": &"FP_Cast", &"Cast_Pull": &"FP_Cast",
+	&"Power_Blink": &"FP_Cast", &"Power_Blink_Sword": &"FP_Cast", &"Cast_Forward": &"FP_Cast", &"Cast_Sky": &"FP_CastSky",
+	&"Cast_Ground": &"FP_Smash", &"Cast_Buff": &"FP_CastSky", &"Cast_Pull": &"FP_Pull",
 	&"Catch": &"FP_Catch", &"Pickup": &"FP_Equip",
 	&"Land": &"FP_Dip", &"Land_Sword": &"FP_Dip", &"Land_Hard": &"FP_Dip", &"Land_Hard_Sword": &"FP_Dip",
 	&"Hit_Front": &"FP_Dip", &"Hit_Back": &"FP_Dip", &"Stagger": &"FP_Dip",
@@ -118,7 +118,7 @@ static func warp(u: float, clip: StringName, fp: StringName) -> float:
 		e0 = hit.x / length
 		e1 = hit.y / length
 	else:
-		for ev: String in ["release", "fire", "slam", "catch"]:
+		for ev: String in ["power", "release", "fire", "slam", "catch"]:
 			var t := BlockBody.event_time(clip, ev)
 			if t >= 0.0:
 				e0 = t / length

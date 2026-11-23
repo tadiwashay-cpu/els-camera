@@ -23,6 +23,13 @@
     0.55
    ]
   },
+  "FP_CastSky": {
+   "loop": false,
+   "strike": [
+    0.3,
+    0.38
+   ]
+  },
   "FP_Catch": {
    "loop": false,
    "strike": null
@@ -58,6 +65,13 @@
    "strike": [
     0.0,
     0.22
+   ]
+  },
+  "FP_Pull": {
+   "loop": false,
+   "strike": [
+    0.18,
+    0.24
    ]
   },
   "FP_Recoil": {

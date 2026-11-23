@@ -746,6 +746,80 @@ def front_hand(hand_r, grip, gap=0.42):
             "elbow_l": (0.6, 0.4, -0.7), "elbow_r": (-0.6, 0.5, -0.7)}
 
 
+# Weapon power casts (0.7): one per kind of power, all with the weapon in the
+# right hand from the sword stance. "power" is when the power goes off
+# (WeaponSkills.INFO "at" matches it).
+_TUCK = {"elbow_l": (0.6, 0.4, -0.6), "elbow_r": (-0.6, 0.4, -0.6)}
+_WIDE = {"elbow_l": (0.5, 0.3, -0.8), "elbow_r": (-0.5, 0.3, -0.8)}
+# Call the sky: crouch with the weapon low behind, then stretch it straight
+# up, the other hand up too, looking up.
+move("Cast_Sky", Keys(STANCE, [
+    (0.0, {}),
+    (0.18, merge({"hips": (0.0, 0.04, -0.18), "hips_rot": (12, 0, -10), "spine": (10, 0, 0), "head": (6, 0, 0),
+                  "hand_r": (-0.3, 0.1, 0.95), "grip_r": (-0.2, 0.5, -0.84), "hand_l": (0.25, -0.2, 1.0),
+                  "knee_l": (0.3, -1.0, 0.1), "knee_r": (-0.4, -1.0, 0.1)}, _TUCK), "in"),
+    (0.34, merge({"hips": (0.0, 0.0, 0.04), "hips_rot": (-8, 0, 0), "spine": (-12, 0, 0), "chest": (-8, 0, 0),
+                  "head": (-30, 0, 0), "hand_r": (-0.16, -0.06, 2.05), "grip_r": (0.0, -0.1, 1.0),
+                  "hand_l": (0.45, -0.1, 1.85), "foot_l_rot": (14, 0, -10), "foot_r_rot": (14, 0, -35)}, _WIDE), "snap"),
+    (0.6, {"hand_r": (-0.16, -0.06, 2.02), "hand_l": (0.44, -0.1, 1.82)}, "lin"),
+    (0.9, merge(RESET, STANCE), "smooth"),
+]), 0.9, events={"power": 0.34})
+# Strike the ground: both hands raise it, then drop to one knee and drive
+# it into the ground in front.
+move("Cast_Ground", Keys(STANCE, [
+    (0.0, {}),
+    (0.16, merge({"hips": (0.0, 0.04, -0.04), "spine": (-6, 0, 0), "head": (-10, 0, 0)},
+                 two_hand((-0.08, -0.15, 1.85), (0.0, 0.2, 0.98))), "in"),
+    (0.32, merge({"hips": (0.0, -0.05, -0.42), "hips_rot": (10, 0, 0), "spine": (18, 0, 0), "head": (10, 0, 0),
+                  "foot_l": (0.18, -0.32, ANKLE_Z), "knee_l": (0.3, -1.0, 0.0),
+                  "foot_r": (-0.16, 0.38, ANKLE_Z + 0.06), "foot_r_rot": (40, 0, -10), "toe_r": -40.0,
+                  "knee_r": (-0.3, -1.0, -0.6)},
+                 two_hand((-0.02, -0.42, 0.6), (0.0, -0.25, -0.97))), "snap"),
+    (0.55, {"hips": (0.0, -0.05, -0.43)}, "lin"),
+    (0.85, merge(RESET, STANCE), "smooth"),
+]), 0.85, events={"power": 0.32})
+# Power up: crouch and pull the weapon to the chest, then burst open, arms
+# wide, chest out.
+move("Cast_Buff", Keys(STANCE, [
+    (0.0, {}),
+    (0.18, merge({"hips": (0.0, 0.03, -0.2), "hips_rot": (14, 0, 0), "spine": (16, 0, 0), "chest": (10, 0, 0),
+                  "head": (8, 0, 0), "hand_r": (-0.12, -0.22, 1.15), "grip_r": (0.3, 0.0, 0.95),
+                  "hand_l": (0.12, -0.24, 1.12)}, _TUCK), "in"),
+    (0.36, merge({"hips": (0.0, 0.0, 0.02), "hips_rot": (-6, 0, 0), "spine": (-10, 0, 0), "chest": (-10, 0, 0),
+                  "head": (-16, 0, 0), "hand_r": (-0.55, -0.1, 1.7), "grip_r": (-0.3, -0.2, 0.93),
+                  "hand_l": (0.6, -0.05, 1.6)}, _WIDE), "snap"),
+    (0.6, {"hand_r": (-0.54, -0.1, 1.68), "hand_l": (0.58, -0.05, 1.58)}, "lin"),
+    (0.9, merge(RESET, STANCE), "smooth"),
+]), 0.9, events={"power": 0.36})
+# Push forward: weapon drawn back over the shoulder, then thrust out with
+# the other palm beside it.
+move("Cast_Forward", Keys(STANCE, [
+    (0.0, {}),
+    (0.16, {"hips": (0.0, 0.06, -0.1), "hips_rot": (6, 0, -34), "upper": (2, 0, -14),
+            "hand_r": (-0.4, 0.22, 1.35), "grip_r": (-0.2, 0.6, 0.77), "hand_l": (0.3, -0.35, 1.3),
+            "elbow_r": (-0.6, 0.6, -0.4)}, "in"),
+    (0.3, {"hips": (0.0, -0.12, -0.12), "hips_rot": (8, 0, 10), "upper": (2, 0, 10), "spine": (8, 0, 0),
+           "foot_l": (0.18, -0.34, ANKLE_Z), "hand_r": (-0.16, -0.62, 1.38), "grip_r": (0.05, -0.98, 0.15),
+           "hand_l": (0.14, -0.6, 1.42), "wrist_l": (-60, 0, -10), "elbow_r": (-0.7, 0.3, -0.6),
+           "elbow_l": (0.7, 0.3, -0.6)}, "snap"),
+    (0.5, {"hand_r": (-0.16, -0.6, 1.38), "hand_l": (0.14, -0.58, 1.42)}, "lin"),
+    (0.75, merge(RESET, STANCE), "smooth"),
+]), 0.75, events={"power": 0.3})
+# Pull: reach out, then yank it back to the chest, leaning away.
+move("Cast_Pull", Keys(STANCE, [
+    (0.0, {}),
+    (0.12, {"hips": (0.0, -0.1, -0.1), "spine": (10, 0, 0), "foot_l": (0.18, -0.3, ANKLE_Z),
+            "hand_r": (-0.18, -0.6, 1.35), "grip_r": (0.05, -0.95, 0.3), "hand_l": (0.18, -0.62, 1.4),
+            "wrist_l": (-40, 0, 0)}, "out"),
+    (0.22, {"hand_r": (-0.18, -0.62, 1.36), "hand_l": (0.18, -0.64, 1.41)}, "lin"),
+    (0.42, merge({"hips": (0.0, 0.12, -0.14), "hips_rot": (-6, 0, -20), "spine": (-10, 0, 0), "head": (-6, 0, 0),
+                  "foot_l": (0.18, -0.2, ANKLE_Z), "hand_r": (-0.3, 0.1, 1.2), "grip_r": (0.1, -0.7, 0.7),
+                  "hand_l": (0.25, -0.05, 1.15), "wrist_l": (0, 0, -20)},
+                 {"elbow_l": (0.6, 0.8, -0.3), "elbow_r": (-0.6, 0.8, -0.3)}), "snap"),
+    (0.62, {"hips": (0.0, 0.12, -0.15)}, "lin"),
+    (0.85, merge(RESET, STANCE), "smooth"),
+]), 0.85, events={"power": 0.22})
+
 _HEAVY_BASE = merge(STANCE, {"hips": (0.0, 0.03, -0.1), "foot_l": (0.2, -0.16, ANKLE_Z), "foot_r": (-0.2, 0.2, ANKLE_Z)},
                     two_hand((-0.2, -0.28, 1.25), (-0.2, 0.55, 0.81)))
 move("Heavy_Idle", loop_idle(_HEAVY_BASE), 2.0, loop=True)

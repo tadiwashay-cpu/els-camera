@@ -185,6 +185,24 @@ FP_MOVES = {
         (0.80, (-0.04, 0.03, -0.22), (-4.0, -30.0, 0.0)),
         (1.0, *REST),
     ], strike=(0.30, 0.55)),
+    # Calling the sky (and powering up): dip, then the weapon held straight
+    # up in the middle of the view.
+    "FP_CastSky": move([
+        (0.0, *REST),
+        (0.20, (0.0, -0.20, 0.05), (0.0, -30.0, 0.0)),
+        (0.38, (-0.10, 0.30, -0.05), (10.0, 30.0, 0.0)),
+        (0.65, (-0.10, 0.29, -0.05), (10.0, 29.0, 0.0)),
+        (1.0, *REST),
+    ], strike=(0.30, 0.38)),
+    # Pull: reach out, then yank it back towards you.
+    "FP_Pull": move([
+        (0.0, *REST),
+        (0.12, (-0.06, 0.04, -0.35), (5.0, -40.0, 0.0)),
+        (0.22, (-0.06, 0.04, -0.37), (5.0, -41.0, 0.0)),
+        (0.42, (0.04, -0.06, 0.18), (10.0, 10.0, -20.0)),
+        (0.62, (0.04, -0.06, 0.17), (10.0, 9.0, -20.0)),
+        (1.0, *REST),
+    ], strike=(0.18, 0.24)),
     # Snapping a caught weapon into the hand; a new weapon coming up.
     "FP_Catch": move([
         (0.0, (0.0, -0.45, 0.10), (0.0, -30.0, 0.0)),
