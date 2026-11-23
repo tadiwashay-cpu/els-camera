@@ -4,6 +4,32 @@ Versions are `MAJOR.MINOR.PATCH`; the number lives in `project.godot`
 (`config/version`) and shows on the title screen and next to the FPS counter.
 Bump MINOR for a phase or batch of features, PATCH for fixes.
 
+## 0.6.0: First person, button remapping, life bars, spawn fix
+
+- **First person (FPP)**, CODM style: the FPP/TPP button under pause (or V,
+  or the pad's Back) switches; Settings > Camera picks the default. The eye
+  sits in your fighter's head, your body turns with the view and strafes,
+  and the view pulls back out while you're knocked down. Third person stays
+  the default.
+- **Button remapping**: Settings > CONTROLS.
+  - EDIT TOUCH LAYOUT: drag any on-screen button where you like, tap one and
+    slide to resize it, SAVE (RESET puts them back).
+  - Keyboard and gamepad: tap an action's key or pad button, then press the
+    new one. A clash swaps the two; Pause can't be taken; RESET KEYS.
+- **Life bars over heads** instead of damage numbers: a small bar about the
+  size of a head floats over every fighter, drains when they're hit (a pale
+  trail shows the hit) and follows them, even ragdolled. Its rim is the
+  fighter's colour. Yours hides in first person.
+- **No power names on screen**: using a weapon power or a power no longer
+  shouts its name, and the HUD shows only the weapon (the SKILL button's
+  ring shows when it's ready).
+- **Fix: fighters spawning in the water / on top of each other** (Harbor
+  Factory especially): with 9 spawn points the start spread put three
+  fighters on each of three points and they burst apart, some into the sea.
+  Each fighter now gets its own point (a seeded shuffle, the same on every
+  phone), and a test checks every spawn point has dry ground 1.5 m around.
+- Camera smoothing no longer depends on the frame rate.
+
 ## 0.5.0: Feel (lighting, screen effects, camera, particles) and bigger maps
 
 - **Lighting**: metal reflects the sky (weapons, rails and trim shine),

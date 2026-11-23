@@ -1,8 +1,8 @@
-# Playtest guide (v0.5.0: feel, bigger maps, new weapon models, the Armory)
+# Playtest guide (v0.6.0: first person, remapping, life bars)
 
 ## Install
 1. On the tablet open GitHub > this repo > **Releases** > "Block Duelist 3D
-   v0.5.0 (playtest)" and download the APK (or Actions > latest run > Artifacts).
+   v0.6.0 (playtest)" and download the APK (or Actions > latest run > Artifacts).
 2. Tap it, allow "install unknown apps", open **Block Duelist 3D**.
 3. Settings: Graphics on **MEDIUM** for the gates, turn **Show FPS** on.
 
@@ -10,6 +10,10 @@
 
 | # | Do this | Look for |
 |---|---------|----------|
+| F1 | In a match tap TPP (top right) to go first person; fight, throw, jump | Feels like CODM's FPP? Too much head bob? Can you see your weapon? |
+| F2 | Settings > CONTROLS > EDIT TOUCH LAYOUT: move and resize buttons, SAVE, play | Buttons where you put them, still easy to hit |
+| F3 | Watch fights | Life bars over heads readable at a distance? No number pop-ups, no power names |
+| F4 | Harbor Factory, 8 bots, start several matches | Nobody starts in the water or stacked |
 | A | Play each arena on MEDIUM, then HIGH | Lighting, haze, shiny metal look better? FPS still fine (show FPS on)? |
 | B | Get hit, land heavy hits, get a kill, dash | Red edge flash, jolts, speed blur: good or too much? |
 | C | Run sideways, jump off something high | Camera lean and landing dip feel good, not sick-making? |
@@ -34,7 +38,7 @@ Copy this into a GitHub Issue or the chat:
 
 ```
 Device: Redmi Pad 2 (or ...)
-Build: v0.5.0 (from the title screen)
+Build: v0.6.0 (from the title screen)
 
 FEEL (1 bad - 5 great)
   Moving:      Attacking:      Weapons:      Camera:      Bots:

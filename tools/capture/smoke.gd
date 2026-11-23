@@ -47,6 +47,16 @@ func _ready() -> void:
 			_breaks[k] = int(_breaks.get(k, 0)) + 1)
 	_match.begin()
 	Engine.time_scale = 1.0
+	# Where everyone starts: nobody in the water, nobody on top of anyone.
+	var wet := 0
+	var stacked := 0
+	for f in _match.fighters:
+		if f.global_position.y < _match.arena.water_level + 0.2:
+			wet += 1
+		for g in _match.fighters:
+			if g.fighter_id > f.fighter_id and g.global_position.distance_to(f.global_position) < 0.9:
+				stacked += 1
+	print("SMOKE start: fighters=%d in_water=%d stacked=%d" % [_match.fighters.size(), wet, stacked])
 	var t0 := Time.get_ticks_msec()
 	while not _match.ended:
 		await get_tree().physics_frame

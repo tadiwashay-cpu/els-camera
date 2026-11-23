@@ -1,6 +1,7 @@
 extends Node
 ## Dev: screenshots of the Armory (a locked and an owned weapon), the
-## Multiplayer screen and the host's lobby.
+## Controls screen, the touch layout editor, the Multiplayer screen and the
+## host's lobby.
 ##   xvfb-run -a godot --path . --resolution 1600x1000 res://tools/capture/lobby_shots.tscn -- OUT_DIR
 
 func _shot(out: String, n: String) -> void:
@@ -27,6 +28,16 @@ func _ready() -> void:
 	armory.call(&"_select", Registry.weapon(&"bazooka"))
 	await get_tree().create_timer(0.6).timeout
 	await _shot(out, "armory_bazooka")
+	title.call(&"_refresh_bindings")
+	title.call(&"_show", title.get(&"_controls"))
+	await get_tree().create_timer(0.6).timeout
+	await _shot(out, "controls")
+	title.call(&"_open_layout_editor")
+	await get_tree().create_timer(0.6).timeout
+	await _shot(out, "touch_editor")
+	for c in title.get(&"_ui").get_children():
+		if c is TouchLayoutEditor:
+			(c as TouchLayoutEditor).call(&"_cancel")
 	title.call(&"_show", title.get(&"_mp"))
 	await get_tree().create_timer(1.5).timeout
 	await _shot(out, "mp_menu")

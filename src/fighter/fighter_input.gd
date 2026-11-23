@@ -12,6 +12,8 @@ var sprint := false
 var attack_held := false
 var jump_held := false
 var block_held := false
+## First person: the body turns with the view (`aim_yaw`) and strafes.
+var face_view := false
 ## Who to face and aim at (lock-on), or null.
 var target: Node3D
 ## A spot to throw at instead of a fighter (bots aiming at barrels), or null.

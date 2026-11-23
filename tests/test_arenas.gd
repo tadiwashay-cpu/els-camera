@@ -31,11 +31,20 @@ func _check_layout(path: String) -> Arena:
 	assert_eq(arena.pickup_points.size(), 6, "%s: pickup points" % path)
 	for p in arena.spawn_points:
 		assert_true(_ground_below(arena, p), "%s: spawn %s stands on ground" % [path, p])
+		assert_gt(p.y, arena.water_level + 0.3, "%s: spawn %s is above the water" % [path, p])
+		# Not on the brink: solid ground 1.5 m round in every direction.
+		for k in 8:
+			var a := TAU * k / 8.0
+			assert_true(_ground_below(arena, p + Vector3(cos(a), 0, sin(a)) * 1.5), "%s: spawn %s has room round it (%d)" % [path, p, k])
 	for p in arena.spawner_points + arena.pickup_points:
 		assert_true(_ground_below(arena, p + Vector3.UP * 0.1), "%s: item spot %s is on ground" % [path, p])
 	assert_true(arena.mystery_point == Vector3.INF or _ground_below(arena, arena.mystery_point + Vector3.UP * 0.1),
 		"%s: mystery crate lands on something" % path)
 	return arena
+
+
+func test_yard_layout_is_sound() -> void:
+	await _check_layout("res://src/arenas/blockout_yard.tscn")
 
 
 func test_beach_layout_is_sound() -> void:
@@ -154,3 +163,18 @@ func test_water_wears_you_down_slowly() -> void:
 	assert_gt(exit.x, -30.0, "swimmers head back to the shelf")
 	var pier: Vector3 = beach.swim_exit(Vector3(40, -1.5, -4))
 	assert_lt(pier.distance_to(Vector3(40, pier.y, -4)), 4.0, "or the nearest pier")
+
+
+func test_start_spots_never_stack() -> void:
+	var pts: Array[Vector3] = []
+	for k in 9:
+		pts.append(Vector3(k * 5.0, 0, 0))
+	var spots := Match.start_spots(pts, 9, 1234)
+	var seen := {}
+	for p in spots:
+		assert_false(seen.has(p), "each fighter gets its own spawn point")
+		seen[p] = true
+	assert_eq(Match.start_spots(pts, 9, 1234), spots, "the same on every phone")
+	var more := Match.start_spots(pts, 12, 5)
+	assert_eq(more.size(), 12)
+	assert_ne(more[9], more[0], "extra fighters stand beside a point, not on it")

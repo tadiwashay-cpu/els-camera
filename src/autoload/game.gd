@@ -40,6 +40,7 @@ var _fast_frames := 0
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_setup_inputs()
+	apply_bindings()
 	apply_graphics()
 
 
@@ -162,13 +163,14 @@ const _KEYS := {
 	&"move_forward": [KEY_W, KEY_UP], &"move_back": [KEY_S, KEY_DOWN],
 	&"sprint": [KEY_SHIFT], &"attack": [KEY_J], &"jump": [KEY_SPACE], &"throw": [KEY_K],
 	&"dodge": [KEY_L, KEY_CTRL], &"lock_on": [KEY_Q, KEY_TAB], &"pause": [KEY_ESCAPE, KEY_P],
-	&"block": [KEY_F], &"power": [KEY_E], &"swap": [KEY_R], &"skill": [KEY_C, KEY_G],
+	&"block": [KEY_F], &"power": [KEY_E], &"swap": [KEY_R], &"skill": [KEY_C, KEY_G], &"view": [KEY_V],
 	&"look_left": [], &"look_right": [], &"look_up": [], &"look_down": [],
 }
 const _PAD_BUTTONS := {
 	&"attack": [JOY_BUTTON_X], &"jump": [JOY_BUTTON_A], &"throw": [JOY_BUTTON_Y],
 	&"dodge": [JOY_BUTTON_B], &"lock_on": [JOY_BUTTON_RIGHT_SHOULDER, JOY_BUTTON_RIGHT_STICK],
 	&"sprint": [JOY_BUTTON_LEFT_STICK], &"pause": [JOY_BUTTON_START], &"block": [JOY_BUTTON_LEFT_SHOULDER], &"swap": [JOY_BUTTON_DPAD_UP],
+	&"view": [JOY_BUTTON_BACK],
 }
 const _PAD_AXES := {
 	&"move_left": [JOY_AXIS_LEFT_X, -1.0], &"move_right": [JOY_AXIS_LEFT_X, 1.0],
@@ -192,9 +194,11 @@ func _setup_inputs() -> void:
 		for b: int in _PAD_BUTTONS[action]:
 			var ev := InputEventJoypadButton.new()
 			ev.button_index = b as JoyButton
+			ev.device = -1                  # any pad, not just the first
 			InputMap.action_add_event(action, ev)
 	for action: StringName in _PAD_AXES:
 		var ev := InputEventJoypadMotion.new()
+		ev.device = -1
 		ev.axis = _PAD_AXES[action][0]
 		ev.axis_value = _PAD_AXES[action][1]
 		InputMap.action_add_event(action, ev)
@@ -210,6 +214,126 @@ func _setup_inputs() -> void:
 		var mmb := InputEventMouseButton.new()
 		mmb.button_index = MOUSE_BUTTON_MIDDLE
 		InputMap.action_add_event(&"block", mmb)
+
+
+# ------------------------------------------------------------ rebinding
+
+## What the player may rebind (pause stays fixed so it can't be lost), in
+## the order the Controls screen lists them.
+const REBINDABLE: Array[StringName] = [&"move_forward", &"move_back", &"move_left", &"move_right", &"sprint",
+	&"attack", &"block", &"jump", &"dodge", &"throw", &"skill", &"power", &"lock_on", &"swap", &"view"]
+const ACTION_NAMES := {
+	&"move_forward": "Move forward", &"move_back": "Move back", &"move_left": "Move left", &"move_right": "Move right",
+	&"sprint": "Sprint", &"attack": "Attack", &"block": "Block", &"jump": "Jump", &"dodge": "Dodge", &"throw": "Throw / catch",
+	&"skill": "Weapon skill", &"power": "Power", &"lock_on": "Lock on", &"swap": "Swap weapon", &"view": "First / third person",
+	&"pause": "Pause",
+}
+const PAD_NAMES := {
+	JOY_BUTTON_A: "A", JOY_BUTTON_B: "B", JOY_BUTTON_X: "X", JOY_BUTTON_Y: "Y", JOY_BUTTON_BACK: "Back",
+	JOY_BUTTON_START: "Start", JOY_BUTTON_LEFT_STICK: "L-stick", JOY_BUTTON_RIGHT_STICK: "R-stick",
+	JOY_BUTTON_LEFT_SHOULDER: "LB", JOY_BUTTON_RIGHT_SHOULDER: "RB", JOY_BUTTON_DPAD_UP: "D-up",
+	JOY_BUTTON_DPAD_DOWN: "D-down", JOY_BUTTON_DPAD_LEFT: "D-left", JOY_BUTTON_DPAD_RIGHT: "D-right",
+}
+
+
+## The saved rebinds on top of the defaults (call after _setup_inputs).
+func apply_bindings() -> void:
+	var saved: Variant = Save.setting("bindings")
+	if not saved is Dictionary:
+		return
+	for action: String in saved:
+		var b: Variant = saved[action]
+		if not b is Dictionary or not InputMap.has_action(StringName(action)):
+			continue
+		if (b as Dictionary).has("key"):
+			_set_key(StringName(action), int(b["key"]))
+		if (b as Dictionary).has("pad"):
+			_set_pad(StringName(action), int(b["pad"]))
+
+
+func _set_key(action: StringName, physical: int) -> void:
+	for ev in InputMap.action_get_events(action):
+		if ev is InputEventKey:
+			InputMap.action_erase_event(action, ev)
+	var k := InputEventKey.new()
+	k.physical_keycode = physical as Key
+	InputMap.action_add_event(action, k)
+
+
+func _set_pad(action: StringName, button: int) -> void:
+	for ev in InputMap.action_get_events(action):
+		if ev is InputEventJoypadButton:
+			InputMap.action_erase_event(action, ev)
+	var j := InputEventJoypadButton.new()
+	j.button_index = button as JoyButton
+	j.device = -1
+	InputMap.action_add_event(action, j)
+
+
+func _first_key(action: StringName) -> int:
+	for ev in InputMap.action_get_events(action):
+		if ev is InputEventKey:
+			return int((ev as InputEventKey).physical_keycode)
+	return -1
+
+
+func _first_pad(action: StringName) -> int:
+	for ev in InputMap.action_get_events(action):
+		if ev is InputEventJoypadButton:
+			return int((ev as InputEventJoypadButton).button_index)
+	return -1
+
+
+## `action`'s key by its position on a US keyboard ("-" if none). (Asking
+## the display server for the local layout's label isn't supported
+## everywhere: it errors headless and on some phones.)
+func key_name(action: StringName) -> String:
+	var k := _first_key(action)
+	return "-" if k < 0 else OS.get_keycode_string(k as Key)
+
+
+func pad_name(action: StringName) -> String:
+	var b := _first_pad(action)
+	return "-" if b < 0 else str(PAD_NAMES.get(b, "Pad %d" % b))
+
+
+## Binds the key or pad button in `event` to `action`. If another action had
+## it, the two swap. Returns that other action (or &"" if none); pause can't
+## be taken: then nothing changes and &"pause" comes back.
+func rebind(action: StringName, event: InputEvent) -> StringName:
+	var is_key := event is InputEventKey
+	var code := int((event as InputEventKey).physical_keycode) if is_key else int((event as InputEventJoypadButton).button_index)
+	var mine := _first_key(action) if is_key else _first_pad(action)
+	var other: StringName = &""
+	for a: StringName in REBINDABLE + [&"pause"]:
+		if a != action and (_first_key(a) if is_key else _first_pad(a)) == code:
+			other = a
+			break
+	if other == &"pause":
+		return other
+	var saved: Dictionary = (Save.setting("bindings") as Dictionary).duplicate(true) if Save.setting("bindings") is Dictionary else {}
+	var field := "key" if is_key else "pad"
+	if is_key:
+		_set_key(action, code)
+	else:
+		_set_pad(action, code)
+	saved[String(action)] = (saved.get(String(action), {}) as Dictionary).merged({field: code}, true)
+	if other != &"" and mine >= 0:
+		if is_key:
+			_set_key(other, mine)
+		else:
+			_set_pad(other, mine)
+		saved[String(other)] = (saved.get(String(other), {}) as Dictionary).merged({field: mine}, true)
+	Save.set_setting("bindings", saved)
+	return other
+
+
+func reset_bindings() -> void:
+	Save.set_setting("bindings", {})
+	for action: StringName in _KEYS:
+		if InputMap.has_action(action):
+			InputMap.action_erase_events(action)
+	_setup_inputs()
 
 
 func vibrate(ms: int) -> void:

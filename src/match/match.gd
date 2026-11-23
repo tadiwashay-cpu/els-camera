@@ -88,6 +88,10 @@ func _ready() -> void:
 		if not ended:
 			hud.callout(text, color, sub, 1.3))
 	hud.pause_pressed.connect(toggle_pause)
+	hud.view_pressed.connect(toggle_view)
+	player_input.view_toggle.connect(toggle_view)
+	camera.set_first_person(str(Save.setting("camera_mode")) == "first")
+	hud.set_view_label(camera.first_person)
 	hud.resume_pressed.connect(toggle_pause)
 	hud.rematch_pressed.connect(func() -> void:
 		if Net.active:
@@ -139,7 +143,6 @@ func _warm_up() -> void:
 	Fx.sparks(self, at, Color.WHITE)
 	Fx.dust(self, at)
 	Fx.burst(self, at, Color.ORANGE)
-	Fx.damage_number(self, at, 10, Color.WHITE)
 	var w := Registry.weapon(&"sword")
 	var mi := MeshInstance3D.new()
 	mi.mesh = w.mesh()
@@ -165,6 +168,7 @@ func _spawn_fighters() -> void:
 			else:
 				e["loadout"] = String(bot_loadout(_rng))
 			entries.append(e)
+	var spots := start_spots(arena.spawn_points, entries.size(), config.seed)
 	var me := Net.my_id()
 	for e: Dictionary in entries:
 		var i := int(e["id"])
@@ -182,11 +186,7 @@ func _spawn_fighters() -> void:
 		f.powers.power = StringName(str(e["power"]))
 		f.set_meta("peer", peer)
 		add_child(f)
-		# Spread the start: every spawn point once, then rings around them.
-		var spot: Vector3 = starts[(i * 3) % starts.size()] if entries.size() <= starts.size() else starts[i % starts.size()]
-		var lap := i / starts.size()
-		if lap > 0:
-			spot += Vector3(cos(i * 2.1), 0, sin(i * 2.1)) * 1.6 * lap
+		var spot: Vector3 = spots[i]
 		f.global_position = spot
 		var to_centre := -spot
 		f.rotation.y = atan2(to_centre.x, to_centre.z)
@@ -198,6 +198,31 @@ func _spawn_fighters() -> void:
 			player = f
 		elif peer == 0 and authority:
 			brains.append(AIBrain.new(f, self, config.difficulty))
+
+
+## Where `count` fighters start: each its own spawn point, in a seeded
+## shuffle (the same on every phone); more fighters than points stand in
+## small rings around them. (Striding by 3 stacked three fighters on each of
+## three points when there were 9 points, and pushed them into the water.)
+static func start_spots(points: Array[Vector3], count: int, seed_value: int) -> Array[Vector3]:
+	var order: Array[int] = []
+	for k in points.size():
+		order.append(k)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_value * 7919 + 13
+	for k in range(order.size() - 1, 0, -1):
+		var j := rng.randi_range(0, k)
+		var t := order[k]
+		order[k] = order[j]
+		order[j] = t
+	var out: Array[Vector3] = []
+	for i in count:
+		var spot := points[order[i % points.size()]]
+		var lap := i / points.size()
+		if lap > 0:
+			spot += Vector3(cos(i * 2.1), 0, sin(i * 2.1)) * 1.3 * lap
+		out.append(spot)
+	return out
 
 
 ## Host: a body went limp; every phone plays the same ragdoll.
@@ -390,7 +415,6 @@ func _on_hurt(victim: Fighter, attacker: Fighter, damage: float, at: Vector3, he
 	if net:
 		net.event("hit", [victim.fighter_id, attacker.fighter_id if attacker else -1, damage, at, heavy])
 	Fx.sparks(self, at, Color(1, 0.85, 0.55) if not heavy else Color(1, 0.55, 0.3), 16 if heavy else 10)
-	Fx.damage_number(self, at + Vector3.UP * 0.3, damage, Color(1, 0.95, 0.6) if attacker == player else Color(1, 0.45, 0.4))
 	Audio.play(&"hit_heavy" if heavy else &"hit", at, 0.0 if heavy else -2.0)
 	if attacker and attacker.armed() and attacker.weapon_data.hit_sound != &"":
 		Audio.play(attacker.weapon_data.hit_sound, at, 3.0)
@@ -503,7 +527,7 @@ func _touch_skill() -> void:
 		touch.set_skill(Color(0.4, 0.4, 0.45), 0.0, "")
 		return
 	var left := player.skill_left()
-	touch.set_skill(s["color"], 1.0 - clampf(left / float(s["cd"]), 0.0, 1.0), str(s["name"]))
+	touch.set_skill(s["color"], 1.0 - clampf(left / float(s["cd"]), 0.0, 1.0), "")
 
 
 ## Things about to hit `f` within `horizon` seconds (danger sense):
@@ -655,6 +679,13 @@ func _results(winner: Fighter) -> void:
 	Save.save_data()
 	player_input.release_mouse()
 	hud.show_results(winner, rows, coins)
+
+
+## First person <-> third person (the HUD's FPP/TPP button, V, pad Back).
+func toggle_view() -> void:
+	camera.set_first_person(not camera.first_person)
+	Save.set_setting("camera_mode", "first" if camera.first_person else "third")
+	hud.set_view_label(camera.first_person)
 
 
 func toggle_pause() -> void:

@@ -12,6 +12,9 @@ extends Node3D
 @export var fov := 68.0
 
 var target: Fighter
+## First person (FPP): the eye sits in the head, the body turns with the view.
+var first_person := false
+@export var fp_fov := 78.0
 var yaw := 0.0
 var pitch := -0.18
 var spring: SpringArm3D
@@ -52,7 +55,21 @@ func _ready() -> void:
 func add_look(delta_px: Vector2) -> void:
 	var s := 0.0042 * float(Save.setting("look_sensitivity"))
 	yaw -= delta_px.x * s
-	pitch = clampf(pitch - delta_px.y * s, -1.05, 0.55)
+	pitch = clampf(pitch - delta_px.y * s, -1.35 if first_person else -1.05, 1.3 if first_person else 0.55)
+
+
+func set_first_person(on: bool) -> void:
+	first_person = on
+	if not on:
+		pitch = clampf(pitch, -1.05, 0.55)
+	_pivot_set = false
+
+
+## First person needs a body that's up and in control; knocked down, dead
+## or held, the view pulls back out so the ragdoll doesn't spin the eye.
+func eye_view() -> bool:
+	return first_person and target != null and target.alive and not target.ragdoll.active \
+		and target.state not in [Fighter.State.DOWN, Fighter.State.DEAD, Fighter.State.HELD]
 
 
 func shake(amount: float) -> void:
@@ -79,13 +96,26 @@ func _process(delta: float) -> void:
 	if target == null or not is_instance_valid(target):
 		return
 	var real := delta / maxf(Engine.time_scale, 0.02)
+	var eye := eye_view()
+	# First person: the eye in the head (a touch forward), lightly smoothed
+	# so swings don't jolt the view. Third person: over the shoulder.
 	var goal := target.global_position + Vector3.UP * height
+	if eye:
+		goal = target.body.bone_position(&"Head") + Vector3.UP * 0.13 + Vector3(-sin(yaw), 0.0, -cos(yaw)) * 0.07
 	if not _pivot_set or _pivot.distance_to(goal) > 15.0:
 		_pivot = goal
 		_pivot_set = true
-	_pivot.x = lerpf(_pivot.x, goal.x, clampf(real * 12.0, 0.0, 1.0))
-	_pivot.z = lerpf(_pivot.z, goal.z, clampf(real * 12.0, 0.0, 1.0))
-	_pivot.y = lerpf(_pivot.y, goal.y, clampf(real * 7.0, 0.0, 1.0))
+	# Frame-rate independent smoothing (1 - e^(-rate dt)), not a fixed lerp.
+	var k_flat := 1.0 - exp(-(30.0 if eye else 12.0) * real)
+	var k_up := 1.0 - exp(-(30.0 if eye else 7.0) * real)
+	_pivot.x = lerpf(_pivot.x, goal.x, k_flat)
+	_pivot.z = lerpf(_pivot.z, goal.z, k_flat)
+	_pivot.y = lerpf(_pivot.y, goal.y, k_up)
+	var want_len := 0.0 if eye else distance
+	if not is_equal_approx(spring.spring_length, want_len):
+		spring.spring_length = want_len
+	if target.health_bar:
+		target.health_bar.hidden_for_view = eye
 
 	var lock := target.locked_target()
 	if lock:
@@ -97,16 +127,19 @@ func _process(delta: float) -> void:
 		pitch = lerpf(pitch, want_pitch, clampf(real * 3.0, 0.0, 1.0))
 
 	global_position = _pivot
+	if not eye:
+		pitch = clampf(pitch, -1.05, 0.55)
 	rotation = Vector3(pitch, yaw, 0.0)
-	spring.position = Vector3(shoulder, 0.0, 0.0)
+	spring.position = Vector3(0.0 if eye else shoulder, 0.0, 0.0)
 	var running := clampf((target.hspeed() - 7.0) / 3.0, 0.0, 1.0)
 	_fov_kick = maxf(_fov_kick - real * 30.0, 0.0)
-	camera.fov = lerpf(camera.fov, fov + 7.0 * running + _fov_kick, clampf(real * 4.0, 0.0, 1.0))
+	var base_fov := fp_fov if eye else fov
+	camera.fov = lerpf(camera.fov, base_fov + 7.0 * running + _fov_kick, 1.0 - exp(-4.0 * real))
 
 	# Lean into sideways movement (relative to the view).
 	var right := global_transform.basis.x
 	var side := Vector3(target.velocity.x, 0.0, target.velocity.z).dot(Vector3(right.x, 0.0, right.z))
-	_roll = lerpf(_roll, clampf(-side * 0.006, -0.05, 0.05), clampf(real * 5.0, 0.0, 1.0))
+	_roll = lerpf(_roll, clampf(-side * (0.003 if eye else 0.006), -0.05, 0.05), 1.0 - exp(-5.0 * real))
 	# Landing dip: a spring pushed down by how hard we hit the ground.
 	var air := not target.is_on_floor()
 	if air:
@@ -122,7 +155,7 @@ func _process(delta: float) -> void:
 
 	# Shake: squared trauma, smooth noise, decays in real time.
 	_noise_t += real * 30.0
-	var s := _trauma * _trauma
+	var s := _trauma * _trauma * (0.45 if eye else 1.0)
 	camera.h_offset = s * 0.25 * sin(_noise_t * 1.7) + _punch.x * 0.3
 	camera.v_offset = s * 0.25 * sin(_noise_t * 2.3 + 1.0) + _punch.y * 0.3 + _dip
 	camera.rotation.z = s * 0.06 * sin(_noise_t * 1.3 + 2.0) + _roll - _punch.x * 0.04

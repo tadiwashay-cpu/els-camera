@@ -108,6 +108,7 @@ func receive_input(peer: int, bytes: PackedByteArray) -> void:
 	inp.attack_held = flags & 2 != 0
 	inp.jump_held = flags & 4 != 0
 	inp.block_held = flags & 8 != 0
+	inp.face_view = flags & 16 != 0
 	var tid := int(p[5])
 	inp.target = m.fighter_by_id(tid) if tid >= 0 else null
 	inp.aim_point = p[6] if p[6] is Vector3 else null
@@ -201,7 +202,8 @@ func _collect_input() -> void:
 func _input_packet() -> PackedByteArray:
 	var inp := m.player.input
 	_seq += 1
-	var flags := (1 if inp.sprint else 0) | (2 if inp.attack_held else 0) | (4 if inp.jump_held else 0) | (8 if inp.block_held else 0)
+	var flags := (1 if inp.sprint else 0) | (2 if inp.attack_held else 0) | (4 if inp.jump_held else 0) | (8 if inp.block_held else 0) \
+		| (16 if inp.face_view else 0)
 	var target := inp.target as Fighter
 	return var_to_bytes([_seq, inp.move.x, inp.move.y, inp.aim_yaw, flags, target.fighter_id if target and is_instance_valid(target) else -1,
 		inp.aim_point, _counts.duplicate(), _taps])
@@ -527,8 +529,6 @@ func receive_event(kind: String, d: Array) -> void:
 			Audio.play(&"hit_heavy" if heavy else &"hit", at, 0.0)
 			if victim:
 				victim.body.flash(0.8)
-			if victim == m.player or attacker == m.player:
-				Fx.damage_number(m, at + Vector3.UP * 0.3, float(d[2]), Color(1, 0.35, 0.3) if victim == m.player else Color(1, 0.95, 0.6))
 			m.hit_feel(victim, attacker, at, heavy)
 		"down", "death":
 			var f := m.fighter_by_id(int(d[0]))

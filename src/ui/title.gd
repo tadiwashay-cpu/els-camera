@@ -16,6 +16,10 @@ var _settings: Control
 var _mp: Control
 var _lobby: Control
 var _armory: ArmoryScreen
+var _controls: Control
+var _bind_buttons: Dictionary = {}       # action -> [key Button, pad Button]
+var _bind_status: Label
+var _capture: Array = []                 # [action, "key"|"pad"] while waiting for a press
 var _bodies: Array[BlockBody] = []
 var _coins: Label
 var _version: Label
@@ -117,7 +121,7 @@ func _build_ui() -> void:
 	_coins.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_ui.add_child(_coins)
 	var ver := Label.new()
-	ver.text = "v%s  ·  feel and bigger maps playtest" % Game.version()
+	ver.text = "v%s  ·  first person and controls playtest" % Game.version()
 	ver.anchor_top = 1.0
 	ver.anchor_bottom = 1.0
 	ver.offset_left = 30
@@ -131,6 +135,7 @@ func _build_ui() -> void:
 	_settings = _settings_panel()
 	_mp = _multiplayer_panel()
 	_lobby = _lobby_panel()
+	_controls = _controls_panel()
 	_armory = ArmoryScreen.new()
 	_ui.add_child(_armory)
 	_armory.back.connect(func() -> void: _show(_main))
@@ -164,7 +169,7 @@ func _panel(title: String) -> VBoxContainer:
 
 
 func _show(which: Control) -> void:
-	for c in [_main, _setup, _settings, _mp, _lobby, _armory]:
+	for c in [_main, _setup, _settings, _mp, _lobby, _armory, _controls]:
 		if c:
 			c.visible = c == which
 	if _version:
@@ -504,10 +509,129 @@ func _settings_panel() -> Control:
 	_slider(box, "Volume", "master_volume", 0.0, 1.0, 0.05)
 	_slider(box, "Button size", "touch_scale", 0.7, 1.4, 0.05)
 	_slider(box, "Button opacity", "touch_opacity", 0.2, 1.0, 0.05)
+	_option(box, "Camera", ["Third person (TPP)", "First person (FPP)"], 1 if str(Save.setting("camera_mode")) == "first" else 0,
+		func(i: int) -> void: Save.set_setting("camera_mode", "first" if i == 1 else "third"))
 	_toggle(box, "Show FPS", "show_fps")
 	_toggle(box, "Vibration", "vibration")
 	_toggle(box, "Touch controls on desktop", "touch_on_desktop")
+	var controls := UiTheme.big_button("CONTROLS")
+	controls.pressed.connect(func() -> void:
+		_refresh_bindings()
+		_show(_controls))
+	box.add_child(controls)
 	var back := UiTheme.big_button("BACK")
 	back.pressed.connect(func() -> void: _show(_main))
 	box.add_child(back)
 	return box
+
+
+## Controls: the touch layout editor, and every action's key and pad button
+## (tap one, then press the new key or button; a clash swaps the two).
+func _controls_panel() -> Control:
+	var box := _panel("CONTROLS")
+	var edit := UiTheme.big_button("EDIT TOUCH LAYOUT")
+	edit.pressed.connect(_open_layout_editor)
+	box.add_child(edit)
+	var head := HBoxContainer.new()
+	for spec: Array in [["Action", 290], ["Keyboard", 160], ["Gamepad", 140]]:
+		var l := Label.new()
+		l.text = spec[0]
+		l.custom_minimum_size.x = spec[1]
+		l.modulate = Color(1, 1, 1, 0.6)
+		l.add_theme_font_size_override(&"font_size", 22)
+		head.add_child(l)
+	box.add_child(head)
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(620, 380)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	box.add_child(scroll)
+	var list := VBoxContainer.new()
+	list.add_theme_constant_override(&"separation", 6)
+	scroll.add_child(list)
+	for action: StringName in Game.REBINDABLE:
+		var row := HBoxContainer.new()
+		var name_l := Label.new()
+		name_l.text = str(Game.ACTION_NAMES.get(action, action))
+		name_l.custom_minimum_size.x = 290
+		name_l.add_theme_font_size_override(&"font_size", 24)
+		row.add_child(name_l)
+		var key_b := Button.new()
+		key_b.custom_minimum_size = Vector2(150, 56)
+		key_b.pressed.connect(func() -> void: _start_capture(action, "key"))
+		row.add_child(key_b)
+		var pad_b := Button.new()
+		pad_b.custom_minimum_size = Vector2(130, 56)
+		pad_b.pressed.connect(func() -> void: _start_capture(action, "pad"))
+		row.add_child(pad_b)
+		_bind_buttons[action] = [key_b, pad_b]
+		list.add_child(row)
+	_bind_status = Label.new()
+	_bind_status.add_theme_font_size_override(&"font_size", 22)
+	_bind_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_bind_status.custom_minimum_size.x = 600
+	box.add_child(_bind_status)
+	var reset := UiTheme.big_button("RESET KEYS")
+	reset.pressed.connect(func() -> void:
+		Game.reset_bindings()
+		_bind_status.text = "Keys and buttons back to the defaults."
+		_refresh_bindings())
+	box.add_child(reset)
+	var back := UiTheme.big_button("BACK")
+	back.pressed.connect(func() -> void:
+		_capture = []
+		_show(_settings))
+	box.add_child(back)
+	return box
+
+
+func _refresh_bindings() -> void:
+	for action: StringName in _bind_buttons:
+		var pair: Array = _bind_buttons[action]
+		(pair[0] as Button).text = Game.key_name(action)
+		(pair[1] as Button).text = Game.pad_name(action)
+
+
+func _start_capture(action: StringName, kind: String) -> void:
+	_capture = [action, kind]
+	_bind_status.text = "Press a %s for %s (Esc cancels)" % ["key" if kind == "key" else "gamepad button", Game.ACTION_NAMES.get(action, action)]
+	var pair: Array = _bind_buttons[action]
+	(pair[0 if kind == "key" else 1] as Button).text = "..."
+
+
+func _input(event: InputEvent) -> void:
+	if _capture.is_empty():
+		return
+	var action: StringName = _capture[0]
+	var kind: String = _capture[1]
+	var taken: InputEvent = null
+	if event is InputEventKey and (event as InputEventKey).pressed and not (event as InputEventKey).echo:
+		if (event as InputEventKey).physical_keycode == KEY_ESCAPE:
+			_capture = []
+			_bind_status.text = ""
+			_refresh_bindings()
+			get_viewport().set_input_as_handled()
+			return
+		if kind == "key":
+			taken = event
+	elif event is InputEventJoypadButton and (event as InputEventJoypadButton).pressed and kind == "pad":
+		taken = event
+	if taken == null:
+		return
+	get_viewport().set_input_as_handled()
+	_capture = []
+	var other := Game.rebind(action, taken)
+	if other == &"pause":
+		_bind_status.text = "That one pauses the game; pick another."
+	elif other != &"":
+		_bind_status.text = "Swapped with %s." % Game.ACTION_NAMES.get(other, other)
+	else:
+		_bind_status.text = "Saved."
+	Audio.play(&"ui_confirm")
+	_refresh_bindings()
+
+
+func _open_layout_editor() -> void:
+	var editor := TouchLayoutEditor.new()
+	_ui.add_child(editor)
+	_controls.visible = false
+	editor.closed.connect(func() -> void: _show(_controls))

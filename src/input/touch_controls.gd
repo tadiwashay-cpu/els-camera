@@ -4,7 +4,8 @@ extends Control
 ##   left:  Godot 4.7's VirtualJoystick, floating (push far to sprint)
 ##   right: swipe anywhere to look; ATTACK (hold to charge), JUMP,
 ##          THROW/CATCH, DODGE, LOCK
-## Size and opacity come from Settings.
+## Size and opacity come from Settings; each button's place and size can be
+## changed in the layout editor (TouchLayoutEditor, saved as "touch_layout").
 
 const BUTTONS := [
 	# action, label, offset from the bottom-right corner, radius
@@ -32,6 +33,15 @@ var _look_index := -1
 var _held: Dictionary = {}        # touch index -> button index
 var _scale := 1.0
 var _alpha := 0.6
+## Per-button overrides: action -> [x offset, y offset, size] (base units).
+var layout: Dictionary = {}
+## The layout editor: touches drag buttons instead of pressing them.
+var editing := false
+var selected := -1
+signal selection_changed(index: int)
+var _drag_index := -1
+var _drag_from := Vector2.ZERO
+var _drag_start := Vector2.ZERO
 
 
 func _ready() -> void:
@@ -40,6 +50,8 @@ func _ready() -> void:
 	visible = DisplayServer.is_touchscreen_available() or OS.has_feature("mobile") or bool(Save.setting("touch_on_desktop"))
 	_scale = float(Save.setting("touch_scale"))
 	_alpha = float(Save.setting("touch_opacity"))
+	var saved: Variant = Save.setting("touch_layout")
+	layout = (saved as Dictionary).duplicate(true) if saved is Dictionary else {}
 	joystick = VirtualJoystick.new()
 	joystick.joystick_mode = VirtualJoystick.JOYSTICK_DYNAMIC
 	joystick.visibility_mode = VirtualJoystick.VISIBILITY_ALWAYS
@@ -65,17 +77,82 @@ func take_look() -> Vector2:
 	return l
 
 
+## Where button `i` sits in base units (offset from the bottom-right corner).
+func button_offset(i: int) -> Vector2:
+	var o: Variant = layout.get(String(BUTTONS[i][0]))
+	if o is Array and (o as Array).size() >= 2:
+		return Vector2(float(o[0]), float(o[1]))
+	return BUTTONS[i][2]
+
+
+func button_size(i: int) -> float:
+	var o: Variant = layout.get(String(BUTTONS[i][0]))
+	if o is Array and (o as Array).size() >= 3:
+		return clampf(float(o[2]), 0.6, 1.6)
+	return 1.0
+
+
+func set_button(i: int, offset: Vector2, size_mult: float) -> void:
+	layout[String(BUTTONS[i][0])] = [offset.x, offset.y, clampf(size_mult, 0.6, 1.6)]
+	queue_redraw()
+
+
 func _button_pos(i: int) -> Vector2:
-	var b: Array = BUTTONS[i]
-	return size + (b[2] as Vector2) * _scale
+	var p := size + button_offset(i) * _scale
+	var r := _button_radius(i)
+	# Never off screen, whatever the phone's shape.
+	return Vector2(clampf(p.x, r, size.x - r), clampf(p.y, r, size.y - r))
 
 
 func _button_radius(i: int) -> float:
-	return float(BUTTONS[i][3]) * _scale
+	return float(BUTTONS[i][3]) * _scale * button_size(i)
+
+
+func _edit_input(event: InputEvent) -> void:
+	var pos := Vector2.INF
+	var down := false
+	var up := false
+	if event is InputEventScreenTouch:
+		pos = (event as InputEventScreenTouch).position
+		down = (event as InputEventScreenTouch).pressed
+		up = not down
+	elif event is InputEventScreenDrag:
+		pos = (event as InputEventScreenDrag).position
+	elif event is InputEventMouseButton and (event as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT:
+		pos = (event as InputEventMouseButton).position
+		down = (event as InputEventMouseButton).pressed
+		up = not down
+	elif event is InputEventMouseMotion and _drag_index >= 0:
+		pos = (event as InputEventMouseMotion).position
+	if pos == Vector2.INF:
+		return
+	if down:
+		for i in BUTTONS.size():
+			if pos.distance_to(_button_pos(i)) <= _button_radius(i) * 1.1:
+				_drag_index = i
+				_drag_from = pos
+				_drag_start = button_offset(i)
+				if selected != i:
+					selected = i
+					selection_changed.emit(i)
+				queue_redraw()
+				get_viewport().set_input_as_handled()
+				return
+	elif up:
+		_drag_index = -1
+	elif _drag_index >= 0:
+		# Keep buttons off the joystick's side (the left 42%).
+		var want := _drag_start + (pos - _drag_from) / _scale
+		var min_x := (size.x * 0.42 + _button_radius(_drag_index) - size.x) / _scale
+		set_button(_drag_index, Vector2(maxf(want.x, min_x), want.y), button_size(_drag_index))
+		get_viewport().set_input_as_handled()
 
 
 func _input(event: InputEvent) -> void:
 	if not visible:
+		return
+	if editing:
+		_edit_input(event)
 		return
 	if event is InputEventScreenTouch:
 		var t := event as InputEventScreenTouch
@@ -142,9 +219,11 @@ func set_catch_hint(on: bool) -> void:
 func _draw() -> void:
 	var font := ThemeDB.fallback_font
 	for i in BUTTONS.size():
-		if BUTTONS[i][0] == &"swap" and not swap_available:
+		if BUTTONS[i][0] == &"swap" and not swap_available and not editing:
 			continue
 		var p := _button_pos(i)
+		if editing and i == selected:
+			draw_circle(p, _button_radius(i) + 10.0 * _scale, Color(1.0, 0.85, 0.3, 0.35))
 		var r := _button_radius(i)
 		var pressed := _held.values().has(i)
 		var accent := Color(1.0, 0.6, 0.15) if not (i == 2 and catch_hint) else Color(0.35, 1.0, 0.55)

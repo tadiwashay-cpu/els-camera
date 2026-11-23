@@ -73,6 +73,11 @@ Next (after the two-phone test):
 - [x] 0.4.1: curved weapon models from Blender, a bigger shield with its own moves
 - [x] 0.5.0: lighting and feel (sky reflections, haze, contact shadows, screen effects, camera lean/dip/punch,
       soft dust, impact flashes), bigger maps with twists (bounce pads, new islands, a barge, Turtle Rock)
+- [x] 0.6.0: first person (FPP/TPP), button remapping (touch layout editor, keys, pad), life bars over heads,
+      no power names on screen, spawn fix
+- [ ] 0.7.x: character customization, upgrades, new themed UI, weapon preview
+- [ ] 0.8.x: toon art style (FR Legends-like), organic environments, much bigger maps
+- [ ] 0.9.x: real effects (Blender-rendered flipbooks, Effekseer check), mocap from the owner's own clips
 - [ ] Deep Forest, Abyss Submarine Base; 48 more weapons; all 12 powers
 - [ ] Skins and customize screen, coins and unlocks, music, survival waves
 - [ ] **Gate:** 30 minutes of solo play without running out of things to do

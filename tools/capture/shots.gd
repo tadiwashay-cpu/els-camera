@@ -1,7 +1,8 @@
 extends Node
 ## Dev: screenshots of the title, the loading screen and a live match
 ## (bots on both sides), for checking the look without a device.
-##   xvfb-run godot --path . res://tools/capture/shots.tscn -- OUT_DIR
+##   xvfb-run godot --path . res://tools/capture/shots.tscn -- OUT_DIR [fp]
+## "fp" plays the match in first person.
 
 var _out := ""
 
@@ -43,6 +44,8 @@ func _ready() -> void:
 		await get_tree().process_frame
 	var brain := AIBrain.new(m.player, m, 2)
 	m.player_input.enabled = false
+	if OS.get_cmdline_user_args().has("fp"):
+		m.camera.set_first_person(true)
 	var t := 0.0
 	var shots := [2.0, 6.0, 11.0, 17.0, 24.0]
 	var n := 3

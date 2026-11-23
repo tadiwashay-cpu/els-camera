@@ -21,6 +21,9 @@ const DEFAULTS := {
 		"touch_opacity": 0.6,
 		"touch_on_desktop": false,
 		"player_name": "You",
+		"camera_mode": "third",      # "third" or "first" (FPP)
+		"touch_layout": {},           # action -> [x offset, y offset, size] (TouchControls)
+		"bindings": {},               # action -> {"key": physical keycode, "pad": button} (Game)
 	},
 	"stats": {"matches": 0, "wins": 0, "kills": 0, "deaths": 0},
 }

@@ -5,6 +5,8 @@ extends CanvasLayer
 ## the FPS counter. Results and pause screens live here too.
 
 signal pause_pressed
+## The FPP/TPP button (first or third person).
+signal view_pressed
 signal rematch_pressed
 signal menu_pressed
 signal resume_pressed
@@ -25,6 +27,7 @@ var _small: Label
 var _fps: Label
 var _marker: Control
 var _cross: Control
+var _view: Button
 var _pause_menu: Control
 var _results: Control
 var _center_tween: Tween
@@ -158,6 +161,20 @@ func _ready() -> void:
 	pause.focus_mode = Control.FOCUS_NONE
 	pause.pressed.connect(func() -> void: pause_pressed.emit())
 	_root.add_child(pause)
+	_view = Button.new()
+	_view.text = "TPP"
+	_view.custom_minimum_size = Vector2(84, 64)
+	_view.add_theme_font_size_override(&"font_size", 24)
+	_view.anchor_left = 1.0
+	_view.anchor_right = 1.0
+	_view.offset_left = -112
+	_view.offset_right = -28
+	_view.offset_top = 124
+	_view.offset_bottom = 188
+	_view.focus_mode = Control.FOCUS_NONE
+	_view.tooltip_text = "First / third person (V)"
+	_view.pressed.connect(func() -> void: view_pressed.emit())
+	_root.add_child(_view)
 
 	# Centre callouts
 	_center = UiTheme.title("", 96)
@@ -221,20 +238,16 @@ func _process(_delta: float) -> void:
 		_hp.value = player.health
 		_hp_fill.bg_color = Color(0.35, 0.95, 0.45).lerp(Color(1, 0.25, 0.2), 1.0 - player.health / player.max_health)
 		_hp_label.text = "%s   %d HP" % [player.display_name, int(ceil(player.health))]
-		var sk := WeaponSkills.info(player.skill_id())
-		var power := ""
-		if not sk.is_empty():
-			var left := player.skill_left()
-			power = "   %s %s" % [str(sk["name"]).to_upper(), "READY" if left <= 0.0 else "%ds" % int(ceil(left))]
+		# No power names on screen: the SKILL button's ring shows when it's ready.
 		if player.armed():
-			_weapon_label.text = player.weapon_data.display_name.to_upper() + ("  x%d" % player.ammo if player.weapon_data.uses_ammo() else "") + power
+			_weapon_label.text = player.weapon_data.display_name.to_upper() + ("  x%d" % player.ammo if player.weapon_data.uses_ammo() else "")
 		else:
-			_weapon_label.text = "UNARMED - find a weapon" + power
+			_weapon_label.text = "UNARMED - find a weapon"
 		var pw := player.powers
 		var info: Dictionary = FighterPowers.INFO[pw.power]
 		_power.value = pw.meter
 		_power_fill.bg_color = info["color"] if pw.ready_to_use() and int(Time.get_ticks_msec() / 250) % 2 == 0 else Color(info["color"]).darkened(0.35)
-		_power_label.text = "%s%s" % [str(info["name"]).to_upper(), "  READY" if pw.ready_to_use() else ""]
+		_power_label.text = "POWER READY" if pw.ready_to_use() else ""
 		var fx := []
 		for id: StringName in pw.effects:
 			var n := FighterPowers.effect_name(id)
@@ -317,6 +330,11 @@ func callout(text: String, color: Color = Color.WHITE, small: String = "", hold:
 		_center_tween.tween_interval(hold)
 		_center_tween.tween_property(_center, "modulate:a", 0.0, 0.3)
 		_center_tween.parallel().tween_property(_small, "modulate:a", 0.0, 0.3)
+
+
+## The view button shows the mode you're in.
+func set_view_label(first_person: bool) -> void:
+	_view.text = "FPP" if first_person else "TPP"
 
 
 ## Shows that the weapon underfoot is locked (not bought), or hides it (null).

@@ -69,6 +69,7 @@ var body: BlockBody
 var ragdoll: Ragdoll
 var weapon_data: WeaponData
 var weapon_visual: MeshInstance3D
+var health_bar: HealthBar
 ## Weapon ids this fighter may hold (bought in the Armory). Empty: any.
 var allowed: Dictionary = {}
 ## The weapon picked to start with ("Your weapon"), or empty.
@@ -180,6 +181,9 @@ func _ready() -> void:
 	contact.fighter = self
 	contact.strength = 0.5 if bool(Game.preset()["shadow"]) else 0.72
 	add_child(contact)
+	health_bar = HealthBar.new()
+	health_bar.fighter = self
+	add_child(health_bar)
 	health = max_health
 	_shield_mesh = MeshInstance3D.new()
 	var bubble := SphereMesh.new()
@@ -474,6 +478,8 @@ func _state_move(delta: float) -> void:
 		velocity.z = move_toward(velocity.z, want.z, a * delta)
 	if target and not sprinting:
 		_face(target.global_position - global_position, delta)
+	elif input.face_view:
+		_face(Vector3(-sin(input.aim_yaw), 0.0, -cos(input.aim_yaw)), delta, 22.0)
 	elif mag > 0.06:
 		_face(wish, delta)
 
@@ -1224,8 +1230,6 @@ func _use_skill() -> void:
 	body.play(s["anim"], false, 1.0, 0.05)
 	Fx.burst(get_parent(), socket_transform().origin, s["color"])
 	Audio.play(&"respawn", global_position + Vector3.UP, -2.0, 1.6)
-	if world:
-		world.callout_for(self, str(s["name"]).to_upper(), s["color"])
 
 
 ## The weapon glows in its power's colour while the power is ready.
@@ -1252,8 +1256,6 @@ func _use_power() -> void:
 	body.play(_armed_clip(info["anim"]), false, 1.0, 0.05)
 	Fx.burst(get_parent(), global_position + Vector3.UP, info["color"])
 	Audio.play(&"respawn", global_position + Vector3.UP, 0.0, 1.3)
-	if world:
-		world.callout_for(self, str(info["name"]).to_upper(), info["color"])
 
 
 func _apply_power() -> void:
@@ -1619,7 +1621,7 @@ func _animate() -> void:
 		return
 	var target := locked_target()
 	var clip: StringName
-	if target and hs < sprint_speed * 0.8:
+	if (target or input.face_view) and hs < sprint_speed * 0.8:
 		var local := global_basis.inverse() * velocity
 		if local.z < -absf(local.x) * 0.7:
 			clip = StringName("Backpedal" + sfx)

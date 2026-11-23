@@ -9,6 +9,9 @@ var touch: TouchControls
 var enabled := true
 var _mouse_captured := false
 
+## The first/third person key was pressed (V, or the pad's Back).
+signal view_toggle
+
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_PAUSABLE
@@ -46,6 +49,7 @@ func _physics_process(_delta: float) -> void:
 	inp.move = stick.limit_length(1.0)
 	inp.sprint = Input.is_action_pressed(&"sprint")
 	inp.aim_yaw = camera.view_yaw()
+	inp.face_view = camera.first_person
 	inp.attack_held = Input.is_action_pressed(&"attack")
 	inp.jump_held = Input.is_action_pressed(&"jump")
 	inp.block_held = Input.is_action_pressed(&"block")
@@ -63,6 +67,8 @@ func _physics_process(_delta: float) -> void:
 		inp.press(&"dodge")
 	if Input.is_action_just_pressed(&"lock_on"):
 		_toggle_lock()
+	if Input.is_action_just_pressed(&"view"):
+		view_toggle.emit()
 	if inp.target and (not is_instance_valid(inp.target) or not (inp.target as Fighter).alive):
 		inp.target = null
 	var look := Input.get_vector(&"look_left", &"look_right", &"look_up", &"look_down")
