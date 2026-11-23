@@ -16,4 +16,7 @@
   code ships with the game.
 
 ## Third-party assets
-None yet. Add every downloaded or generated asset here with its source and licence.
+Add every downloaded or generated asset here with its source and licence.
+- **Barlow Condensed** (Medium, Bold Italic, Extra Bold Italic) by Jeremy
+  Tribby, SIL Open Font License 1.1, from the `@fontsource/barlow-condensed`
+  npm package; `assets/ui/fonts/` (licence in `assets/ui/fonts/OFL.txt`).

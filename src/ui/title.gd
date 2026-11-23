@@ -23,6 +23,11 @@ var _bind_status: Label
 var _capture: Array = []                 # [action, "key"|"pad"] while waiting for a press
 var _bodies: Array[BlockBody] = []
 var _coins: Label
+var _band: Control
+## Armory inspect: the weapon alone, big, turned by dragging.
+var _inspect: Node3D
+var _inspect_mesh: MeshInstance3D
+var _inspect_idle := 0.0
 var _version: Label
 var _mp_status: Label
 var _games_box: VBoxContainer
@@ -81,6 +86,18 @@ func _build_world() -> void:
 		b.anim.play(&"Sword_Idle" if i == 0 else &"Heavy_Charge")
 		b.anim.seek(randf() * 1.5, true)
 		_bodies.append(b)
+	_inspect = Node3D.new()
+	_inspect.position = Vector3(-1.1, 1.15, 0.0)
+	_inspect.visible = false
+	add_child(_inspect)
+	_inspect_mesh = MeshInstance3D.new()
+	_inspect.add_child(_inspect_mesh)
+	var fill := OmniLight3D.new()
+	fill.position = Vector3(1.2, 1.0, 2.4)
+	fill.omni_range = 6.0
+	fill.light_energy = 1.6
+	fill.light_color = Color(1.0, 0.95, 0.9)
+	_inspect.add_child(fill)
 	_cam = Camera3D.new()
 	_cam.fov = 45
 	add_child(_cam)
@@ -98,13 +115,26 @@ func _process(delta: float) -> void:
 		_cam.h_offset = 1.25
 		_cam.v_offset = -0.05
 	elif _armory and _armory.visible:
-		# The Armory: one fighter, turning slowly, holding the selected weapon.
+		# The Armory: one fighter, turning slowly, holding the selected weapon
+		# (or the weapon alone, big, when inspecting).
 		var b := _bodies[0]
 		b.rotation.y += delta * 0.5
-		_cam.position = b.position + Vector3(0, 1.3, 6.0)
-		_cam.look_at(b.position + Vector3(0, 1.0, 0), Vector3.UP)
-		_cam.h_offset = -1.8
-		_cam.v_offset = -0.95
+		b.visible = not _armory.inspecting
+		_inspect.visible = _armory.inspecting
+		_inspect_idle += delta
+		if _inspect_idle > 2.0:
+			_inspect.rotation.y += delta * 0.6
+			_inspect.rotation.x = lerpf(_inspect.rotation.x, 0.0, delta * 1.5)
+		if _armory.inspecting:
+			_cam.position = _inspect.position + Vector3(0, 0.15, 3.4)
+			_cam.look_at(_inspect.position, Vector3.UP)
+			_cam.h_offset = -1.15
+			_cam.v_offset = -0.55
+		else:
+			_cam.position = b.position + Vector3(0, 1.3, 6.0)
+			_cam.look_at(b.position + Vector3(0, 1.0, 0), Vector3.UP)
+			_cam.h_offset = -1.8
+			_cam.v_offset = -0.95
 	else:
 		_cam.h_offset = 0.0
 		_cam.v_offset = 0.0
@@ -129,6 +159,9 @@ func _build_ui() -> void:
 	_coins.offset_top = 30
 	_coins.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_ui.add_child(_coins)
+	_band = _poster_band()
+	_ui.add_child(_band)
+	_ui.move_child(_band, 0)
 	var ver := Label.new()
 	ver.text = "v%s  ·  first person and controls playtest" % Game.version()
 	ver.anchor_top = 1.0
@@ -149,6 +182,9 @@ func _build_ui() -> void:
 	_ui.add_child(_armory)
 	_armory.back.connect(func() -> void: _show(_main))
 	_armory.selected.connect(_preview_weapon)
+	_armory.inspect_toggled.connect(func(_on: bool) -> void:
+		_inspect.rotation = Vector3(0.0, 0.6, 0.0)
+		_inspect_idle = 0.0)
 	_locker = LockerScreen.new()
 	_ui.add_child(_locker)
 	_locker.back.connect(func() -> void: _show(_main))
@@ -190,6 +226,8 @@ func _show(which: Control) -> void:
 	var solo := which == _armory or which == _locker
 	if _version:
 		_version.visible = not solo
+	if _band:
+		_band.visible = not solo
 	if _bodies.size() > 1:
 		_bodies[1].visible = not solo
 		if not solo:
@@ -201,6 +239,10 @@ func _show(which: Control) -> void:
 			_preview_weapon(Registry.weapon(Armory.equipped()))
 	if which == _locker:
 		_locker.open()
+	if which != _armory and _armory:
+		_armory.stop_inspect()
+		_inspect.visible = false
+		_bodies[0].visible = true
 	if which == _mp:
 		Net.discovery.start_listening()
 		_refresh_games()
@@ -213,10 +255,55 @@ func _show(which: Control) -> void:
 			break
 
 
-## The title fighter holds `w` (the Armory's pick) in its idle pose.
+## A slanted dark band with a yellow stripe behind the menus (poster look).
+func _poster_band() -> Control:
+	var root := Control.new()
+	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	for spec: Array in [[-260.0, 880.0, Color(UiTheme.NAVY, 0.62)], [880.0, 904.0, UiTheme.ACCENT], [918.0, 926.0, Color(UiTheme.HOT, 0.9)]]:
+		var p := Panel.new()
+		var s := StyleBoxFlat.new()
+		s.bg_color = spec[2]
+		s.skew = Vector2(0.28, 0.0)
+		p.add_theme_stylebox_override(&"panel", s)
+		p.anchor_bottom = 1.0
+		p.offset_left = spec[0]
+		p.offset_right = spec[1]
+		p.offset_top = -40
+		p.offset_bottom = 40
+		p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		root.add_child(p)
+	return root
+
+
+## Armory inspect: drag anywhere off the panels to turn the weapon.
+func _unhandled_input(event: InputEvent) -> void:
+	if not (_armory and _armory.visible and _armory.inspecting):
+		return
+	var rel := Vector2.ZERO
+	if event is InputEventScreenDrag:
+		rel = (event as InputEventScreenDrag).relative
+	elif event is InputEventMouseMotion and ((event as InputEventMouseMotion).button_mask & MOUSE_BUTTON_MASK_LEFT):
+		rel = (event as InputEventMouseMotion).relative
+	if rel != Vector2.ZERO:
+		_inspect.rotation.y += rel.x * 0.012
+		_inspect.rotation.x = clampf(_inspect.rotation.x + rel.y * 0.01, -1.2, 1.2)
+		_inspect_idle = 0.0
+
+
+## The title fighter holds `w` (the Armory's pick) in its idle pose; the
+## inspect stand shows it alone, centred and scaled to fit.
 func _preview_weapon(w: WeaponData) -> void:
 	if _bodies.is_empty() or w == null:
 		return
+	if _inspect_mesh:
+		_inspect_mesh.mesh = null if w.is_fists() else w.mesh()
+		if _inspect_mesh.mesh:
+			var box := _inspect_mesh.mesh.get_aabb()
+			var fit := 1.6 / maxf(maxf(box.size.x, box.size.y), maxf(box.size.z, 0.2))
+			# Lying along the screen, tip to the right.
+			var lay := Basis(Vector3.BACK, -PI * 0.5) * Basis.from_scale(Vector3.ONE * fit)
+			_inspect_mesh.transform = Transform3D(lay, -(lay * box.get_center()))
 	var b := _bodies[0]
 	for sock: BoneAttachment3D in [b.socket_r, b.socket_l]:
 		for c in sock.get_children():
@@ -239,8 +326,7 @@ func _main_menu() -> Control:
 	var logo := UiTheme.title("BLOCK DUELIST", 96, Color.WHITE)
 	logo.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	box.add_child(logo)
-	var logo2 := UiTheme.title("3D", 64, UiTheme.ACCENT)
-	logo2.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	var logo2 := UiTheme.tag("3D", 60, UiTheme.ACCENT)
 	box.add_child(logo2)
 	var spacer := Control.new()
 	spacer.custom_minimum_size.y = 20

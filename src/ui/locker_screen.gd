@@ -136,7 +136,8 @@ func _colors(col: VBoxContainer, key: String, palette: Array[Color]) -> void:
 		for st: StringName in [&"normal", &"hover", &"pressed"]:
 			var s := StyleBoxFlat.new()
 			s.bg_color = palette[i]
-			s.set_corner_radius_all(10)
+			s.set_corner_radius_all(4)
+			s.skew = Vector2(UiTheme.SLANT * 0.6, 0.0)
 			s.set_border_width_all(4)
 			s.border_color = Color(1, 1, 1, 0.15)
 			b.add_theme_stylebox_override(st, s)

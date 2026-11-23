@@ -28,6 +28,10 @@ func _ready() -> void:
 	armory.call(&"_select", Registry.weapon(&"bazooka"))
 	await get_tree().create_timer(0.6).timeout
 	await _shot(out, "armory_bazooka")
+	(armory.get(&"_inspect") as Button).button_pressed = true
+	await get_tree().create_timer(0.8).timeout
+	await _shot(out, "armory_inspect")
+	armory.stop_inspect()
 	var locker: LockerScreen = title.get(&"_locker")
 	title.call(&"_show", locker)
 	await get_tree().create_timer(0.4).timeout

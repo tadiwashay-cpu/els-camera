@@ -85,7 +85,7 @@ func _build(card: Dictionary) -> void:
 	vp.add_child(_turntable)
 	var body := BlockBody.new()
 	_turntable.add_child(body)
-	body.setup(Registry.skin(randi() % 4), false)
+	body.setup(Look.skin_data(Look.mine()), false)
 	var w := MeshInstance3D.new()
 	w.mesh = Registry.weapon(&"sword").mesh()
 	body.socket_r.add_child(w)

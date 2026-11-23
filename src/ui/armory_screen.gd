@@ -6,6 +6,8 @@ extends Control
 
 signal selected(w: WeaponData)
 signal back
+## Look at the weapon on its own, big, and drag to turn it.
+signal inspect_toggled(on: bool)
 
 const CARD := Vector2(124, 150)
 
@@ -18,7 +20,9 @@ var _power: Label
 var _desc: Label
 var _traits: Label
 var _action: Button
+var _inspect: Button
 var _status: Label
+var inspecting := false
 
 
 func _ready() -> void:
@@ -79,7 +83,9 @@ func _build_list() -> void:
 		for w: WeaponData in by_rank[rank]:
 			grid.add_child(_card(w))
 	var back_b := UiTheme.big_button("BACK")
-	back_b.pressed.connect(func() -> void: back.emit())
+	back_b.pressed.connect(func() -> void:
+		stop_inspect()
+		back.emit())
 	box.add_child(back_b)
 
 
@@ -90,7 +96,7 @@ func _card(w: WeaponData) -> Button:
 	b.expand_icon = true
 	b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	b.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
-	b.add_theme_font_size_override(&"font_size", 17)
+	b.add_theme_font_size_override(&"font_size", 20)
 	b.add_theme_constant_override(&"icon_max_width", 92)
 	for st: StringName in [&"normal", &"hover", &"pressed", &"focus"]:
 		var box := (UiTheme.get_theme().get_stylebox(st, &"Button") as StyleBoxFlat).duplicate() as StyleBoxFlat
@@ -114,7 +120,7 @@ func _build_detail() -> void:
 	panel.anchor_bottom = 1.0
 	panel.offset_left = -780
 	panel.offset_right = -36
-	panel.offset_top = -360
+	panel.offset_top = -400
 	panel.offset_bottom = -24
 	add_child(panel)
 	var box := VBoxContainer.new()
@@ -142,14 +148,26 @@ func _build_detail() -> void:
 	box.add_child(_traits)
 	var actions := HBoxContainer.new()
 	box.add_child(actions)
-	_action = UiTheme.big_button("", 340)
+	_action = UiTheme.big_button("", 300)
 	_action.pressed.connect(_on_action)
 	actions.add_child(_action)
+	_inspect = UiTheme.big_button("INSPECT", 300)
+	_inspect.toggle_mode = true
+	_inspect.toggled.connect(func(on: bool) -> void:
+		inspecting = on
+		_inspect.text = "IN HAND" if on else "INSPECT"
+		inspect_toggled.emit(on))
+	actions.add_child(_inspect)
 	_status = Label.new()
 	_status.add_theme_font_size_override(&"font_size", 22)
 	_status.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	actions.add_child(_status)
+	box.add_child(_status)
+
+
+func stop_inspect() -> void:
+	if inspecting:
+		_inspect.button_pressed = false
 
 
 func _select(w: WeaponData) -> void:
