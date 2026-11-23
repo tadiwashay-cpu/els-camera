@@ -7,6 +7,8 @@ extends Arena
 ##   Signature: stand on the lever pad to take over the crane for 10 s (it
 ##   hunts your enemies and dunks them); oil spills are slippery and burn
 ##   when a blast or a blaster bolt hits them.
+##   Twists: a floating barge off the east quay, bounce pads onto it, onto the
+##   stacked containers and up onto the ship's deck.
 
 const CONCRETE := Color(0.5, 0.5, 0.52)
 const DARK := Color(0.22, 0.23, 0.26)
@@ -69,7 +71,7 @@ func build() -> void:
 	merge = true
 	surface = &"concrete"
 	kill_y = -6.0
-	bounds = 32.0
+	bounds = 44.0
 	water_level = WATER_Y
 	_look()
 
@@ -101,10 +103,13 @@ func build() -> void:
 		breakable(Breakable.Kind.BARREL, Vector3(0.8, 1.1, 0.8), p, Color(0.85, 0.16, 0.12))
 	surface = &"concrete"
 
+	_barge()
+
 	spawn_points = [Vector3(-8, 0.1, -16), Vector3(10, 0.1, -11), Vector3(-16, 0.1, 0.5), Vector3(0, 0.1, 3),
-		Vector3(16, 0.1, 18), Vector3(24, 0.1, 17), Vector3(-20, 0.1, 14), Vector3(2, 0.1, 18)]
+		Vector3(16, 0.1, 18), Vector3(24, 0.1, 17), Vector3(-20, 0.1, 14), Vector3(2, 0.1, 18),
+		Vector3(39, 0.4, 7)]
 	spawner_points = [Vector3(-6, 3.5, -27), Vector3(26.5, 3.0, 22.4), Vector3(-7.5, 0.0, -9.5),
-		Vector3(9, 0.0, 19), Vector3(-20, 0.0, 18), Vector3(20, 0.0, -16)]
+		Vector3(9, 0.0, 19), Vector3(-20, 0.0, 18), Vector3(20, 0.0, -16), Vector3(40.5, 0.3, 0.5)]
 	pickup_points = [Vector3(-16, 0.0, -16), Vector3(-1, 0.0, -9), Vector3(20, 0.0, 11), Vector3(-12, 3.5, -31),
 		Vector3(4, 0.0, 11), Vector3(-23, 0.0, 9)]
 	mystery_point = Vector3(6, 3.5, -30)
@@ -224,6 +229,27 @@ func _neon_bar(size: Vector3, at: Vector3, color: Color, broken: bool) -> void:
 
 
 ## The cargo ship at the quay: two gangways up, rails you can smash.
+## A rusty barge moored 5 m off the east quay (sprint-jump it, or use the
+## pad), with cargo to hide behind; bounce pads up onto the containers and
+## the ship.
+func _barge() -> void:
+	var was := surface
+	surface = &"metal"
+	block(Vector3(11, 2.2, 16), Vector3(38.5, -0.8, 4), Color(0.46, 0.2, 0.14))
+	deco(Vector3(11.3, 1.2, 16.3), Vector3(38.5, -1.4, 4), HULL, &"paint")
+	for z: float in [-3.6, 11.6]:
+		deco(Vector3(11, 0.5, 0.3), Vector3(38.5, 0.55, z), RUST, &"rust")
+	surface = &"wood"
+	breakable(Breakable.Kind.CRATE, Vector3(2, 2, 2), Vector3(41.5, 1.3, 9.0), Color(0.72, 0.58, 0.38))
+	breakable(Breakable.Kind.CRATE, Vector3(1, 1, 1), Vector3(35.5, 0.8, 9.5), Color(0.74, 0.6, 0.4))
+	breakable(Breakable.Kind.BARREL, Vector3(0.8, 1.1, 0.8), Vector3(42.5, 0.85, -1.5), Color(0.85, 0.16, 0.12))
+	surface = was
+	bounce_pad(Vector3(25.0, 0.0, 1.0), Vector3(37.5, 0.3, 3.0), 3.5)
+	bounce_pad(Vector3(35.0, 0.3, -1.5), Vector3(21.0, 0.0, -1.5), 3.5, Color(0.3, 0.85, 1.0))
+	bounce_pad(Vector3(-20.0, 0.0, 3.8), Vector3(-26.5, 5.2, 2.0), 2.0)
+	bounce_pad(Vector3(1.5, 0.0, -17.5), Vector3(-4.0, 3.6, -27.5), 2.5)
+
+
 func _ship() -> void:
 	surface = &"metal"
 	block(Vector3(36, 6, 10), Vector3(-6, 0.5, -28), HULL)

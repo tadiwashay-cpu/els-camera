@@ -3,7 +3,8 @@ extends Arena
 ## off and it's a KO), three levels (ground, 2.5 m side decks, a 5 m tower),
 ## a mid-height bridge and 6 weapon spawners. Most cover can be smashed:
 ## crates, crate stacks, stone pillars, the edge railings (opening gaps for
-## ring-outs) and explosive barrels.
+## ring-outs) and explosive barrels. Two islands float off the east and west
+## edges: bounce pads fling you across (or sprint and jump the 6 m gap).
 
 const GROUND := Color(0.5, 0.55, 0.62)
 const MID := Color(0.86, 0.54, 0.3)
@@ -14,7 +15,7 @@ const WALL := Color(0.5, 0.54, 0.62)
 
 func build() -> void:
 	kill_y = -14.0
-	bounds = 30.0
+	bounds = 47.0
 	# Ground deck with a skirt underneath so the edge reads as a drop.
 	block(Vector3(56, 1, 56), Vector3(0, -0.5, 0), GROUND)
 	block(Vector3(52, 6, 52), Vector3(0, -4.0, 0), WALL.darkened(0.25))
@@ -53,10 +54,23 @@ func build() -> void:
 			Vector3(-12, 0.55, 22), Vector3(14, 0.55, -21)]:
 		breakable(Breakable.Kind.BARREL, Vector3(0.8, 1.1, 0.8), p, Color(0.85, 0.16, 0.12))
 
+	# The islands: 12 x 18 m, 6 m off the edges, with cover and a pad home.
+	for sx: float in [-1.0, 1.0]:
+		var cx := sx * 40.0
+		block(Vector3(12, 1, 18), Vector3(cx, -0.5, 0), HIGH.lightened(0.15))
+		block(Vector3(10, 5, 16), Vector3(cx, -3.8, 0), WALL.darkened(0.25))
+		breakable(Breakable.Kind.CRATE, Vector3(2, 2, 2), Vector3(cx + sx * 3.0, 1, 5.0), COVER)
+		breakable(Breakable.Kind.PILLAR, Vector3(1, 3, 1), Vector3(cx - sx * 2.5, 1.5, -5.5), WALL.lightened(0.1))
+		breakable(Breakable.Kind.BARREL, Vector3(0.8, 1.1, 0.8), Vector3(cx + sx * 4.2, 0.55, -7.0), Color(0.85, 0.16, 0.12))
+		# Out (from the yard) and home again.
+		bounce_pad(Vector3(sx * 25.0, 0.0, -2.5 * sx), Vector3(cx, 0.0, -1.0 * sx), 3.5)
+		bounce_pad(Vector3(cx - sx * 3.5, 0.0, 6.0 * sx), Vector3(sx * 24.0, 0.0, 12.0 * sx), 3.5, Color(0.3, 0.85, 1.0))
+
 	spawn_points = [Vector3(-22, 0.1, -22), Vector3(22, 0.1, 22), Vector3(22, 0.1, -22), Vector3(-22, 0.1, 22),
-		Vector3(0, 0.1, -24), Vector3(0, 0.1, 24), Vector3(-25, 0.1, -4), Vector3(25, 0.1, 4)]
+		Vector3(0, 0.1, -24), Vector3(0, 0.1, 24), Vector3(-25, 0.1, -4), Vector3(25, 0.1, 4),
+		Vector3(40, 0.1, -6), Vector3(-40, 0.1, 6)]
 	pickup_points = [Vector3(0, 0.0, 9.5), Vector3(-17, 2.5, 6), Vector3(17, 2.5, -6), Vector3(2.2, 5.0, 2.2),
 		Vector3(-20, 0.0, -14), Vector3(20, 0.0, 14)]
 	mystery_point = Vector3(0, 5.0, 0)
 	spawner_points = [Vector3(-2.2, 5.0, -2.2), Vector3(-17, 2.5, 0), Vector3(17, 2.5, 0),
-		Vector3(0, 0.0, -10), Vector3(0, 0.0, 16), Vector3(-12, 0.0, -2)]
+		Vector3(0, 0.0, -10), Vector3(0, 0.0, 16), Vector3(-12, 0.0, -2), Vector3(41, 0.0, 1), Vector3(-41, 0.0, -1)]

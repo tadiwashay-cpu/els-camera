@@ -62,6 +62,9 @@ var _glow: BoxBuilder                  # merged lit windows, lamps (unshaded)
 var _splashed: Dictionary = {}         # fighter id -> was above water
 var _rebake_due := -1.0
 var _clock := 0.0
+## Bounce pads: [{"at", "launch", "time", "top", "cool": {fighter id -> time}}].
+var pads: Array[Dictionary] = []
+const PAD_RADIUS := 0.95
 
 
 func _ready() -> void:
@@ -261,8 +264,9 @@ func bot_goal(_f: Fighter, _m: Match) -> Dictionary:
 
 
 ## Per-frame arena life and hazards (tides, sharks, cranes...). Subclasses
-## call super() for splashes.
+## call super() for bounce pads and splashes.
 func tick(m: Match, delta: float) -> void:
+	_tick_pads(m, delta)
 	if water_level == -INF:
 		return
 	for f in m.fighters:
@@ -289,6 +293,103 @@ func tick(m: Match, delta: float) -> void:
 			f.drain(acc, drown_cause)
 			acc = 0.0
 		_drip[id] = acc
+
+
+# --------------------------------------------------------------- bounce pads
+
+## A bounce pad at `at` (on the floor) that throws whoever steps on it in an
+## arc to `land`, `apex` metres above the higher end. Bots know the way too
+## (a navigation link).
+func bounce_pad(at: Vector3, land: Vector3, apex: float = 3.0, color: Color = Color(1.0, 0.55, 0.15)) -> void:
+	var g := 24.0                       # Fighter.gravity
+	var top := maxf(at.y, land.y) + apex
+	var up := sqrt(2.0 * g * (top - at.y))
+	var t := up / g + sqrt(2.0 * (top - land.y) / g)
+	var flat := Vector3(land.x - at.x, 0.0, land.z - at.z)
+	var launch := flat / t + Vector3.UP * up
+	var root := Node3D.new()
+	root.name = "Pad%d" % pads.size()
+	root.position = at
+	add_child(root)
+	var base := MeshInstance3D.new()
+	var cyl := CylinderMesh.new()
+	cyl.top_radius = PAD_RADIUS
+	cyl.bottom_radius = PAD_RADIUS + 0.12
+	cyl.height = 0.12
+	cyl.radial_segments = 20
+	cyl.rings = 1
+	base.mesh = cyl
+	base.position.y = 0.06
+	base.material_override = surface_material(Color(0.22, 0.24, 0.28), &"metal")
+	root.add_child(base)
+	var disc := MeshInstance3D.new()
+	var dm := CylinderMesh.new()
+	dm.top_radius = PAD_RADIUS - 0.16
+	dm.bottom_radius = PAD_RADIUS - 0.12
+	dm.height = 0.06
+	dm.radial_segments = 20
+	dm.rings = 1
+	disc.mesh = dm
+	disc.position.y = 0.14
+	var glow := StandardMaterial3D.new()
+	glow.albedo_color = color
+	glow.emission_enabled = true
+	glow.emission = color
+	glow.emission_energy_multiplier = 1.6
+	disc.material_override = glow
+	root.add_child(disc)
+	# Chevrons pointing the way you'll fly.
+	var dir := flat.normalized() if flat.length() > 0.1 else Vector3.FORWARD
+	var yaw := atan2(dir.x, dir.z)
+	for k in 2:
+		var chev := MeshInstance3D.new()
+		var pm := PrismMesh.new()
+		pm.size = Vector3(0.5, 0.26, 0.04)
+		chev.mesh = pm
+		chev.material_override = glow
+		chev.rotation = Vector3(-PI * 0.5, yaw, 0.0)
+		chev.position = Vector3(0, 0.19, 0) + dir * (-0.15 + 0.32 * k)
+		root.add_child(chev)
+	if nav:
+		var link := NavigationLink3D.new()
+		link.bidirectional = false
+		link.start_position = Vector3.ZERO
+		link.end_position = land - at
+		link.enter_cost = 2.0
+		root.add_child(link)
+	pads.append({"at": at, "launch": launch, "time": t, "top": disc, "squash": 0.0, "cool": {}})
+
+
+func _tick_pads(m: Match, delta: float) -> void:
+	for pad: Dictionary in pads:
+		var disc: MeshInstance3D = pad["top"]
+		pad["squash"] = maxf(float(pad["squash"]) - delta * 4.0, 0.0)
+		disc.scale = Vector3(1.0 + 0.25 * float(pad["squash"]), 1.0 - 0.6 * float(pad["squash"]), 1.0 + 0.25 * float(pad["squash"]))
+		var at: Vector3 = pad["at"]
+		var cool: Dictionary = pad["cool"]
+		for f in m.fighters:
+			if not f.alive or f.held():
+				continue
+			var d := f.global_position - at
+			if Vector2(d.x, d.z).length() > PAD_RADIUS or d.y < -0.3 or d.y > 0.7 or f.velocity.y > 2.0:
+				continue
+			if m.clock < float(cool.get(f.fighter_id, -1.0)):
+				continue
+			if not m.authority:
+				# Joiners only show it (the host moves the fighter).
+				pad["squash"] = 1.0
+				cool[f.fighter_id] = m.clock + 0.8
+				continue
+			cool[f.fighter_id] = m.clock + 0.8
+			pad["squash"] = 1.0
+			f.launch(pad["launch"], float(pad["time"]) * 0.92)
+			count("bounces")
+			Audio.play(&"boing", at, 2.0)
+			Fx.dust(m, at + Vector3.UP * 0.1, 0.8)
+			if f == m.player:
+				m.camera.kick_fov(12.0)
+			if m.net:
+				m.net.event("sound", ["boing", at, 2.0, 1.0])
 
 
 ## Seconds `f` has been standing or swimming in the sea (0 = dry).
@@ -416,22 +517,30 @@ func _sky() -> void:
 	mat.ground_horizon_color = Color(0.62, 0.7, 0.8)
 	mat.sun_angle_max = 20.0
 	sky.sky_material = mat
+	# A small radiance map: metal (weapons, rails) reflects the sky.
+	sky.radiance_size = Sky.RADIANCE_SIZE_64
 	env.background_mode = Environment.BG_SKY
 	env.sky = sky
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
 	env.ambient_light_energy = 0.55
+	env.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
+	# Filmic (AgX looked washed out next to the game's bright colours).
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
-	env.tonemap_exposure = 0.95
+	env.tonemap_exposure = 1.0
 	env.glow_enabled = true
 	env.glow_intensity = 0.5
 	env.glow_bloom = 0.05
+	env.glow_hdr_threshold = 0.95
 	env.fog_enabled = true
 	env.fog_light_color = Color(0.7, 0.78, 0.88)
 	env.fog_density = 0.004
 	env.fog_sky_affect = 0.0
+	# Haze that takes the sky's colour far away, brighter towards the sun.
+	env.fog_aerial_perspective = 0.2
+	env.fog_sun_scatter = 0.12
 	env.adjustment_enabled = true
-	env.adjustment_saturation = 1.12
-	env.adjustment_contrast = 1.05
+	env.adjustment_saturation = 1.2
+	env.adjustment_contrast = 1.07
 	we.environment = env
 	add_child(we)
 	sun = DirectionalLight3D.new()

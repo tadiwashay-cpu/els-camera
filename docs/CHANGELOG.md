@@ -4,6 +4,35 @@ Versions are `MAJOR.MINOR.PATCH`; the number lives in `project.godot`
 (`config/version`) and shows on the title screen and next to the FPS counter.
 Bump MINOR for a phase or batch of features, PATCH for fixes.
 
+## 0.5.0: Feel (lighting, screen effects, camera, particles) and bigger maps
+
+- **Lighting**: metal reflects the sky (weapons, rails and trim shine),
+  distant scenery fades into a sky-coloured haze that glows towards the sun,
+  stronger colour grading, bloom only on bright parts. Soft contact shadows
+  under every fighter (they ground fighters even on LOW, where sun shadows
+  are off).
+- **Screen effects** (MEDIUM and HIGH): a soft vignette; getting hit flashes
+  the screen edges red with a colour split (stronger for heavy hits); your
+  heavy hits and kills give a jolt; dashes, launches and bounce pads blur the
+  edges of the screen towards the centre. The screen-reading effect only
+  runs while one is happening.
+- **Camera**: leans into sideways running, dips when you land hard, is
+  knocked away from a blow that hits you, and widens (FOV kick) on kills,
+  launches and bounce pads.
+- **Particles**: soft dust clouds instead of cubes, dust kicked up when
+  sprinting and rolling, a bright flash where every blow lands.
+- **Bigger maps with twists: bounce pads** throw you in an arc to a set spot
+  (bots use them too):
+  - Blockout Yard: two new islands 6 m off the east and west edges (cover, a
+    weapon spawner, a spawn point each); pads out and back, or sprint-jump.
+  - Beach Island: Turtle Rock, a dry rock out west in shark water, with a
+    palm, cover and a spawner; pads to it and back, up onto the ridge, and
+    across to the islet.
+  - Harbor Factory: a barge moored 5 m off the east quay with cargo and a
+    spawner; pads to it and back, up onto the stacked containers, and onto
+    the ship's deck.
+  - Every arena now has at least 9 spawn points (for 8 bots).
+
 ## 0.4.1: Curved weapon models, a big round shield with its own moves
 
 - **Every weapon remodelled** with curves instead of boxes: 47 new models

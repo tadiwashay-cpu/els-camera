@@ -68,21 +68,106 @@ static func sparks(parent: Node, at: Vector3, color: Color, amount: int = 14) ->
 	p.restart()
 
 
+## A soft round sprite (dust, smoke, flashes): white in the middle, clear at
+## the rim; `additive` glows.
+static func _soft_material(additive: bool) -> StandardMaterial3D:
+	var key := "soft%s" % additive
+	if not _materials.has(key):
+		var m := StandardMaterial3D.new()
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD if additive else BaseMaterial3D.BLEND_MODE_MIX
+		m.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+		m.vertex_color_use_as_albedo = true
+		m.disable_receive_shadows = true
+		m.no_depth_test = false
+		var g := Gradient.new()
+		g.set_color(0, Color(1, 1, 1, 1))
+		g.set_color(1, Color(1, 1, 1, 0))
+		g.add_point(0.45, Color(1, 1, 1, 0.55))
+		var t := GradientTexture2D.new()
+		t.gradient = g
+		t.fill = GradientTexture2D.FILL_RADIAL
+		t.fill_from = Vector2(0.5, 0.5)
+		t.fill_to = Vector2(0.5, 0.0)
+		t.width = 64
+		t.height = 64
+		m.albedo_texture = t
+		_materials[key] = m
+	return _materials[key]
+
+
+## Soft puffs that swell and fade (dust, smoke).
+static func _puffs(size: float, additive: bool = false) -> CPUParticles3D:
+	var p := CPUParticles3D.new()
+	p.one_shot = true
+	p.emitting = false
+	p.explosiveness = 0.9
+	var q := QuadMesh.new()
+	q.size = Vector2.ONE * size
+	q.material = _soft_material(additive)
+	p.mesh = q
+	p.local_coords = false
+	var fade := Gradient.new()
+	fade.set_color(0, Color(1, 1, 1, 0.7))
+	fade.set_color(1, Color(1, 1, 1, 0.0))
+	p.color_ramp = fade
+	var grow := Curve.new()
+	grow.add_point(Vector2(0.0, 0.45))
+	grow.add_point(Vector2(1.0, 1.0))
+	p.scale_amount_curve = grow
+	p.angle_min = 0.0
+	p.angle_max = 360.0
+	return p
+
+
 static func dust(parent: Node, at: Vector3, scale: float = 1.0) -> void:
 	if parent == null:
 		return
-	var p := _take("dust", parent, func() -> Node: return _particles(Color(0.8, 0.78, 0.72), 0.12)) as CPUParticles3D
+	var p := _take("dust", parent, func() -> Node: return _puffs(0.55)) as CPUParticles3D
 	p.global_position = at
-	p.amount = int(10 * scale)
-	p.lifetime = 0.55
-	p.color = Color(0.82, 0.8, 0.74, 1)
+	p.amount = maxi(int(9 * scale), 3)
+	p.lifetime = 0.7
+	p.color = Color(0.86, 0.82, 0.74, 1)
 	p.direction = Vector3.UP
-	p.spread = 80.0
-	p.gravity = Vector3(0, 1.5, 0)
-	p.initial_velocity_min = 1.0 * scale
-	p.initial_velocity_max = 3.0 * scale
+	p.spread = 85.0
+	p.gravity = Vector3(0, 0.8, 0)
+	p.initial_velocity_min = 0.8 * scale
+	p.initial_velocity_max = 2.6 * scale
 	p.damping_min = 3.0
 	p.damping_max = 5.0
+	p.scale_amount_min = 0.6 * maxf(scale, 0.5)
+	p.scale_amount_max = 1.3 * maxf(scale, 0.5)
+	p.restart()
+
+
+## A bright flash where a blow lands, with a few fast streaks.
+static func impact(parent: Node, at: Vector3, color: Color, scale: float = 1.0) -> void:
+	if parent == null:
+		return
+	var p := _take("impact", parent, func() -> Node:
+		var q := _puffs(0.9, true)
+		q.explosiveness = 1.0
+		q.gravity = Vector3.ZERO
+		q.spread = 0.0
+		q.initial_velocity_min = 0.0
+		q.initial_velocity_max = 0.0
+		var fade := Gradient.new()
+		fade.set_color(0, Color(1, 1, 1, 1))
+		fade.set_color(1, Color(1, 1, 1, 0))
+		q.color_ramp = fade
+		var grow := Curve.new()
+		grow.add_point(Vector2(0.0, 0.3))
+		grow.add_point(Vector2(0.4, 1.0))
+		grow.add_point(Vector2(1.0, 1.15))
+		q.scale_amount_curve = grow
+		return q) as CPUParticles3D
+	p.global_position = at
+	p.amount = 2
+	p.lifetime = 0.16
+	p.color = color
+	p.scale_amount_min = 0.8 * scale
+	p.scale_amount_max = 1.1 * scale
 	p.restart()
 
 

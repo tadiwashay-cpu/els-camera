@@ -2,7 +2,9 @@ class_name CameraRig
 extends Node3D
 ## Third-person camera over the right shoulder (doc: Camera). A SpringArm3D
 ## pulls in so walls never block the view; lock-on orbits to keep the
-## target in frame; trauma-based shake for hits.
+## target in frame; trauma-based shake for hits. Feel: it leans into
+## sideways running, dips when you land hard, gets knocked away from hits
+## and widens (FOV kick) when you're launched or dash.
 
 @export var distance := 3.9
 @export var shoulder := 0.62
@@ -20,6 +22,12 @@ var _trauma := 0.0
 var _rng := RandomNumberGenerator.new()
 var _fov_kick := 0.0
 var _noise_t := 0.0
+var _punch := Vector2.ZERO          # screen-space knock (h, v offsets)
+var _roll := 0.0
+var _dip := 0.0
+var _dip_vel := 0.0
+var _was_air := false
+var _air_vy := 0.0
 
 
 func _ready() -> void:
@@ -55,6 +63,14 @@ func kick_fov(amount: float) -> void:
 	_fov_kick = maxf(_fov_kick, amount)
 
 
+## A hit from world direction `from_dir` (pointing at us): the view is
+## knocked the way the blow travels.
+func punch(from_dir: Vector3, amount: float) -> void:
+	var right := global_transform.basis.x
+	var side := right.dot(from_dir.normalized())
+	_punch += Vector2(side, 0.35) * amount
+
+
 func snap() -> void:
 	_pivot_set = false
 
@@ -87,12 +103,29 @@ func _process(delta: float) -> void:
 	_fov_kick = maxf(_fov_kick - real * 30.0, 0.0)
 	camera.fov = lerpf(camera.fov, fov + 7.0 * running + _fov_kick, clampf(real * 4.0, 0.0, 1.0))
 
+	# Lean into sideways movement (relative to the view).
+	var right := global_transform.basis.x
+	var side := Vector3(target.velocity.x, 0.0, target.velocity.z).dot(Vector3(right.x, 0.0, right.z))
+	_roll = lerpf(_roll, clampf(-side * 0.006, -0.05, 0.05), clampf(real * 5.0, 0.0, 1.0))
+	# Landing dip: a spring pushed down by how hard we hit the ground.
+	var air := not target.is_on_floor()
+	if air:
+		_air_vy = minf(_air_vy, target.velocity.y)
+	elif _was_air:
+		if _air_vy < -7.0:
+			_dip_vel -= clampf((-_air_vy - 7.0) * 0.12, 0.0, 1.4)
+		_air_vy = 0.0
+	_was_air = air
+	_dip_vel += (-_dip * 90.0 - _dip_vel * 14.0) * real
+	_dip += _dip_vel * real
+	_punch = _punch.lerp(Vector2.ZERO, clampf(real * 9.0, 0.0, 1.0))
+
 	# Shake: squared trauma, smooth noise, decays in real time.
 	_noise_t += real * 30.0
 	var s := _trauma * _trauma
-	camera.h_offset = s * 0.25 * sin(_noise_t * 1.7)
-	camera.v_offset = s * 0.25 * sin(_noise_t * 2.3 + 1.0)
-	camera.rotation.z = s * 0.06 * sin(_noise_t * 1.3 + 2.0)
+	camera.h_offset = s * 0.25 * sin(_noise_t * 1.7) + _punch.x * 0.3
+	camera.v_offset = s * 0.25 * sin(_noise_t * 2.3 + 1.0) + _punch.y * 0.3 + _dip
+	camera.rotation.z = s * 0.06 * sin(_noise_t * 1.3 + 2.0) + _roll - _punch.x * 0.04
 	_trauma = maxf(_trauma - real * 1.8, 0.0)
 
 

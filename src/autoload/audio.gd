@@ -104,6 +104,7 @@ func _build() -> void:
 	_add("clunk", [_metal(0.5, [180.0, 410.0, 760.0, 1210.0])])
 	_add("shot", [_crash(0.35, 5000.0, 0.9, false)])
 	_add("zap", [_zap(0.45)])
+	_add("boing", [_chirp(0.32, 160.0, 720.0, 0.55, false)])
 	_add("tingle", [_notes([2093.0, 2637.0, 3136.0, 4186.0], 0.035, 0.32)])
 	_add("strum", [_notes([196.0, 246.9, 293.7, 392.0], 0.05, 0.5)])
 	# Recorded replacements win where present.

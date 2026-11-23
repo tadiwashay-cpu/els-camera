@@ -1,8 +1,8 @@
-# Playtest guide (v0.4.1: weapon powers, the Armory, new weapon models)
+# Playtest guide (v0.5.0: feel, bigger maps, new weapon models, the Armory)
 
 ## Install
 1. On the tablet open GitHub > this repo > **Releases** > "Block Duelist 3D
-   v0.4.1 (playtest)" and download the APK (or Actions > latest run > Artifacts).
+   v0.5.0 (playtest)" and download the APK (or Actions > latest run > Artifacts).
 2. Tap it, allow "install unknown apps", open **Block Duelist 3D**.
 3. Settings: Graphics on **MEDIUM** for the gates, turn **Show FPS** on.
 
@@ -10,6 +10,10 @@
 
 | # | Do this | Look for |
 |---|---------|----------|
+| A | Play each arena on MEDIUM, then HIGH | Lighting, haze, shiny metal look better? FPS still fine (show FPS on)? |
+| B | Get hit, land heavy hits, get a kill, dash | Red edge flash, jolts, speed blur: good or too much? |
+| C | Run sideways, jump off something high | Camera lean and landing dip feel good, not sick-making? |
+| D | Step on the glowing bounce pads (yard edges, beach, harbor) | You fly to the island / rock / barge / roof and land safely |
 | 0 | Title > ARMORY, tap through the weapons; then play with a few | Curved models look good up close and in a fight? Anything looking wrong in a hand? |
 | 0b | Buy the Shield (A rank), play with it | Big round shield; bash, backhand, slam (charge), block and parry look right? |
 | 1 | Title > ARMORY | 500 welcome coins; weapons by rank with prices; icons readable; the fighter holds the selected weapon |
@@ -30,11 +34,12 @@ Copy this into a GitHub Issue or the chat:
 
 ```
 Device: Redmi Pad 2 (or ...)
-Build: v0.4.1 (from the title screen)
+Build: v0.5.0 (from the title screen)
 
 FEEL (1 bad - 5 great)
   Moving:      Attacking:      Weapons:      Camera:      Bots:
   Powers:      Armory prices fair?:      Danger warning useful?:
+  Lighting:      Screen effects:      Camera feel:      Bounce pads / new islands:
   Online: responsive?      smooth others?      same on both phones?
   Beach Island:      Harbor Factory:      Hazards fair?:
 

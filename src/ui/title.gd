@@ -117,7 +117,7 @@ func _build_ui() -> void:
 	_coins.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_ui.add_child(_coins)
 	var ver := Label.new()
-	ver.text = "v%s  ·  powers and Armory playtest" % Game.version()
+	ver.text = "v%s  ·  feel and bigger maps playtest" % Game.version()
 	ver.anchor_top = 1.0
 	ver.anchor_bottom = 1.0
 	ver.offset_left = 30

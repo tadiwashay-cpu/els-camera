@@ -529,8 +529,7 @@ func receive_event(kind: String, d: Array) -> void:
 				victim.body.flash(0.8)
 			if victim == m.player or attacker == m.player:
 				Fx.damage_number(m, at + Vector3.UP * 0.3, float(d[2]), Color(1, 0.35, 0.3) if victim == m.player else Color(1, 0.95, 0.6))
-				m.camera.shake(0.45 if heavy else 0.22)
-				Game.vibrate(40 if heavy else 18)
+			m.hit_feel(victim, attacker, at, heavy)
 		"down", "death":
 			var f := m.fighter_by_id(int(d[0]))
 			if f:

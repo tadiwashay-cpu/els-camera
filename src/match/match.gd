@@ -21,6 +21,7 @@ var race := KillRace.new()
 var player: Fighter
 var camera: CameraRig
 var hud: Hud
+var screen_fx: ScreenFx
 var touch: TouchControls
 var player_input: PlayerInput
 var killcam: Killcam
@@ -73,6 +74,8 @@ func _ready() -> void:
 	hud.match_node = self
 	hud.player = player
 	add_child(hud)
+	screen_fx = ScreenFx.new()
+	add_child(screen_fx)
 	touch = TouchControls.new()
 	hud.add_child(touch)
 	player_input = PlayerInput.new()
@@ -284,6 +287,16 @@ func _physics_process(delta: float) -> void:
 		hud.set_locked(locked.data if locked and not player.can_use(locked.data) else null)
 
 
+## Per frame, on every phone: the speed blur while our fighter flies or dashes.
+func _process(_delta: float) -> void:
+	if player == null or screen_fx == null:
+		return
+	var fast := clampf((player.hspeed() - player.sprint_speed * 1.12) / 6.0, 0.0, 1.0)
+	if player.launching():
+		fast = maxf(fast, 0.6)
+	screen_fx.set_speed(fast if player.alive and not paused else 0.0)
+
+
 func _tick_powerups() -> void:
 	for i in arena.pickup_points.size():
 		var p: PowerUp = powerups[i]
@@ -383,9 +396,23 @@ func _on_hurt(victim: Fighter, attacker: Fighter, damage: float, at: Vector3, he
 		Audio.play(attacker.weapon_data.hit_sound, at, 3.0)
 	if heavy:
 		Game.hit_stop(40)
-	if victim == player or attacker == player:
+	hit_feel(victim, attacker, at, heavy)
+
+
+## How a landed hit feels on this phone (the host and joiners alike): an
+## impact flash, and for our own fighter shake, a knock, a red edge flash.
+func hit_feel(victim: Fighter, attacker: Fighter, at: Vector3, heavy: bool) -> void:
+	Fx.impact(self, at, Color(1.0, 0.92, 0.7) if not heavy else Color(1.0, 0.62, 0.3), 1.35 if heavy else 0.9)
+	if victim == player and player:
 		camera.shake(0.45 if heavy else 0.22)
+		camera.punch(player.global_position - at, 0.6 if heavy else 0.3)
+		screen_fx.hurt(0.85 if heavy else 0.45)
 		Game.vibrate(40 if heavy else 18)
+	elif attacker == player and player:
+		camera.shake(0.3 if heavy else 0.14)
+		if heavy:
+			screen_fx.punch(0.45)
+		Game.vibrate(30 if heavy else 12)
 
 
 func _on_died(victim: Fighter, killer: Fighter) -> void:
@@ -429,6 +456,8 @@ func present_death(victim: Fighter, credited: Fighter, points: int, cause: Strin
 		Audio.play(&"kill", null, 0.0)
 		Game.slow_motion(0.3, 0.45)
 		camera.shake(0.5)
+		camera.kick_fov(6.0)
+		screen_fx.punch(0.7, Color(1.0, 0.8, 0.3, 0.3))
 	if victim == player and not ended and not race.finished:
 		if credited:
 			hud.callout("KILLED BY %s" % credited.display_name.to_upper(), Color(1, 0.4, 0.35), "", 1.0)

@@ -6,6 +6,8 @@ extends Arena
 ##   deep water past the sand shelf has sharks (instant KO, credited to
 ##   whoever knocked you in).
 ##   Signature: climb into the wreck's cannon to be fired onto the lighthouse.
+##   Twists: Turtle Rock, a dry rock out west in shark water, and bounce pads
+##   (beach -> rock and back, beach -> ridge, beach -> islet).
 
 const SAND := Color(0.93, 0.83, 0.6)
 const WET_SAND := Color(0.78, 0.68, 0.48)
@@ -53,7 +55,7 @@ const ISLET := Rect2(-8.5, 27.6, 9.0, 9.0)
 const PIER := Rect2(19.0, -9.0, 19.0, 3.5)
 ## High ground bots wait out the tide on.
 const DRY: Array[Vector3] = [Vector3(-14, 2.5, 2.5), Vector3(-13, 4.5, -17), Vector3(13, 4.5, -17),
-	Vector3(15, 2.2, 4), Vector3(25, 0.6, -7.25), Vector3(-20.5, 0.65, 15.5)]
+	Vector3(15, 2.2, 4), Vector3(25, 0.6, -7.25), Vector3(-20.5, 0.65, 15.5), Vector3(-37.5, 1.0, 4.0)]
 ## Rock outcrops in the shallows: dry even at high tide (jump onto them).
 const OUTCROPS: Array[Vector3] = [Vector3(-27, 0, -10), Vector3(-28, 0, 15), Vector3(27, 0, 15), Vector3(27.5, 0, 2),
 	Vector3(-14, 0, -27), Vector3(14, 0, -27), Vector3(14, 0, 21)]
@@ -68,7 +70,7 @@ func build() -> void:
 	merge = true
 	surface = &"sand"
 	kill_y = -12.0
-	bounds = 32.0
+	bounds = 42.0
 	water_level = TIDE_LOW
 	_look()
 
@@ -103,10 +105,13 @@ func build() -> void:
 		breakable(Breakable.Kind.PILLAR, Vector3(1.1, 4, 1.1), p, ROCK.lightened(0.1))
 	surface = &"sand"
 
+	_turtle_rock()
+
 	spawn_points = [Vector3(-6, 0.1, -8), Vector3(6, 0.1, -8), Vector3(-17, 0.1, 17), Vector3(8, 0.1, 17),
-		Vector3(0, 0.1, 5), Vector3(-14, 2.6, 2.5), Vector3(-12, 4.6, -18), Vector3(12, 4.6, -18)]
+		Vector3(0, 0.1, 5), Vector3(-14, 2.6, 2.5), Vector3(-12, 4.6, -18), Vector3(12, 4.6, -18),
+		Vector3(-38, 1.1, 6)]
 	spawner_points = [Vector3(-17, 4.5, -18), Vector3(0, 0.0, -20.5), Vector3(15, 2.2, 6.0),
-		Vector3(36, 0.6, -7.25), Vector3(-4, 0.1, 32.5), Vector3(1, 0.0, 12)]
+		Vector3(36, 0.6, -7.25), Vector3(-4, 0.1, 32.5), Vector3(1, 0.0, 12), Vector3(-38.5, 1.0, 1.5)]
 	pickup_points = [Vector3(-6, 0.0, 1), Vector3(9, 0.0, -4), Vector3(17, 4.5, -18), Vector3(-19.5, 2.5, 2.5),
 		Vector3(19, 0.0, 16), Vector3(-15, 0.0, -6)]
 	mystery_point = LIGHTHOUSE_TOP
@@ -609,6 +614,25 @@ static func ballistic(from: Vector3, to: Vector3, t: float, g: float) -> Vector3
 
 func speed_factor_at(pos: Vector3) -> float:
 	return wading_factor(water_level - pos.y)
+
+
+## Turtle Rock: a flat-topped rock out west past the sand shelf (sharks all
+## round), dry at high tide, with a palm, cover and a weapon spawner.
+func _turtle_rock() -> void:
+	var was := surface
+	surface = &"rock"
+	block(Vector3(9, 7, 10), Vector3(-37.5, -2.5, 4), ROCK)
+	for p: Vector3 in [Vector3(-42.2, -0.4, 0.5), Vector3(-33.0, -0.6, 8.5), Vector3(-41.5, -0.6, 8.0)]:
+		deco(Vector3(2.4, 2.2, 2.6), p, DARK_ROCK, &"rock", p.x * 13.0)
+	surface = &"wood"
+	breakable(Breakable.Kind.CRATE, Vector3(2, 2, 2), Vector3(-40.5, 2.0, 6.5), Color(0.8, 0.64, 0.4))
+	breakable(Breakable.Kind.BARREL, Vector3(0.8, 1.1, 0.8), Vector3(-35.0, 1.55, 0.2), Color(0.85, 0.16, 0.12))
+	surface = was
+	_palm(Vector3(-40.5, 1.0, 1.0), 9.0)
+	bounce_pad(Vector3(-18.0, 0.0, -6.5), Vector3(-36.5, 1.0, 2.5), 3.5)
+	bounce_pad(Vector3(-34.5, 1.0, 7.0), Vector3(-17.5, 0.0, 13.5), 3.5, Color(0.3, 0.85, 1.0))
+	bounce_pad(Vector3(-6.0, 0.0, -10.0), Vector3(-12.0, 4.5, -18.0), 2.5)
+	bounce_pad(Vector3(-3.0, 0.0, 18.5), Vector3(-4.0, 0.1, 30.5), 3.0, Color(0.3, 0.85, 1.0))
 
 
 func bot_goal(f: Fighter, m: Match) -> Dictionary:

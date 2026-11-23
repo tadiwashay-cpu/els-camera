@@ -149,6 +149,8 @@ func apply_to_world(sun: DirectionalLight3D, env: Environment, camera: Camera3D)
 	sun.directional_shadow_max_distance = 40.0 if p["name"] != "HIGH" else 60.0
 	RenderingServer.directional_shadow_atlas_set_size(int(p["shadow_size"]), true)
 	env.glow_enabled = bool(p["glow"])
+	if env.sky:
+		env.sky.radiance_size = Sky.RADIANCE_SIZE_32 if p["name"] == "LOW" else (Sky.RADIANCE_SIZE_128 if p["name"] == "HIGH" else Sky.RADIANCE_SIZE_64)
 	if camera:
 		camera.far = float(p["far"])
 

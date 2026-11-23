@@ -125,6 +125,7 @@ var _have_prev := false
 var _attack_down_at := -1.0       # when attack went down (s), -1 = up
 var _charge := 0.0
 var _boost_until := 0.0           # caught a weapon: next throw flies 1.5x faster
+var _dust_at := 0.0
 var _threw := false
 var _down_time := 0.0
 var _dodge_cd := 0.0
@@ -175,6 +176,10 @@ func _ready() -> void:
 	trail = BladeTrail.new()
 	trail.color = body.skin.trail
 	add_child(trail)
+	var contact := ContactShadow.new()
+	contact.fighter = self
+	contact.strength = 0.5 if bool(Game.preset()["shadow"]) else 0.72
+	add_child(contact)
 	health = max_health
 	_shield_mesh = MeshInstance3D.new()
 	var bubble := SphereMesh.new()
@@ -389,6 +394,11 @@ func _physics_process(delta: float) -> void:
 		_air_time = 0.0
 		_jumps = 0
 		_fall_speed = 0.0
+		# Kicked-up dust when sprinting or rolling.
+		var hs := hspeed()
+		if (hs > run_speed * 1.15 or state == State.DODGE) and _clock >= _dust_at and world and not swimming:
+			_dust_at = _clock + (0.12 if state == State.DODGE else 0.28)
+			Fx.dust(get_parent(), global_position + Vector3.UP * 0.05, 0.35 if state != State.DODGE else 0.5)
 	_update_trail()
 	_animate()
 
@@ -1518,6 +1528,11 @@ func launch(vel: Vector3, seconds: float) -> void:
 
 func held() -> bool:
 	return state == State.HELD
+
+
+## Flying from a launch (cannon, bounce pad, a power): no air steering.
+func launching() -> bool:
+	return _launch_left > 0.0
 
 
 ## A crane magnet caught our metal weapon: hang under `holder` until it lets
