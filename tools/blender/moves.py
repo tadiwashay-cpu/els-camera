@@ -636,6 +636,64 @@ move("Stagger", Keys(STANCE, [
     (0.62, merge(RESET, STANCE), "smooth"),
 ]), 0.62)
 
+# Shield ------------------------------------------------------------------------
+# The shield rides on the left forearm, held upright in front so its face
+# points forward; the right fist waits by the ribs. Bashes shove it out with
+# a step, the heavy lifts it overhead and slams it down.
+SHIELD_GUARD = merge(GUARD, {
+    "hips_rot": (3.0, 0.0, -18.0), "upper": (2.0, 0.0, -4.0),
+    "hand_l": (0.1, -0.3, 1.36), "elbow_l": (0.4, -0.3, -1.0), "grip_l": (0.12, 0.0, 1.0), "face_l": (0.25, -1.0, 0.0),
+    "hand_r": (-0.2, -0.2, 1.22), "elbow_r": (-0.8, 0.4, -0.6), "wrist_r": (0.0, 0.0, 20.0),
+})
+_SHIELD_RAISE = {"hand_l": (0.1, -0.24, 1.86), "elbow_l": (0.9, 0.2, 0.0), "grip_l": (0.0, 0.6, 0.8), "face_l": (0.0, -0.8, 0.6),
+                 "hips": (0.0, 0.03, -0.13), "spine": (-6.0, 0, 0), "chest": (-4.0, 0, 0), "head": (-6.0, 0, 0),
+                 "hand_r": (-0.24, -0.1, 1.2), "knee_l": (0.3, -1.0, 0.0), "knee_r": (-0.4, -1.0, 0.0)}
+_SHIELD_BLOCK = {"hand_l": (0.06, -0.32, 1.5), "elbow_l": (0.4, -0.3, -1.0), "grip_l": (0.0, 0.0, 1.0), "face_l": (0.5, -1.0, 0.0),
+                 "hand_r": (-0.14, -0.16, 1.32), "elbow_r": (-0.7, 0.2, -0.7),
+                 "spine": (8.0, 0, 0), "chest": (6.0, 0, 0), "upper": (4.0, 0, -6.0), "head": (6.0, 0, 0),
+                 "hips": (0.0, 0.02, -0.11)}
+
+move("Shield_Idle", loop_idle(SHIELD_GUARD), 2.0, loop=True)
+move("Shield_Bash", Keys(SHIELD_GUARD, [
+    (0.0, {}),
+    (0.08, {"hand_l": (0.13, -0.18, 1.34), "hips_rot": (3, 0, -10), "hips": (0.0, 0.04, -0.08), "spine": (-2, 0, 0)}, "in"),
+    (0.16, {"hand_l": (0.08, -0.54, 1.38), "elbow_l": (0.4, -0.45, -1.0), "grip_l": (0.0, 0.0, 1.0), "face_l": (0.65, -1.0, 0.1),
+            "hips_rot": (5, 0, -24), "upper": (4, 0, -8),
+            "hips": (0.0, -0.16, -0.1), "spine": (12, 0, 0), "chest": (6, 0, 0), "head": (-10, 0, 0),
+            "foot_l": (0.16, -0.36, ANKLE_Z)}, "snap"),
+    (0.26, {}, "lin"),
+    (0.5, merge(RESET, SHIELD_GUARD), "smooth"),
+]), 0.5, events={"hit": [0.1, 0.26]})
+move("Shield_Bash_B", Keys(SHIELD_GUARD, [
+    (0.0, {}),
+    (0.1, {"hand_l": (0.36, -0.22, 1.34), "elbow_l": (0.7, 0.0, -1.0), "face_l": (0.8, -0.6, 0.0), "hips_rot": (3, 0, -36),
+           "upper": (2, 0, -12)}, "in"),
+    (0.2, {"hand_l": (-0.06, -0.5, 1.44), "elbow_l": (0.2, -0.4, -1.0), "face_l": (-0.35, -1.0, 0.0), "hips_rot": (4, 0, 8),
+           "upper": (3, 0, 12),
+           "hips": (0.0, -0.08, -0.1), "spine": (6, 0, 0)}, "snap"),
+    (0.3, {}, "lin"),
+    (0.56, merge(RESET, SHIELD_GUARD), "smooth"),
+]), 0.56, events={"hit": [0.12, 0.3]})
+move("Shield_Raise", _breathing(merge(SHIELD_GUARD, _SHIELD_RAISE)), 1.0, loop=True)
+move("Shield_Slam", Keys(merge(SHIELD_GUARD, _SHIELD_RAISE), [
+    (0.0, {}),
+    (0.06, {"hand_l": (0.1, -0.18, 1.96), "hips": (0.0, 0.04, -0.1)}, "in"),
+    (0.16, {"hand_l": (0.06, -0.56, 0.86), "elbow_l": (0.9, 0.1, -0.2), "grip_l": (0.0, 0.55, 0.85), "face_l": (0.25, -0.85, 0.55),
+            "hips": (0.0, -0.08, -0.32), "spine": (24, 0, 0),
+            "chest": (12, 0, 0), "upper": (6, 0, -8), "head": (-12, 0, 0), "foot_l": (0.17, -0.36, ANKLE_Z),
+            "knee_l": (0.3, -1.0, 0.0), "knee_r": (-0.4, -1.0, 0.0)}, "snap"),
+    (0.34, {}, "lin"),
+    (0.72, merge(RESET, SHIELD_GUARD), "smooth"),
+]), 0.72, events={"hit": [0.08, 0.24], "slam": 0.17})
+move("Shield_Block", _breathing(merge(SHIELD_GUARD, _SHIELD_BLOCK)), 1.0, loop=True)
+move("Shield_Parry", Keys(merge(SHIELD_GUARD, _SHIELD_BLOCK), [
+    (0.0, {}),
+    (0.07, {"hand_l": (0.2, -0.48, 1.5), "elbow_l": (0.6, -0.3, -1.0), "face_l": (0.9, -1.0, 0.0), "upper": (3, 0, -16.0),
+            "hips": (0.0, -0.08, -0.1),
+            "spine": (12, 0, 0)}, "snap"),
+    (0.32, merge(SHIELD_GUARD, _SHIELD_BLOCK), "smooth"),
+]), 0.32)
+
 # Powers ------------------------------------------------------------------------
 for _armed, _sfx in ((False, ""), (True, "_Sword")):
     _base = STANCE if _armed else GUARD

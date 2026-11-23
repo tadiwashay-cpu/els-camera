@@ -1093,6 +1093,8 @@ func _parry_window() -> float:
 
 
 func _armed_clip_parry() -> StringName:
+	if weapon_data and weapon_data.parry_clip != &"":
+		return weapon_data.parry_clip
 	return &"Parry" if armed() else &"Parry_Fists"
 
 
@@ -1582,7 +1584,7 @@ func celebrate() -> void:
 # ---------------------------------------------------------------- animation
 
 func _animate() -> void:
-	body.set_guard(blocking and state == State.MOVE, armed())
+	body.set_guard(blocking and state == State.MOVE, armed(), weapon_data.block_clip if weapon_data else &"")
 	if state == State.FROZEN and body.loco == &"Victory":
 		return
 	var sword := armed()

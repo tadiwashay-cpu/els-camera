@@ -63,6 +63,9 @@ func _ready() -> void:
 	key.rotation_degrees = Vector3(-35, 35, 0)
 	key.light_energy = 2.0
 	add_child(key)
+	var fill := DirectionalLight3D.new()       # from the camera: dark models still read
+	fill.light_energy = 0.7
+	add_child(fill)
 	var rim := DirectionalLight3D.new()
 	rim.rotation_degrees = Vector3(-20, 200, 0)
 	rim.light_energy = 1.0
@@ -80,6 +83,9 @@ func _ready() -> void:
 		mi.mesh = w.mesh()
 		# Diagonal, turned a little towards the light, sized to the cell.
 		var basis := Basis.from_euler(Vector3(deg_to_rad(10), deg_to_rad(-25), deg_to_rad(-42)))
+		var raw := w.mesh().get_aabb()
+		if raw.size.z > raw.size.x * 1.5:
+			basis = basis * Basis(Vector3.UP, PI * 0.5)    # drawn side-on (bow, rifle): show the profile
 		var box := Transform3D(basis, Vector3.ZERO) * w.mesh().get_aabb()
 		var fit := 0.8 / maxf(maxf(box.size.x, box.size.y), 0.25)
 		var centre := Vector3(i % COLS + 0.5, -(i / COLS + 0.5), 0.0)

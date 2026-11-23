@@ -313,6 +313,64 @@
    "loop": true,
    "speed": 4.6
   },
+  "Shield_Bash": {
+   "events": {
+    "hit": [
+     0.1,
+     0.26
+    ]
+   },
+   "length": 0.5,
+   "loop": false,
+   "speed": 0.0
+  },
+  "Shield_Bash_B": {
+   "events": {
+    "hit": [
+     0.12,
+     0.3
+    ]
+   },
+   "length": 0.5667,
+   "loop": false,
+   "speed": 0.0
+  },
+  "Shield_Block": {
+   "events": {},
+   "length": 1.0,
+   "loop": true,
+   "speed": 0.0
+  },
+  "Shield_Idle": {
+   "events": {},
+   "length": 2.0,
+   "loop": true,
+   "speed": 0.0
+  },
+  "Shield_Parry": {
+   "events": {},
+   "length": 0.3333,
+   "loop": false,
+   "speed": 0.0
+  },
+  "Shield_Raise": {
+   "events": {},
+   "length": 1.0,
+   "loop": true,
+   "speed": 0.0
+  },
+  "Shield_Slam": {
+   "events": {
+    "hit": [
+     0.08,
+     0.24
+    ],
+    "slam": 0.17
+   },
+   "length": 0.7333,
+   "loop": false,
+   "speed": 0.0
+  },
   "Shoot": {
    "events": {
     "fire": 0.01

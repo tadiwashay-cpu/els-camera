@@ -44,6 +44,9 @@ const WEAPON_SHADER := preload("res://src/weapons/weapon.gdshader")
 @export var move_speed := 1.0
 ## Standing pose while holding it (empty = the sword stance).
 @export var idle_clip := &""
+## Its own guard and parry moves (a shield), or empty for the usual ones.
+@export var block_clip := &""
+@export var parry_clip := &""
 ## Which hand holds it ("right"; bows are "left").
 @export var hand := &"right"
 ## Show it on both hands (gloves).
@@ -115,7 +118,7 @@ const WEAPON_SHADER := preload("res://src/weapons/weapon.gdshader")
 @export var glow := Color(0, 0, 0, 0)
 @export var unlock_cost := 0
 
-var _mesh: ArrayMesh
+var _mesh: Mesh
 
 
 func is_fists() -> bool:
@@ -135,7 +138,16 @@ static func speed_damage(base: float, tip_speed: float, ref: float) -> float:
 	return base * clampf(tip_speed / maxf(ref, 0.01), 0.5, 2.5)
 
 
-func mesh() -> ArrayMesh:
+func mesh() -> Mesh:
+	if _mesh == null:
+		var model := WeaponModels.mesh_for(id)
+		if model:
+			var mat := ShaderMaterial.new()
+			mat.shader = WEAPON_SHADER
+			for i in model.get_surface_count():
+				model.surface_set_material(i, mat)
+			_mesh = model
+			return _mesh
 	if _mesh == null and part_sizes.size() > 0:
 		var b := BoxBuilder.new()
 		for i in part_sizes.size():

@@ -41,7 +41,7 @@ const LOCO: Array[StringName] = [&"Idle", &"Sword_Idle", &"Walk", &"Walk_Sword",
 	&"Sprint", &"Sprint_Sword", &"Strafe_L", &"Strafe_L_Sword", &"Strafe_R", &"Strafe_R_Sword",
 	&"Backpedal", &"Backpedal_Sword", &"Jump_Rise", &"Jump_Rise_Sword", &"Fall", &"Fall_Sword",
 	&"Heavy_Charge", &"Victory", &"Heavy_Idle", &"Spear_Idle", &"Aim", &"Bow_Draw", &"Smash_Charge",
-	&"Swim", &"Swim_Sword"]
+	&"Swim", &"Swim_Sword", &"Shield_Idle", &"Shield_Raise"]
 ## Bones an upper-body move drives.
 const UPPER: Array[StringName] = [&"Spine", &"Chest", &"UpperChest", &"Neck", &"Head",
 	&"LeftShoulder", &"LeftUpperArm", &"LeftLowerArm", &"LeftHand", &"WeaponL",
@@ -361,10 +361,10 @@ func flash(amount: float) -> void:
 
 
 ## Raises the guard (block pose on the upper body) or drops it.
-func set_guard(on: bool, armed: bool) -> void:
+func set_guard(on: bool, armed: bool, own_clip: StringName = &"") -> void:
 	if tree == null:
 		return
-	var clip := &"Block" if armed else &"Block_Fists"
+	var clip := own_clip if own_clip != &"" else (&"Block" if armed else &"Block_Fists")
 	if on and clip != _guard_clip:
 		_guard_clip = clip
 		(tree.tree_root.get_node(&"guard_anim") as AnimationNodeAnimation).animation = clip

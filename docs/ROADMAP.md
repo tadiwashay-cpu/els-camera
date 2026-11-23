@@ -70,7 +70,7 @@ Next (after the two-phone test):
       higher jumps, danger sense for incoming throws, arm clipping fixed
 - [x] 0.4.0: the Armory: buy weapons by rank with coins, equip one to start with; locked weapons
       can't be picked up or caught; bigger coin rewards and a welcome bonus
-- [ ] 0.4.x: curved weapon models from Blender, a bigger shield with its own moves
+- [x] 0.4.1: curved weapon models from Blender, a bigger shield with its own moves
 - [ ] 0.4.x: realistic lighting and feel (post effects, camera, particles), bigger maps with twists
 - [ ] Deep Forest, Abyss Submarine Base; 48 more weapons; all 12 powers
 - [ ] Skins and customize screen, coins and unlocks, music, survival waves

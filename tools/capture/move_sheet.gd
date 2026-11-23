@@ -1,8 +1,9 @@
 extends SceneTree
 ## Dev tool: renders a contact sheet of fighter moves (rows = moves,
 ## columns = evenly spaced frames, two camera angles).
-##   xvfb-run godot --path . --script res://tools/capture/move_sheet.gd -- OUT.png Move1,Move2 [columns] [cell px] [front]
+##   xvfb-run godot --path . --script res://tools/capture/move_sheet.gd -- OUT.png Move1,Move2 [columns] [cell px] [front|side] [weapon_id]
 ## "front" uses a straight-on front view and a top view (for arm clipping).
+## A weapon id puts that weapon's real model in its hand instead of the markers.
 
 const GLB := "res://assets/fighters/block_fighter.glb"
 var CELL := 220
@@ -14,6 +15,7 @@ func _initialize() -> void:
 	var cols := int(args[2]) if args.size() > 2 else 6
 	CELL = int(args[3]) if args.size() > 3 else 220
 	var front := args.size() > 4 and args[4] == "front"
+	var weapon_id := args[5] if args.size() > 5 else ""
 	var vp := SubViewport.new()
 	vp.size = Vector2i(CELL, CELL)
 	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
@@ -70,6 +72,18 @@ func _initialize() -> void:
 	rmat.albedo_color = Color(0.9, 0.15, 0.15)
 	bow.material_override = rmat
 	att_l.add_child(bow)
+	if weapon_id != "":
+		blade.visible = false
+		bow.visible = false
+		var model := WeaponModels.mesh_for(StringName(weapon_id))
+		var left := weapon_id in ["shield", "bow"]
+		if model:
+			var wm := MeshInstance3D.new()
+			wm.mesh = model
+			var sm := ShaderMaterial.new()
+			sm.shader = load("res://src/weapons/weapon.gdshader")
+			wm.material_override = sm
+			(att_l if left else att).add_child(wm)
 	var anim := fighter.find_child("AnimationPlayer", true, false) as AnimationPlayer
 	var cam := Camera3D.new()
 	vp.add_child(cam)

@@ -247,9 +247,13 @@ WEAPONS = [
         P((0.22, 0.22, 0.22), (0, 0.0, 0), IRON), P((0.24, 0.06, 0.08), (0, 0.1, 0.08), STEEL),
         P((0.2, 0.14, 0.2), (0, -0.14, 0), GUNMETAL), P((0.08, 0.08, 0.04), (0, 0.0, 0.115), (1.0, 0.6, 0.2, G)),
         P((0.21, 0.02, 0.21), (0, -0.07, 0), (1.0, 0.6, 0.2, G)), P((0.05, 0.12, 0.05), (0.12, 0.0, 0), STEEL)]),
-    ("shield", "Shield", "fists", dict(base_damage=10, ref_speed=5.5, knockback=9, hand="left", light_moves=["Jab", "Jab"],
-                                       strikers={"Jab": "LeftHand", "Kick": "RightFoot"}, hit_radius=0.32,
-                                       block_mult=0.2, parry_bonus=0.1, throwable=True, catchable=True, throw_damage=18,
+    ("shield", "Shield", "fists", dict(base_damage=11, ref_speed=5.5, knockback=10, hand="left",
+                                       light_moves=["Shield_Bash", "Shield_Bash_B"], heavy_charge="Shield_Raise",
+                                       heavy_move="Shield_Slam", idle_clip="Shield_Idle", block_clip="Shield_Block",
+                                       parry_clip="Shield_Parry", slam_radius=2.4, heavy_multiplier=1.9,
+                                       strikers={"Shield_Bash": "LeftHand", "Shield_Bash_B": "LeftHand",
+                                                 "Shield_Slam": "LeftHand", "Kick": "RightFoot"}, hit_radius=0.42,
+                                       block_mult=0.15, parry_bonus=0.12, throwable=True, catchable=True, throw_damage=18,
                                        throw_spin=14), [
         *[P((0.12, h, 0.03), (x, 0, 0.07), c) for x, h, c in ((-0.18, 0.36, WOOD), (-0.06, 0.5, DARKWOOD),
                                                                  (0.06, 0.5, WOOD), (0.18, 0.36, DARKWOOD))],
@@ -462,7 +466,8 @@ def write(wid, name, family_key, stats, parts):
     for k, v in fields.items():
         lines.append("%s = %s" % (k, v))
     lines.append("light_moves = Array[StringName]([%s])" % ", ".join('&"%s"' % m for m in lists.get("light_moves", [])))
-    for k in ("knockdown_move", "heavy_charge", "heavy_move", "idle_clip", "hand", "hit_sound", "effect", "projectile"):
+    for k in ("knockdown_move", "heavy_charge", "heavy_move", "idle_clip", "block_clip", "parry_clip", "hand", "hit_sound",
+              "effect", "projectile"):
         if k in fam:
             lines.append('%s = &"%s"' % (k, fam.pop(k)))
     lines.append("strikers = {%s}" % ", ".join('"%s": "%s"' % kv for kv in strikers.items()))

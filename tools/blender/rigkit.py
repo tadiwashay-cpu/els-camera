@@ -19,6 +19,9 @@ rotations here:
   grip_r / grip_l   blade direction for a held weapon (chest space); the
                     hand turns so the WeaponR/WeaponL socket bone points
                     along it. None = straight wrist.
+  face_l / face_r   with a grip: the direction the weapon's front (the
+                    socket's -Z) faces, chest space; e.g. a shield's painted
+                    face. None = the wrist follows the forearm
   wrist_l / wrist_r (pitch, roll, yaw) extra wrist turn when no grip
   foot_l / foot_r   ankle target in armature space (feet stay planted
                     however the body moves)
@@ -78,7 +81,7 @@ DEFAULT = {
     "clav_l": (0.0, 0.0, 0.0), "clav_r": (0.0, 0.0, 0.0),
     "hand_l": (0.24, 0.02, 0.92), "hand_r": (-0.24, 0.02, 0.92),
     "elbow_l": (0.3, 1.0, -0.2), "elbow_r": (-0.3, 1.0, -0.2),
-    "grip_l": None, "grip_r": None,
+    "grip_l": None, "grip_r": None, "face_l": None, "face_r": None,
     "wrist_l": (0.0, 0.0, 0.0), "wrist_r": (0.0, 0.0, 0.0),
     "foot_l": (0.12, 0.0, ANKLE_Z), "foot_r": (-0.12, 0.0, ANKLE_Z),
     "foot_l_rot": (0.0, 0.0, 0.0), "foot_r_rot": (0.0, 0.0, 0.0),
@@ -237,6 +240,12 @@ class Rig:
             else:
                 blade = (q_upper @ Vector(grip)).normalized()
                 fingers = lower_rot.col[1].normalized()
+                face = P.get("face_" + s)
+                if face is not None:
+                    # The hand's Z (blade x fingers) is the socket's back
+                    # (-Z faces out): fingers = blade x face puts the
+                    # weapon's front along `face` (checked with the shield).
+                    fingers = blade.cross((q_upper @ Vector(face)).normalized())
                 fingers = fingers - blade * fingers.dot(blade)
                 if fingers.length < 1e-4:
                     fingers = blade.orthogonal()

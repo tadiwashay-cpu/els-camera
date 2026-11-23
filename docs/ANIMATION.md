@@ -24,7 +24,9 @@ Then `godot --headless --import` and commit the GLB and JSON.
 A pose is a handful of controls rather than bone angles: pelvis offset and
 tilt, spine/chest/neck/head bends, **hand targets** (in chest space, so they
 turn with the torso), **foot targets** (in world space, so feet stay planted),
-elbow/knee directions, and a **grip** (the direction the sword blade points).
+elbow/knee directions, a **grip** (the direction the sword blade points) and,
+for a shield, a **face** (`face_l`: the way its painted front looks; without
+it the wrist follows the forearm, which spins a shield when the elbow moves).
 `rigkit.py` solves arms and legs with two-bone IK and keys every frame.
 
 - Fighting moves are `Keys(base, [(time, {changes}, ease), ...])`. Each key
@@ -45,6 +47,8 @@ Conventions: the character faces -Y in Blender (+Z in Godot), its left is +X.
 Render a contact sheet (rows = moves, columns = frames, two angles):
 ```
 xvfb-run -a godot --path . --script res://tools/capture/move_sheet.gd -- out.png Slash_A,Throw 7
+# with a real weapon model in hand (cell size, view, weapon id):
+xvfb-run -a godot --path . --script res://tools/capture/move_sheet.gd -- out.png Shield_Bash,Shield_Slam 6 200 three shield
 ```
 
 ## Adding mocap later

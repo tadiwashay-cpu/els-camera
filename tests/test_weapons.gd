@@ -22,6 +22,12 @@ func test_every_weapon_uses_real_moves() -> void:
 		if w.idle_clip != &"":
 			assert_true(bool(moves[String(w.idle_clip)]["loop"]), "%s idle loops" % w.id)
 			assert_true(BlockBody.LOCO.has(w.idle_clip), "%s idle is a locomotion loop" % w.id)
+		if w.heavy_charge != &"":
+			assert_true(BlockBody.LOCO.has(w.heavy_charge), "%s charge pose is a locomotion loop" % w.id)
+		if w.block_clip != &"":
+			assert_true(moves.has(String(w.block_clip)) and bool(moves[String(w.block_clip)]["loop"]), "%s block loops" % w.id)
+		if w.parry_clip != &"":
+			assert_true(moves.has(String(w.parry_clip)), "%s parry %s" % [w.id, w.parry_clip])
 
 
 func test_melee_moves_have_hit_windows() -> void:
@@ -93,3 +99,31 @@ func test_chill_slows() -> void:
 	assert_eq(FighterPowers.effect_name(&"chill"), "CHILLED")
 	p.tick(2.5)
 	assert_eq(p.speed_mult(), 1.0, "it wears off")
+
+
+func test_every_weapon_has_a_curved_model() -> void:
+	for w: WeaponData in Registry.weapons.values():
+		if w.is_fists():
+			continue
+		var m := WeaponModels.mesh_for(w.id)
+		assert_not_null(m, "%s has a Blender model" % w.id)
+		if m == null:
+			continue
+		assert_eq(w.mesh(), m, "%s uses it" % w.id)
+		var tris := 0
+		for i in m.get_surface_count():
+			var idx: PackedInt32Array = m.surface_get_arrays(i)[Mesh.ARRAY_INDEX]
+			tris += idx.size() / 3
+		assert_between(tris, 100, 2400, "%s triangles" % w.id)
+		var cols: PackedColorArray = m.surface_get_arrays(0)[Mesh.ARRAY_COLOR]
+		assert_false(cols.is_empty(), "%s has vertex colours (finish in alpha)" % w.id)
+
+
+func test_shield_has_its_own_moves() -> void:
+	var s := Registry.weapon(&"shield")
+	assert_eq(s.idle_clip, &"Shield_Idle")
+	assert_eq(s.block_clip, &"Shield_Block")
+	assert_eq(s.striker(&"Shield_Bash"), &"LeftHand")
+	assert_gt(BlockBody.event_time(s.heavy_move, "slam"), 0.0, "the shield slam shakes the ground")
+	var box := s.mesh().get_aabb()
+	assert_gt(maxf(box.size.x, box.size.y), 0.7, "a big shield (about 72 cm across)")

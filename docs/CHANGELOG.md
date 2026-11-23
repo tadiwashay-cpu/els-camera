@@ -4,6 +4,22 @@ Versions are `MAJOR.MINOR.PATCH`; the number lives in `project.godot`
 (`config/version`) and shows on the title screen and next to the FPS counter.
 Bump MINOR for a phase or batch of features, PATCH for fixes.
 
+## 0.4.1: Curved weapon models, a big round shield with its own moves
+
+- **Every weapon remodelled** with curves instead of boxes: 47 new models
+  built in Blender from turned handles and pommels, swept curves (scythe,
+  bow limbs, anchor arms, hooks), bevelled blades with real edges, and
+  rounded heads. Metal parts shine, glowing parts glow, and each model stays
+  under 2,400 triangles (about 1,000 on average). The Armory icons and the
+  pickups use the new models.
+- **The shield is bigger and round** (72 cm across, painted, with an iron rim,
+  rivets and a steel boss) and fights its own way:
+  - its own guard (shield up in front, the other fist ready),
+  - two bashes: a stepping shove and a sweeping backhand,
+  - a heavy: lift the shield overhead and slam it down, with a shockwave,
+  - its own block (shield over the head and chest; blocks 85%) and parry,
+  - the painted face always looks forward (new rig control for shields).
+
 ## 0.4.0: Weapon powers, the Armory, 8 bots
 
 - **Every weapon has its own power** (48 in all, original): the SKILL

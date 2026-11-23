@@ -90,8 +90,6 @@ func _ready() -> void:
 			mi.mesh = w.mesh()
 			s.add_child(mi)
 		var clip := w.idle_clip if w.idle_clip != &"" else &"Sword_Idle"
-		if w.kind == &"melee" and HOLD[i] == &"shield":
-			clip = &"Block_Fists"
 		body.anim.play(clip)
 		body.anim.seek(0.3, true)
 		body.anim.pause()
