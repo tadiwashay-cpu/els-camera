@@ -511,6 +511,8 @@ func _settings_panel() -> Control:
 	_slider(box, "Button opacity", "touch_opacity", 0.2, 1.0, 0.05)
 	_option(box, "Camera", ["Third person (TPP)", "First person (FPP)"], 1 if str(Save.setting("camera_mode")) == "first" else 0,
 		func(i: int) -> void: Save.set_setting("camera_mode", "first" if i == 1 else "third"))
+	_option(box, "FPP motion blur", ["On", "Off"], 0 if bool(Save.setting("motion_blur")) else 1,
+		func(i: int) -> void: Save.set_setting("motion_blur", i == 0))
 	_toggle(box, "Show FPS", "show_fps")
 	_toggle(box, "Vibration", "vibration")
 	_toggle(box, "Touch controls on desktop", "touch_on_desktop")

@@ -3,7 +3,8 @@ extends CanvasLayer
 ## Full-screen feel under the HUD: a soft vignette, and short effects that
 ## read the screen: a red flash with a colour split when you're hurt, a
 ## kick of split on your heavy hits and kills, a radial speed blur while
-## you dash or fly. The screen-reading shader only runs during an effect.
+## you dash or fly, and in first person a smear
+## while the view turns fast. The screen-reading shader only runs during an effect.
 
 const FX_SHADER := preload("res://src/match/screen_fx.gdshader")
 const REST_SHADER := preload("res://src/match/vignette.gdshader")
@@ -16,6 +17,8 @@ var _aberration := 0.0
 var _flash := Color(1, 0.1, 0.1, 0.0)
 var _blur := 0.0
 var _blur_want := 0.0
+var _smear := Vector2.ZERO
+var _smear_want := Vector2.ZERO
 var _enabled := true
 
 
@@ -60,6 +63,14 @@ func set_speed(amount: float) -> void:
 	_blur_want = amount
 
 
+## First person: the view's turn rate (yaw, pitch in rad/s) smears the
+## screen sideways or up/down while you whip round, like a real eye.
+func set_turn(rate: Vector2) -> void:
+	var speed := rate.length()
+	var amount := clampf((speed - 1.4) * 0.0035, 0.0, 0.016)
+	_smear_want = Vector2(rate.x, rate.y * 1.6).normalized() * amount if amount > 0.0 else Vector2.ZERO
+
+
 func _process(delta: float) -> void:
 	if not _enabled:
 		return
@@ -67,9 +78,11 @@ func _process(delta: float) -> void:
 	_aberration = maxf(_aberration - real * 2.8, 0.0)
 	_flash.a = maxf(_flash.a - real * 1.6, 0.0)
 	_blur = move_toward(_blur, _blur_want, real * 4.0)
-	var active := _aberration > 0.01 or _flash.a > 0.01 or _blur > 0.01
+	_smear = _smear.lerp(_smear_want, 1.0 - exp(-14.0 * real))
+	var active := _aberration > 0.01 or _flash.a > 0.01 or _blur > 0.01 or _smear.length() > 0.0008
 	_rect.material = _fx_mat if active else _rest_mat
 	if active:
 		_fx_mat.set_shader_parameter(&"aberration", _aberration)
 		_fx_mat.set_shader_parameter(&"blur", _blur)
 		_fx_mat.set_shader_parameter(&"flash", _flash)
+		_fx_mat.set_shader_parameter(&"smear", _smear if _smear.length() > 0.0008 else Vector2.ZERO)

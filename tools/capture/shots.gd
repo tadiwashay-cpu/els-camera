@@ -55,6 +55,10 @@ func _ready() -> void:
 		if not get_tree().paused:
 			t += d / maxf(Engine.time_scale, 0.02)
 			brain.update(d)
+		if m.camera.first_person and m.player.alive:
+			# The bot steers the body; the eye looks where it faces.
+			m.camera.yaw = lerp_angle(m.camera.yaw, m.player.rotation.y + PI, 0.15)
+			m.camera.pitch = lerpf(m.camera.pitch, -0.08, 0.1)
 		if not shots.is_empty() and t >= shots[0]:
 			shots.pop_front()
 			await _shot("%02d_match" % n)

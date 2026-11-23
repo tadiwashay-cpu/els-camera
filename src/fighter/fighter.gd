@@ -87,6 +87,10 @@ var _dropped_ammo := -1
 var _shots := 0
 var _next_shot_at := 0.0
 var trail: BladeTrail
+## Render layer of a body seen from its own eyes (first person): the eye
+## camera leaves it out, so you see no head, arms or held weapon of your own.
+const EYE_LAYER := 1 << 10
+var eye_hidden := false
 var world: Match
 
 var health := 100.0
@@ -242,6 +246,22 @@ func equip(data: WeaponData, ammo_left: int = -1) -> void:
 			_weapon_visuals.append(mi)
 		weapon_visual = _weapon_visuals[0]
 	_combo = 0
+	set_eye_hidden(eye_hidden)
+
+
+## First person: move this body, its weapons and trail onto EYE_LAYER (the
+## eye camera skips it; its shadow stays).
+func set_eye_hidden(on: bool) -> void:
+	eye_hidden = on
+	var layer := EYE_LAYER if on else 1
+	if body and body.mesh_instance:
+		body.mesh_instance.layers = layer
+	for v in _weapon_visuals:
+		v.layers = layer
+	if trail:
+		trail.layers = layer
+	if _shield_mesh:
+		_shield_mesh.layers = layer
 
 
 ## Lets go of the held weapon and returns it (null if unarmed).

@@ -14,7 +14,14 @@ extends Node3D
 var target: Fighter
 ## First person (FPP): the eye sits in the head, the body turns with the view.
 var first_person := false
-@export var fp_fov := 78.0
+## First-person field of view, measured across (shooters use about 90).
+@export var fp_hfov := 90.0
+## The floating weapon in first person (child of the camera).
+var view_model: FPViewModel
+var _hidden: Fighter
+var _last_look := Vector2.INF
+## How fast the view is turning (yaw, pitch) in rad/s, for the motion blur.
+var turn_rate := Vector2.ZERO
 var yaw := 0.0
 var pitch := -0.18
 var spring: SpringArm3D
@@ -50,6 +57,11 @@ func _ready() -> void:
 	camera.far = 160.0
 	spring.add_child(camera)
 	camera.current = true
+	camera.cull_mask &= ~Fighter.EYE_LAYER
+	view_model = FPViewModel.new()
+	view_model.camera = camera
+	view_model.visible = false
+	camera.add_child(view_model)
 
 
 func add_look(delta_px: Vector2) -> void:
@@ -116,6 +128,16 @@ func _process(delta: float) -> void:
 		spring.spring_length = want_len
 	if target.health_bar:
 		target.health_bar.hidden_for_view = eye
+	# Your own body is not drawn from your eyes: only the floating weapon.
+	var hide: Fighter = target if eye else null
+	if hide != _hidden:
+		if _hidden and is_instance_valid(_hidden):
+			_hidden.set_eye_hidden(false)
+		if hide:
+			hide.set_eye_hidden(true)
+		_hidden = hide
+	view_model.fighter = target
+	view_model.visible = eye
 
 	var lock := target.locked_target()
 	if lock:
@@ -133,7 +155,11 @@ func _process(delta: float) -> void:
 	spring.position = Vector3(0.0 if eye else shoulder, 0.0, 0.0)
 	var running := clampf((target.hspeed() - 7.0) / 3.0, 0.0, 1.0)
 	_fov_kick = maxf(_fov_kick - real * 30.0, 0.0)
-	var base_fov := fp_fov if eye else fov
+	var base_fov := fov
+	if eye:
+		var vp := get_viewport().get_visible_rect().size
+		var aspect := vp.x / maxf(vp.y, 1.0)
+		base_fov = rad_to_deg(2.0 * atan(tan(deg_to_rad(fp_hfov) * 0.5) / aspect))
 	camera.fov = lerpf(camera.fov, base_fov + 7.0 * running + _fov_kick, 1.0 - exp(-4.0 * real))
 
 	# Lean into sideways movement (relative to the view).
@@ -160,6 +186,13 @@ func _process(delta: float) -> void:
 	camera.v_offset = s * 0.25 * sin(_noise_t * 2.3 + 1.0) + _punch.y * 0.3 + _dip
 	camera.rotation.z = s * 0.06 * sin(_noise_t * 1.3 + 2.0) + _roll - _punch.x * 0.04
 	_trauma = maxf(_trauma - real * 1.8, 0.0)
+
+	# Turn speed of the eye (for the first-person motion blur).
+	var look := Vector2(yaw, pitch)
+	if _last_look != Vector2.INF and real > 0.0:
+		var d := Vector2(wrapf(look.x - _last_look.x, -PI, PI), look.y - _last_look.y) / real
+		turn_rate = turn_rate.lerp(d, 1.0 - exp(-20.0 * real))
+	_last_look = look
 
 
 ## Camera yaw for steering (the stick is relative to the view).

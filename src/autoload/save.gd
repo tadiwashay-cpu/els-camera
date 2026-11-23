@@ -22,6 +22,7 @@ const DEFAULTS := {
 		"touch_on_desktop": false,
 		"player_name": "You",
 		"camera_mode": "third",      # "third" or "first" (FPP)
+		"motion_blur": true,         # first person blur when turning / running
 		"touch_layout": {},           # action -> [x offset, y offset, size] (TouchControls)
 		"bindings": {},               # action -> {"key": physical keycode, "pad": button} (Game)
 	},

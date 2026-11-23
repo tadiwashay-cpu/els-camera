@@ -6,6 +6,8 @@ uniform sampler2D screen : hint_screen_texture, filter_linear;
 uniform float vignette = 0.3;
 uniform float aberration = 0.0;
 uniform float blur = 0.0;
+// First-person motion blur: a smear along the screen while the view turns.
+uniform vec2 smear = vec2(0.0);
 uniform vec4 flash : source_color = vec4(1.0, 0.1, 0.1, 0.0);
 
 void fragment() {
@@ -20,6 +22,15 @@ void fragment() {
 			acc += texture(screen, uv - c * blur * 0.05 * float(i) / 5.0).rgb;
 		}
 		col = mix(col, acc / 6.0, smoothstep(0.08, 0.5, r));
+	}
+	float sl = length(smear);
+	if (sl > 0.0005) {
+		vec3 acc = col;
+		for (int i = 1; i <= 3; i++) {
+			float k = float(i) / 3.0;
+			acc += texture(screen, uv + smear * k).rgb + texture(screen, uv - smear * k).rgb;
+		}
+		col = mix(col, acc / 7.0, 0.55 + 0.45 * smoothstep(0.05, 0.45, r));
 	}
 	float v = smoothstep(0.42, 1.08, r);
 	col *= 1.0 - v * vignette;

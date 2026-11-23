@@ -319,7 +319,13 @@ func _process(_delta: float) -> void:
 	var fast := clampf((player.hspeed() - player.sprint_speed * 1.12) / 6.0, 0.0, 1.0)
 	if player.launching():
 		fast = maxf(fast, 0.6)
-	screen_fx.set_speed(fast if player.alive and not paused else 0.0)
+	var live := player.alive and not paused
+	# First person: a softer blur already at a run, and a smear when turning.
+	var eye := camera.eye_view() and bool(Save.setting("motion_blur"))
+	if eye:
+		fast = maxf(fast, clampf((player.hspeed() - player.run_speed * 0.8) / 8.0, 0.0, 0.35))
+	screen_fx.set_speed(fast if live else 0.0)
+	screen_fx.set_turn(camera.turn_rate if eye and live else Vector2.ZERO)
 
 
 func _tick_powerups() -> void:

@@ -1,0 +1,160 @@
+{
+ "fps": 60,
+ "moves": {
+  "FP_Block": {
+   "loop": true,
+   "strike": null
+  },
+  "FP_BowDraw": {
+   "loop": true,
+   "strike": null
+  },
+  "FP_BowRelease": {
+   "loop": false,
+   "strike": [
+    0.0,
+    0.1
+   ]
+  },
+  "FP_Cast": {
+   "loop": false,
+   "strike": [
+    0.3,
+    0.55
+   ]
+  },
+  "FP_Catch": {
+   "loop": false,
+   "strike": null
+  },
+  "FP_Charge": {
+   "loop": true,
+   "strike": null
+  },
+  "FP_Chop": {
+   "loop": false,
+   "strike": [
+    0.36,
+    0.56
+   ]
+  },
+  "FP_Dip": {
+   "loop": false,
+   "strike": null
+  },
+  "FP_Equip": {
+   "loop": false,
+   "strike": null
+  },
+  "FP_Lunge": {
+   "loop": false,
+   "strike": [
+    0.25,
+    0.45
+   ]
+  },
+  "FP_Parry": {
+   "loop": false,
+   "strike": [
+    0.0,
+    0.22
+   ]
+  },
+  "FP_Recoil": {
+   "loop": false,
+   "strike": [
+    0.0,
+    0.08
+   ]
+  },
+  "FP_ShieldBash": {
+   "loop": false,
+   "strike": [
+    0.3,
+    0.48
+   ]
+  },
+  "FP_ShieldBlock": {
+   "loop": true,
+   "strike": null
+  },
+  "FP_ShieldRaise": {
+   "loop": true,
+   "strike": null
+  },
+  "FP_ShieldSlam": {
+   "loop": false,
+   "strike": [
+    0.0,
+    0.2
+   ]
+  },
+  "FP_Slam": {
+   "loop": false,
+   "strike": [
+    0.0,
+    0.2
+   ]
+  },
+  "FP_SlashA": {
+   "loop": false,
+   "strike": [
+    0.3,
+    0.52
+   ]
+  },
+  "FP_SlashB": {
+   "loop": false,
+   "strike": [
+    0.3,
+    0.52
+   ]
+  },
+  "FP_Smash": {
+   "loop": false,
+   "strike": [
+    0.4,
+    0.58
+   ]
+  },
+  "FP_SmashCharge": {
+   "loop": true,
+   "strike": null
+  },
+  "FP_Spin": {
+   "loop": false,
+   "strike": [
+    0.12,
+    0.8
+   ]
+  },
+  "FP_Stab": {
+   "loop": false,
+   "strike": [
+    0.3,
+    0.46
+   ]
+  },
+  "FP_Sweep": {
+   "loop": false,
+   "strike": [
+    0.3,
+    0.6
+   ]
+  },
+  "FP_Throw": {
+   "loop": false,
+   "strike": [
+    0.38,
+    0.42
+   ]
+  },
+  "FP_Thrust": {
+   "loop": false,
+   "strike": [
+    0.3,
+    0.5
+   ]
+  }
+ }
+}
