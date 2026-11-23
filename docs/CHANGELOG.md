@@ -4,6 +4,37 @@ Versions are `MAJOR.MINOR.PATCH`; the number lives in `project.godot`
 (`config/version`) and shows on the title screen and next to the FPS counter.
 Bump MINOR for a phase or batch of features, PATCH for fixes.
 
+## 0.7.0: First person weapon, power animations, Locker, new look
+
+- **First person, rebuilt**: no more eyes, mouth or body in front of you.
+  Only your weapon floats in front of the camera (your body is on a layer
+  the eye camera skips; its shadow stays). The view is 90 degrees across
+  (shooter standard), and the weapon sways when you turn, bobs when you
+  walk, dips when you land and lifts its tip near walls so it never pokes
+  through.
+- **First-person swings made in Blender**: 28 moves (slashes, chop, stab,
+  spear thrust and sweep, smash, spin, throw, gun kick, bow draw, guard,
+  parry, shield bash/block/slam, casts, catch, equip). Each one is
+  stretched so the swing crosses the screen exactly while the hit can land.
+- **First-person motion blur**: a smear while you whip the view round and a
+  soft blur at a run, like a real eye. Settings > FPP motion blur turns it
+  off (it's always off on LOW).
+- **Power animations made in Blender**: five new casting moves (call the
+  sky, kneel and drive the weapon into the ground, power-up burst, push
+  out, reach and yank back). Twelve weapon powers that borrowed the shout
+  and stomp now use the one that fits.
+- **Locker** (title > LOCKER):
+  - LOOK: skin tone, shirt, pants and shoes colours (free), 7 hair styles,
+    7 hats, 6 faces; some cost coins. Your fighter turns beside the menu,
+    and wears your look in matches (online too) and on the loading screen.
+  - UPGRADES: health, damage, speed and power, five levels each (200, 400,
+    700, 1000, 1500 coins). Bots train too: a level on Normal, two on Hard.
+  - Bots now get random looks.
+- **New menu look**: slanted buttons, dark navy panels with a yellow
+  stripe, bold italic condensed lettering (Barlow Condensed), a slanted
+  poster band behind the title menu.
+- **Armory INSPECT**: the weapon alone, big and lit; drag to turn it.
+
 ## 0.6.0: First person, button remapping, life bars, spawn fix
 
 - **First person (FPP)**, CODM style: the FPP/TPP button under pause (or V,

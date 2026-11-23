@@ -1,8 +1,8 @@
-# Playtest guide (v0.6.0: first person, remapping, life bars)
+# Playtest guide (v0.7.0: first person weapon, Locker, new look)
 
 ## Install
 1. On the tablet open GitHub > this repo > **Releases** > "Block Duelist 3D
-   v0.6.0 (playtest)" and download the APK (or Actions > latest run > Artifacts).
+   v0.7.0 (playtest)" and download the APK (or Actions > latest run > Artifacts).
 2. Tap it, allow "install unknown apps", open **Block Duelist 3D**.
 3. Settings: Graphics on **MEDIUM** for the gates, turn **Show FPS** on.
 
@@ -10,7 +10,16 @@
 
 | # | Do this | Look for |
 |---|---------|----------|
-| F1 | In a match tap TPP (top right) to go first person; fight, throw, jump | Feels like CODM's FPP? Too much head bob? Can you see your weapon? |
+| N1 | First person (TPP button top right): look around, run, fight with a sword, hammer, spear, gun, bow, shield | No eyes/mouth/body. Weapon floats bottom right; swings cross the screen when they hit? Too big / too small? |
+| N2 | First person: whip the view round fast, sprint | Motion blur feels like a real eye, or too much? (Settings > FPP motion blur) |
+| N3 | First person: walk into a wall | The weapon lifts away instead of poking through |
+| N4 | Use weapon powers: Thunderbolt, Magic Scepter, Plasma Blade, Ice Cream, Wrench, Lollipop, Rubber Chicken, Ship Anchor | New casting moves (sky call, kneel and strike the ground, power-up burst, push, pull) look good? |
+| N5 | Title > LOCKER > LOOK: try faces, hair, hats, colours; buy one | Your fighter changes beside the menu; you look like that in a match and on the loading screen |
+| N6 | LOCKER > UPGRADES: buy a level or two, play | You feel faster / tougher? Prices fair? |
+| N7 | Walk through every menu | New look (slanted buttons, yellow stripes, bold italic letters) feels like the style you wanted? |
+| N8 | ARMORY > pick a weapon > INSPECT, drag on the right side | The weapon turns under your finger |
+| N9 | Two phones, LAN, different looks and upgrades | Each phone shows everyone's look; nothing out of sync |
+| F1 | In a match tap TPP (top right) to go first person; fight, throw, jump | Feels like CODM's FPP? |
 | F2 | Settings > CONTROLS > EDIT TOUCH LAYOUT: move and resize buttons, SAVE, play | Buttons where you put them, still easy to hit |
 | F3 | Watch fights | Life bars over heads readable at a distance? No number pop-ups, no power names |
 | F4 | Harbor Factory, 8 bots, start several matches | Nobody starts in the water or stacked |
@@ -38,9 +47,11 @@ Copy this into a GitHub Issue or the chat:
 
 ```
 Device: Redmi Pad 2 (or ...)
-Build: v0.6.0 (from the title screen)
+Build: v0.7.0 (from the title screen)
 
 FEEL (1 bad - 5 great)
+  First person weapon:      FPP blur:      Power casts:
+  Locker look:      Upgrades:      New menu look:
   Moving:      Attacking:      Weapons:      Camera:      Bots:
   Powers:      Armory prices fair?:      Danger warning useful?:
   Lighting:      Screen effects:      Camera feel:      Bounce pads / new islands:

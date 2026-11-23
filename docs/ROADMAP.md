@@ -60,10 +60,11 @@ Increment A (v0.3.0):
 - [x] A joiner who drops out is replaced by a bot; the host leaving ends the match for everyone
 - [x] CI plays a real two-process LAN match and checks both sides agree on the scores
 
-Next (after the two-phone test):
+Later (only if needed):
 - [ ] Own-fighter prediction (move locally, reconcile with the host) if movement feels late
 - [ ] Back to the lobby after a match instead of the menu
-- [ ] **Gate:** two phones on a hotspot finish a match with no desync
+- [x] **Gate:** two phones on a hotspot finish a match with no desync (owner, v0.6.0: "played for an
+      hour with my friends", passed)
 
 ## Phase 4: Content and progression
 - [x] 0.4.0: a power for every weapon (SKILL button), throwable or not per weapon, up to 8 bots,
@@ -75,11 +76,13 @@ Next (after the two-phone test):
       soft dust, impact flashes), bigger maps with twists (bounce pads, new islands, a barge, Turtle Rock)
 - [x] 0.6.0: first person (FPP/TPP), button remapping (touch layout editor, keys, pad), life bars over heads,
       no power names on screen, spawn fix
-- [ ] 0.7.x: character customization, upgrades, new themed UI, weapon preview
+- [x] 0.7.0: first person rebuilt (floating weapon, Blender FP swings, 90 degree view, motion blur),
+      power casts made in Blender, Locker (customisation + upgrades), new menu look, Armory inspect
 - [ ] 0.8.x: toon art style (FR Legends-like), organic environments, much bigger maps
 - [ ] 0.9.x: real effects (Blender-rendered flipbooks, Effekseer check), mocap from the owner's own clips
 - [ ] Deep Forest, Abyss Submarine Base; 48 more weapons; all 12 powers
-- [ ] Skins and customize screen, coins and unlocks, music, survival waves
+- [x] Customize screen (Locker), coins and unlocks
+- [ ] Music, survival waves
 - [ ] **Gate:** 30 minutes of solo play without running out of things to do
 
 ## Phase 5: Online and new 3D weapons
@@ -94,6 +97,9 @@ Next (after the two-phone test):
 ## Tuning notes (from play-tests)
 _Owner: add what felt off after each test here (or in an Issue)._
 
+- v0.6.0: LAN with friends for an hour: good (Phase 3 gate passed). First
+  person showed the fighter's own eyes and mouth: rebuilt in 0.7.0 as a
+  floating weapon only.
 - v0.1.0 (Redmi Pad 2, max settings): smooth. Asked for better jump
   animations (done in 0.1.1), a fix for fighters sliding frozen after losing
   their weapon (done in 0.1.1) and a breakable, livelier environment.

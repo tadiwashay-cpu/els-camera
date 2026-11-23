@@ -65,3 +65,27 @@ motion can be retargeted onto it:
 This cloud session can't reach Hugging Face or the generators' file hosts
 (network policy), so generated motion has to be downloaded on another
 machine or in an environment that allows those hosts.
+
+## First-person weapon moves (0.7)
+In first person only the weapon floats in front of the camera.
+`tools/blender/fp_moves.py` holds 28 moves as keys of a grip offset (camera
+space, metres) and an **aim** added to the weapon family's rest aim: yaw
+(tip left/right), pitch (tip up/down, 90 = straight up) and roll (spin
+about the weapon's length). `build_fp.py` keys two empties ("FP" for the
+grip, "Aim" whose location carries the three angles) and exports one
+animation per move to `assets/fighters/fp_weapon.glb`, plus `fp_weapon.json`
+with each move's `strike` span. The game (`FPViewModel`) picks the FP move
+for the body's move (`FROM_MOVE`), stretches it so the strike lands in the
+body move's hit window (or its release/fire/slam/power event), and adds
+sway, bob, a landing dip and a lift near walls.
+
+```
+~/bpyenv/bin/python tools/blender/build_fp.py
+godot --headless --import
+xvfb-run -a godot --path . --resolution 800x500 res://tools/capture/fp_sheet.tscn -- OUT.png
+```
+
+## Power casts (0.7)
+`Cast_Sky`, `Cast_Ground`, `Cast_Buff`, `Cast_Forward` and `Cast_Pull` in
+`moves.py` carry a `power` event; `WeaponSkills.INFO` sets `at` to the same
+time for the powers that use them.
