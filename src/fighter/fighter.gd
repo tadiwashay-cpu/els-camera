@@ -156,6 +156,11 @@ var _skill_id := &""
 var _skill_done := false
 ## A joiner's copy of the host's cooldown (seconds left).
 var net_skill_left := 0.0
+## Wall slams (0.8): flung into a wall faster than this (m/s into it), a
+## body takes damage from the impact, credited to whoever sent it flying.
+const SLAM_SPEED := 7.0
+var _slam_cd := 0.0
+var _rag_vel := Vector3.ZERO
 ## Upgrades (Upgrades.apply): weapon power cooldown factor, and the levels.
 var skill_cd_mult := 1.0
 var upgrades: Dictionary = {}
@@ -397,6 +402,8 @@ func _physics_process(delta: float) -> void:
 				_set_state(State.MOVE)
 	var was_floor := is_on_floor()
 	var pre_speed := velocity.length()
+	var pre_vel := velocity
+	_slam_cd = maxf(_slam_cd - delta, 0.0)
 	# Conveyor belts carry whoever stands on them.
 	var push := world.arena.floor_push(global_position) if world and was_floor else Vector3.ZERO
 	velocity += push
@@ -409,6 +416,8 @@ func _physics_process(delta: float) -> void:
 	velocity -= push
 	if pre_speed > 7.0 and state != State.MOVE and world:
 		_smash_into_scenery(pre_speed)
+		if state == State.HURT:
+			_check_wall_slam(pre_vel)
 	if is_on_floor():
 		if _launch_left > 0.0 and not was_floor:
 			# Cannon flight over: plant the feet, don't skid off the roof.
@@ -618,6 +627,46 @@ func _armed_clip(clip: StringName) -> StringName:
 
 ## Knocked flying into a crate or a railing: it takes the hit (credited to
 ## whoever sent us flying).
+## Knocked back (not limp) into a wall: how hard did we hit it?
+func _check_wall_slam(pre_vel: Vector3) -> void:
+	for i in get_slide_collision_count():
+		var c := get_slide_collision(i)
+		var n := c.get_normal()
+		if absf(n.y) > 0.45 or c.get_collider() is Breakable or c.get_collider() is Fighter:
+			continue
+		var into := -pre_vel.dot(n)
+		if into > SLAM_SPEED:
+			_wall_slam(into, c.get_position(), n)
+			return
+
+
+## The slam itself (the host decides; effects go out as events): damage from
+## the impact speed, dust and a thud, a bounce off the wall; a hard one
+## knocks you flat.
+func _wall_slam(into: float, at: Vector3, n: Vector3) -> void:
+	if _slam_cd > 0.0 or not alive or world == null or puppet:
+		return
+	_slam_cd = 0.6
+	count("wall_slams")
+	world.wall_slam_fx(at, into)
+	if invuln <= 0.0 and protect <= 0.0:
+		var dmg := clampf((into - SLAM_SPEED) * 2.5 + 6.0, 6.0, 26.0) * powers.damage_taken_mult()
+		health = maxf(health - dmg, 0.0)
+		last_hit_time = world.clock
+		hurt.emit(self, last_hitter, dmg, at, true)
+		if health <= 0.0:
+			die(last_hitter, n * 4.0 + Vector3.UP * 2.0, at)
+			return
+	if ragdoll.active:
+		(ragdoll.bodies[&"Hips"] as PhysicalBone3D).apply_central_impulse(n * into * 2.5)
+	elif into > SLAM_SPEED + 4.0 and powers.can_be_knocked_down():
+		velocity = Vector3.ZERO
+		knock_down(n * 3.0 + Vector3.UP * 2.5, at)
+	else:
+		velocity = velocity.bounce(n) * 0.3
+		body.play(&"Stagger", false, 1.3, 0.04)
+
+
 func _smash_into_scenery(speed: float) -> void:
 	for i in get_slide_collision_count():
 		var piece := get_slide_collision(i).get_collider() as Breakable
@@ -635,6 +684,17 @@ func _follow_ragdoll() -> void:
 		var piece := world.arena.breakable_near(h, 0.45)
 		if piece:
 			piece.hit(ragdoll.speed() * 4.0, h, (ragdoll.bodies[&"Hips"] as PhysicalBone3D).linear_velocity, last_hitter)
+	# A limp body that stops dead against a wall: a slam.
+	if world and ragdoll.active:
+		var v := (ragdoll.bodies[&"Hips"] as PhysicalBone3D).linear_velocity
+		var was := Vector3(_rag_vel.x, 0.0, _rag_vel.z)
+		var now := Vector3(v.x, 0.0, v.z)
+		if was.length() > SLAM_SPEED and now.length() < was.length() - 5.0:
+			var q := PhysicsRayQueryParameters3D.create(h, h + was.normalized() * 1.1, Game.L_WORLD)
+			var hit := get_world_3d().direct_space_state.intersect_ray(q)
+			if not hit.is_empty() and absf((hit["normal"] as Vector3).y) < 0.45 and not hit["collider"] is Breakable:
+				_wall_slam(was.length(), hit["position"], hit["normal"])
+		_rag_vel = v
 
 
 # ---------------------------------------------------------------- attacking
@@ -1370,6 +1430,7 @@ func knock_down(impulse: Vector3, at: Vector3) -> void:
 	_drop_on_hit()
 	_set_state(State.DOWN)
 	_down_time = 0.7
+	_rag_vel = Vector3.ZERO
 	collision_layer = 0
 	body.stop_action(0.0)
 	var bone := _nearest_body_bone(at)

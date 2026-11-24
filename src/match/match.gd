@@ -435,6 +435,18 @@ func _on_hurt(victim: Fighter, attacker: Fighter, damage: float, at: Vector3, he
 	hit_feel(victim, attacker, at, heavy)
 
 
+## A body slammed into a wall (Fighter._wall_slam): dust off the wall and a
+## thud, on every phone; a shake if it happened near us.
+func wall_slam_fx(at: Vector3, speed: float) -> void:
+	var s := clampf(speed / 9.0, 0.8, 1.8)
+	Fx.dust(self, at, s)
+	Audio.play(&"land", at, 4.0, 0.6)
+	if net:
+		net.event("fx", ["dust", at, s])
+	if player and player.global_position.distance_to(at) < 10.0:
+		camera.shake(0.3)
+
+
 ## How a landed hit feels on this phone (the host and joiners alike): an
 ## impact flash, and for our own fighter shake, a knock, a red edge flash.
 func hit_feel(victim: Fighter, attacker: Fighter, at: Vector3, heavy: bool) -> void:
