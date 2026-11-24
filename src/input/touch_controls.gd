@@ -7,6 +7,8 @@ extends Control
 ## Size and opacity come from Settings; each button's place and size can be
 ## changed in the layout editor (TouchLayoutEditor, saved as "touch_layout").
 
+## Each button shows a picture of what it does (ButtonIcons) and, unless
+## Settings > Button labels is off, its name in small letters under it.
 const BUTTONS := [
 	# action, label, offset from the bottom-right corner, radius
 	[&"attack", "ATTACK", Vector2(-150, -150), 94.0],
@@ -28,6 +30,9 @@ var swap_available := false
 var skill_color := Color(0.45, 0.45, 0.5)
 var skill_charge := 0.0
 var skill_name := ""
+## ATTACK's picture: the kind of weapon you hold (ButtonIcons.attack_icon).
+var attack_icon := &"fist"
+var show_labels := true
 var _look := Vector2.ZERO
 var _look_index := -1
 var _held: Dictionary = {}        # touch index -> button index
@@ -50,6 +55,7 @@ func _ready() -> void:
 	visible = DisplayServer.is_touchscreen_available() or OS.has_feature("mobile") or bool(Save.setting("touch_on_desktop"))
 	_scale = float(Save.setting("touch_scale"))
 	_alpha = float(Save.setting("touch_opacity"))
+	show_labels = bool(Save.setting("button_labels"))
 	var saved: Variant = Save.setting("touch_layout")
 	layout = (saved as Dictionary).duplicate(true) if saved is Dictionary else {}
 	joystick = VirtualJoystick.new()
@@ -210,6 +216,12 @@ func set_skill(color: Color, charge: float, label: String) -> void:
 		queue_redraw()
 
 
+func set_attack_icon(icon: StringName) -> void:
+	if icon != attack_icon:
+		attack_icon = icon
+		queue_redraw()
+
+
 func set_catch_hint(on: bool) -> void:
 	if on != catch_hint:
 		catch_hint = on
@@ -217,7 +229,7 @@ func set_catch_hint(on: bool) -> void:
 
 
 func _draw() -> void:
-	var font := ThemeDB.fallback_font
+	var font: Font = UiTheme.FONT_BUTTON
 	for i in BUTTONS.size():
 		if BUTTONS[i][0] == &"swap" and not swap_available and not editing:
 			continue
@@ -236,7 +248,18 @@ func _draw() -> void:
 		draw_circle(p, r, Color(0.04, 0.05, 0.07, _alpha * 0.75) if not pressed else Color(accent, _alpha))
 		draw_arc(p, r, 0, TAU, 48, Color(accent, minf(_alpha + 0.25, 1.0)), 4.0 * _scale, true)
 		var label: String = BUTTONS[i][1]
+		var icon: StringName = BUTTONS[i][0]
 		if i == 2 and catch_hint:
 			label = "CATCH"
-		var fs := int((26.0 if r > 70.0 else 21.0) * _scale)
-		draw_string(font, p + Vector2(-r, fs * 0.35), label, HORIZONTAL_ALIGNMENT_CENTER, r * 2.0, fs, Color(1, 1, 1, minf(_alpha + 0.35, 1.0)))
+			icon = &"catch"
+		elif icon == &"attack":
+			icon = attack_icon
+		var ink := Color(1, 1, 1, minf(_alpha + 0.35, 1.0))
+		if pressed:
+			ink = Color(0.05, 0.06, 0.1, 0.95)
+		if show_labels:
+			ButtonIcons.draw(self, icon, p + Vector2(0, -r * 0.16), r * 0.4, ink)
+			var fs := int(maxf(r * 0.27, 15.0))
+			draw_string(font, p + Vector2(-r, r * 0.6), label, HORIZONTAL_ALIGNMENT_CENTER, r * 2.0, fs, Color(ink, ink.a * 0.85))
+		else:
+			ButtonIcons.draw(self, icon, p, r * 0.5, ink)

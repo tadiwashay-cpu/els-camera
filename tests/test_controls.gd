@@ -81,3 +81,12 @@ func test_first_person_faces_the_view() -> void:
 	assert_eq(inp.world_move(), Vector3.ZERO, "no stick, no move")
 	inp.move = Vector2(1, 0)
 	assert_almost_eq(inp.world_move().x, 1.0, 0.001, "the stick strafes relative to the view")
+
+
+func test_attack_button_shows_the_weapon_kind() -> void:
+	var known := [&"sword", &"hammer", &"spear", &"gun", &"bow", &"fist", &"block"]
+	for id: StringName in Registry.weapons:
+		assert_true(known.has(ButtonIcons.attack_icon(Registry.weapons[id])), "%s has a picture" % id)
+	assert_eq(ButtonIcons.attack_icon(null), &"fist")
+	assert_eq(ButtonIcons.attack_icon(Registry.weapon(&"bazooka")), &"gun")
+	assert_eq(ButtonIcons.attack_icon(Registry.weapon(&"hammer")), &"hammer")

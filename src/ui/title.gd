@@ -622,6 +622,8 @@ func _settings_panel() -> Control:
 		func(i: int) -> void: Save.set_setting("camera_mode", "first" if i == 1 else "third"))
 	_option(box, "FPP motion blur", ["On", "Off"], 0 if bool(Save.setting("motion_blur")) else 1,
 		func(i: int) -> void: Save.set_setting("motion_blur", i == 0))
+	_option(box, "Button labels", ["Picture + name", "Picture only"], 0 if bool(Save.setting("button_labels")) else 1,
+		func(i: int) -> void: Save.set_setting("button_labels", i == 0))
 	_toggle(box, "Show FPS", "show_fps")
 	_toggle(box, "Vibration", "vibration")
 	_toggle(box, "Touch controls on desktop", "touch_on_desktop")

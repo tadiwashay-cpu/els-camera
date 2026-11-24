@@ -311,6 +311,7 @@ func _physics_process(delta: float) -> void:
 		touch.set_catch_hint(incoming != null and incoming.data.catchable and player.can_use(incoming.data))
 		touch.set_power_ready(player.powers.ready_to_use())
 		touch.set_swap(player.armed() and player.state == Fighter.State.MOVE and pickup_near(player.global_position, 1.3, player) != null)
+		touch.set_attack_icon(ButtonIcons.attack_icon(player.weapon_data if player.armed() else null))
 		_touch_skill()
 	if player:
 		var locked := pickup_near(player.global_position, 1.3) if player.alive else null
