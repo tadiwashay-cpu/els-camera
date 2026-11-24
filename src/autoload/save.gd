@@ -29,6 +29,7 @@ const DEFAULTS := {
 		"camera_mode": "third",      # "third" or "first" (FPP)
 		"motion_blur": true,         # first person blur when turning / running
 		"button_labels": true,       # touch buttons: picture + name (false: picture only)
+		"art_style": "toon",         # "toon" (cel shading, outlines) or "classic"
 		"touch_layout": {},           # action -> [x offset, y offset, size] (TouchControls)
 		"bindings": {},               # action -> {"key": physical keycode, "pad": button} (Game)
 	},

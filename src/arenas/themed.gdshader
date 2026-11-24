@@ -12,6 +12,8 @@ uniform bool vertex_tint = false;    // merged boxes carry their colour
 
 varying vec3 tint_rgb;
 
+#include "res://src/shaders/toon.gdshaderinc"
+
 varying vec3 world_pos;
 varying vec3 world_normal;
 

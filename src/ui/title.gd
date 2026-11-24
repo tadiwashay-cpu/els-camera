@@ -613,6 +613,9 @@ func _settings_panel() -> Control:
 	_option(box, "Graphics", ["Low", "Medium", "High"], int(Save.setting("quality")), func(i: int) -> void:
 		Save.set_setting("quality", i)
 		Game.apply_graphics())
+	_option(box, "Art style", ["Toon", "Classic"], 1 if str(Save.setting("art_style")) == "classic" else 0, func(i: int) -> void:
+		Save.set_setting("art_style", "classic" if i == 1 else "toon")
+		Game.apply_art_style())
 	_slider(box, "Look speed", "look_sensitivity", 0.3, 2.5, 0.05)
 	_slider(box, "Aim assist", "aim_assist", 0.0, 1.0, 0.05)
 	_slider(box, "Volume", "master_volume", 0.0, 1.0, 0.05)

@@ -578,7 +578,7 @@ func _details() -> void:
 		pb.box(Vector3(r * 2.0, 0.01, r * 1.4), p, Color(0.2, 0.22, 0.26), 0, Basis(Vector3.UP, rng.randf() * PI))
 		pb.box(Vector3(r * 1.4, 0.012, r * 2.0), p, Color(0.2, 0.22, 0.26), 0, Basis(Vector3.UP, rng.randf() * PI))
 	var pm := BoxBuilder.vertex_color_material(0.05)
-	pm.metallic = 0.5
+	pm.set_shader_parameter(&"metallic_value", 0.5)
 	var puddles := MeshInstance3D.new()
 	puddles.mesh = pb.commit(pm)
 	puddles.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -851,7 +851,7 @@ func _tick_oil(m: Match, delta: float) -> void:
 func _tick_belt(m: Match, delta: float) -> void:
 	# Crates ride the belt into the press.
 	_next_crate -= delta
-	_belt_crates = _belt_crates.filter(func(c: Breakable) -> bool: return is_instance_valid(c) and not c.is_broken)
+	_belt_crates.assign(_belt_crates.filter(func(c: Breakable) -> bool: return is_instance_valid(c) and not c.is_broken))
 	if _next_crate <= 0.0 and _belt_crates.size() < 3:
 		_next_crate = 7.0
 		var c := Breakable.new()

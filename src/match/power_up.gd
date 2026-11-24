@@ -38,10 +38,9 @@ func setup(k: StringName, at: Vector3, spot: int) -> void:
 			b.box(Vector3(0.26, 0.4, 0.5), Vector3.ZERO, w)
 			b.box(Vector3(0.12, 0.08, 0.2), Vector3(0, 0.24, 0), w)
 	var mat := BoxBuilder.vertex_color_material(0.4)
-	mat.emission_enabled = true
-	mat.emission = color * 0.35
+	mat.set_shader_parameter(&"glow", color * 0.35)
 	var mi := MeshInstance3D.new()
-	mi.mesh = b.commit(mat)
+	mi.mesh = b.commit(mat, BoxBuilder.outline_material(0.7))
 	_visual = mi
 	add_child(mi)
 	var ring := MeshInstance3D.new()

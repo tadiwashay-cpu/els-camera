@@ -20,6 +20,12 @@ var bones := PackedInt32Array()
 var weights := PackedFloat32Array()
 var indices := PackedInt32Array()
 var skinned := false
+## Per vertex: the direction to its box corner (for the outline hull).
+var grows := PackedVector3Array()
+
+const TOON_SHADER := preload("res://src/shaders/toon_vertex.gdshader")
+const OUTLINE_SHADER := preload("res://src/shaders/outline.gdshader")
+static var _outlines: Dictionary = {}
 
 
 func _init(use_skin: bool = false) -> void:
@@ -36,6 +42,7 @@ func box(size: Vector3, centre: Vector3, color: Color, bone: int = 0, basis: Bas
 		for c: Vector3 in face[1]:
 			verts.append(centre + basis * (c * h))
 			normals.append(n)
+			grows.append(basis * c)
 			colors.append(color)
 			if skinned:
 				bones.append_array([bone, 0, 0, 0])
@@ -43,7 +50,9 @@ func box(size: Vector3, centre: Vector3, color: Color, bone: int = 0, basis: Bas
 		indices.append_array([base, base + 2, base + 1, base, base + 3, base + 2])
 
 
-func commit(material: Material = null) -> ArrayMesh:
+## The mesh; with `outline`, a second surface: the same boxes with normals
+## pointing to their corners, drawn by the outline material (toon look).
+func commit(material: Material = null, outline: Material = null) -> ArrayMesh:
 	var arrays := []
 	arrays.resize(Mesh.ARRAY_MAX)
 	arrays[Mesh.ARRAY_VERTEX] = verts
@@ -57,11 +66,32 @@ func commit(material: Material = null) -> ArrayMesh:
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 	if material:
 		mesh.surface_set_material(0, material)
+	if outline:
+		var hull := PackedVector3Array()
+		hull.resize(grows.size())
+		for i in grows.size():
+			hull[i] = grows[i].normalized()
+		arrays[Mesh.ARRAY_NORMAL] = hull
+		arrays[Mesh.ARRAY_COLOR] = null
+		mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+		mesh.surface_set_material(1, outline)
 	return mesh
 
 
-static func vertex_color_material(roughness: float = 0.75) -> StandardMaterial3D:
-	var m := StandardMaterial3D.new()
-	m.vertex_color_use_as_albedo = true
-	m.roughness = roughness
+## The shared outline material (`width` scales the global outline width).
+static func outline_material(width: float = 1.0) -> ShaderMaterial:
+	if not _outlines.has(width):
+		var m := ShaderMaterial.new()
+		m.shader = OUTLINE_SHADER
+		m.set_shader_parameter(&"width_scale", width)
+		_outlines[width] = m
+	return _outlines[width]
+
+
+## Vertex-coloured, toon-lit (src/shaders/toon_vertex.gdshader): uniforms
+## roughness_value, metallic_value, glow.
+static func vertex_color_material(roughness: float = 0.75) -> ShaderMaterial:
+	var m := ShaderMaterial.new()
+	m.shader = TOON_SHADER
+	m.set_shader_parameter(&"roughness_value", roughness)
 	return m

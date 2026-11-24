@@ -42,6 +42,7 @@ func _ready() -> void:
 	_setup_inputs()
 	apply_bindings()
 	apply_graphics()
+	apply_art_style()
 
 
 func version() -> String:
@@ -125,6 +126,15 @@ func _govern_resolution(real_delta: float) -> void:
 
 func preset() -> Dictionary:
 	return PRESETS[clampi(int(Save.setting("quality")), 0, PRESETS.size() - 1)]
+
+
+## Art style: "toon" (cel bands, outlines; the default since 0.8) or
+## "classic" (smooth lighting, no outlines). Global shader parameters, so
+## every material follows at once.
+func apply_art_style() -> void:
+	var toon := str(Save.setting("art_style")) != "classic"
+	RenderingServer.global_shader_parameter_set(&"toon", 1.0 if toon else 0.0)
+	RenderingServer.global_shader_parameter_set(&"outline_width", 0.0022 if toon else 0.0)
 
 
 func apply_graphics() -> void:

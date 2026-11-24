@@ -200,6 +200,7 @@ func _set_weapon(w: WeaponData) -> void:
 		var mi := MeshInstance3D.new()
 		mi.mesh = w.mesh()
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mi.set_instance_shader_parameter(&"outline_scale", 0.35)   # right by the eye: a thin line
 		pivot.add_child(mi)
 		_pivots.append(pivot)
 		_meshes.append(mi)

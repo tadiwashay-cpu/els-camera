@@ -144,6 +144,7 @@ func mesh() -> Mesh:
 		if model:
 			var mat := ShaderMaterial.new()
 			mat.shader = WEAPON_SHADER
+			mat.next_pass = BoxBuilder.outline_material(0.55)
 			for i in model.get_surface_count():
 				model.surface_set_material(i, mat)
 			_mesh = model
@@ -156,5 +157,5 @@ func mesh() -> Mesh:
 				Basis(Vector3.BACK, deg_to_rad(yaw)))
 		var mat := ShaderMaterial.new()
 		mat.shader = WEAPON_SHADER
-		_mesh = b.commit(mat)
+		_mesh = b.commit(mat, BoxBuilder.outline_material(0.55))
 	return _mesh

@@ -5,6 +5,8 @@ shader_type spatial;
 uniform vec4 tint : source_color = vec4(0.7, 0.72, 0.76, 1.0);
 uniform float cell = 1.0;
 
+#include "res://src/shaders/toon.gdshaderinc"
+
 varying vec3 world_pos;
 varying vec3 world_normal;
 

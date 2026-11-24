@@ -10,6 +10,8 @@ varying float finish;
 // A weapon power ready to use: a pulsing glow in its colour (alpha = strength).
 instance uniform vec4 charge : source_color = vec4(0.0);
 
+#include "res://src/shaders/toon.gdshaderinc"
+
 void vertex() {
 	vec3 c = COLOR.rgb;
 	col = mix(pow((c + vec3(0.055)) / vec3(1.055), vec3(2.4)), c / vec3(12.92), lessThan(c, vec3(0.04045)));

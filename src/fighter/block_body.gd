@@ -55,7 +55,7 @@ var skeleton: Skeleton3D
 var anim: AnimationPlayer
 var tree: AnimationTree
 var mesh_instance: MeshInstance3D
-var material: StandardMaterial3D
+var material: ShaderMaterial
 var socket_r: BoneAttachment3D
 var socket_l: BoneAttachment3D
 var ragdoll: Ragdoll
@@ -67,6 +67,7 @@ var action_time := 0.0        # seconds into the clip (clip time)
 var action_speed := 1.0
 var loco_speed := 1.0
 var _flash := 0.0
+var _glow := Color.BLACK
 var _act_nodes: Dictionary = {}
 var _guard := 0.0
 var _guard_want := 0.0
@@ -176,11 +177,9 @@ func _build_mesh() -> void:
 	var h := func(v: Vector3) -> Vector3: return HEAD_ORIGIN + v * hs
 	Look.build_head(b, skin, head, h, hs)
 	material = BoxBuilder.vertex_color_material(0.7)
-	material.emission_enabled = true
-	material.emission = Color.BLACK
 	mesh_instance = MeshInstance3D.new()
 	mesh_instance.name = "Body"
-	mesh_instance.mesh = b.commit(material)
+	mesh_instance.mesh = b.commit(material, BoxBuilder.outline_material())
 	mesh_instance.skin = skin_res
 	skeleton.add_child(mesh_instance)
 	mesh_instance.skeleton = mesh_instance.get_path_to(skeleton)
@@ -386,8 +385,9 @@ func _process(delta: float) -> void:
 	var glow := Color(1, 1, 1) * _flash * 0.8
 	if aura != Color.BLACK:
 		glow += aura * (0.25 + 0.15 * sin(_clock * 9.0))
-	if glow != material.emission:
-		material.emission = glow
+	if glow != _glow:
+		_glow = glow
+		material.set_shader_parameter(&"glow", glow)
 
 
 func build_ragdoll() -> Ragdoll:
