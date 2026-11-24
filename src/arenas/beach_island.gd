@@ -8,6 +8,9 @@ extends Arena
 ##   Signature: climb into the wreck's cannon to be fired onto the lighthouse.
 ##   Twists: Turtle Rock, a dry rock out west in shark water, and bounce pads
 ##   (beach -> rock and back, beach -> ridge, beach -> islet).
+##   Palm Cove (0.8): a second, bigger island of dunes and two hills at the
+##   end of the pier (low-poly terrain, Blender palms and rocks, a lookout
+##   on the high hill); it doubles the ground to fight on.
 
 const SAND := Color(0.93, 0.83, 0.6)
 const WET_SAND := Color(0.78, 0.68, 0.48)
@@ -21,6 +24,12 @@ const RED := Color(0.85, 0.18, 0.15)
 
 ## Sand shelf under the shallows (x0, z0, x1, z1): past it is deep water.
 const SHELF := Rect2(-30.0, -30.0, 60.0, 52.0)
+## Palm Cove: its centre, its shallows, and the land you climb out onto.
+const COVE := Vector2(61.0, -8.0)
+const COVE_SHELF := Rect2(37.0, -32.0, 48.0, 48.0)
+const COVE_LAND := Rect2(46.0, -21.0, 30.0, 26.0)
+## The lookout platform on the cove's high hill (top surface centre).
+const LOOKOUT := Vector3(68.0, 6.6, -15.0)
 const TIDE_LOW := -0.35
 const TIDE_HIGH := 0.5
 ## Tide cycle (s): rises at 45 s, then every 2 minutes.
@@ -47,6 +56,7 @@ var _cannon_cd: Dictionary = {}         # fighter id -> clock it may fire again
 var _ring: MeshInstance3D
 var _tide_phase := -1
 var _deep: Dictionary = {}              # fighter id -> seconds since the last shark bite
+var _cove_noise: FastNoiseLite
 ## Shark water: the first bite comes after this long, then one every this long.
 const SHARK_EVERY := 2.5
 const SHARK_BITE := 22.0
@@ -70,7 +80,7 @@ func build() -> void:
 	merge = true
 	surface = &"sand"
 	kill_y = -12.0
-	bounds = 42.0
+	bounds = 85.0
 	water_level = TIDE_LOW
 	_look()
 
@@ -85,6 +95,7 @@ func build() -> void:
 	_wreck()
 	_pier()
 	_bridge_and_islet()
+	_palm_cove()
 	_details()
 	for p: Vector3 in [Vector3(-8, 0, 15), Vector3(5, 0, 17), Vector3(-19, 0, -10), Vector3(20, 0, -10),
 			Vector3(-6, 4.5, -21), Vector3(18, 4.5, -21), Vector3(-2, 0.1, 33.5)]:
@@ -109,16 +120,18 @@ func build() -> void:
 
 	spawn_points = [Vector3(-6, 0.1, -8), Vector3(6, 0.1, -8), Vector3(-17, 0.1, 17), Vector3(8, 0.1, 17),
 		Vector3(0, 0.1, 5), Vector3(-14, 2.6, 2.5), Vector3(-12, 4.6, -18), Vector3(12, 4.6, -18),
-		Vector3(-38, 1.1, 6)]
+		Vector3(-38, 1.1, 6), _cove(Vector2(-10, -8), 0.1), _cove(Vector2(12.4, 7.3), 0.1), _cove(Vector2(2, 11), 0.1)]
 	spawner_points = [Vector3(-17, 4.5, -18), Vector3(0, 0.0, -20.5), Vector3(15, 2.2, 6.0),
-		Vector3(36, 0.6, -7.25), Vector3(-4, 0.1, 32.5), Vector3(1, 0.0, 12), Vector3(-38.5, 1.0, 1.5)]
+		Vector3(36, 0.6, -7.25), Vector3(-4, 0.1, 32.5), Vector3(1, 0.0, 12), Vector3(-38.5, 1.0, 1.5),
+		LOOKOUT, _cove(Vector2(-14, 0), 0.0)]
 	pickup_points = [Vector3(-6, 0.0, 1), Vector3(9, 0.0, -4), Vector3(17, 4.5, -18), Vector3(-19.5, 2.5, 2.5),
-		Vector3(19, 0.0, 16), Vector3(-15, 0.0, -6)]
+		Vector3(19, 0.0, 16), Vector3(-15, 0.0, -6), _cove(Vector2(8, -14), 0.0), _cove(Vector2(-6, 10), 0.0)]
 	mystery_point = LIGHTHOUSE_TOP
 
 	_water = water(Vector2(170, 170), Vector3(0, TIDE_LOW, 0), Color(0.1, 0.62, 0.66, 0.42), Color(0.02, 0.26, 0.48, 0.93))
 	var wm := (_water.mesh as PlaneMesh).material as ShaderMaterial
 	wm.set_shader_parameter(&"shelf", Vector4(SHELF.position.x, SHELF.position.y, SHELF.end.x, SHELF.end.y))
+	wm.set_shader_parameter(&"shelf2", Vector4(COVE_SHELF.position.x, COVE_SHELF.position.y, COVE_SHELF.end.x, COVE_SHELF.end.y))
 	wm.set_shader_parameter(&"falloff", 7.0)
 	_sharks()
 
@@ -284,6 +297,98 @@ func _pier() -> void:
 	for x: float in [22.3, 26.6, 30.9, 35.2]:
 		for z: float in [-8.85, -5.65]:
 			breakable(Breakable.Kind.RAIL, Vector3(4.2, 0.9, 0.22), Vector3(x, 1.05, z), WOOD.lightened(0.1))
+
+
+## Palm Cove: low-poly dunes and two hills east of the pier (Arena.terrain),
+## the pier carried on onto its shore, palms, rock cover, a broken stone
+## wall, crates, a lookout on the high hill and a pad back to the beach.
+func _palm_cove() -> void:
+	_cove_noise = FastNoiseLite.new()
+	_cove_noise.seed = 31
+	_cove_noise.frequency = 0.07
+	terrain(Rect2(COVE.x - 26.0, COVE.y - 24.0, 52.0, 48.0), 2.0, _cove_height, _cove_paint, &"sand")
+	# The pier carries on to the cove and down a ramp onto the sand.
+	surface = &"wood"
+	block(Vector3(7.0, 0.3, 3.5), Vector3(41.5, 0.45, -7.25), WOOD)
+	ramp(Vector3(47.2, _cove_height(Vector2(47.2, -7.25)) - 0.05, -7.25), Vector3(45.0, 0.6, -7.25), 3.5, WOOD)
+	for x: float in [40.0, 44.0]:
+		for z: float in [-9.0, -5.5]:
+			deco(Vector3(0.35, 4.0, 0.35), Vector3(x, -1.6, z), OLD_WOOD, &"wood")
+	# The lookout on the high hill: four posts, a deck, a ramp up.
+	var ground := _cove_height(Vector2(LOOKOUT.x, LOOKOUT.z))
+	block(Vector3(4.4, 0.3, 4.4), LOOKOUT - Vector3(0, 0.15, 0), WOOD)
+	for c: Vector2 in [Vector2(-2, -2), Vector2(2, -2), Vector2(-2, 2), Vector2(2, 2)]:
+		var h := LOOKOUT.y - ground + 0.6
+		deco(Vector3(0.3, h, 0.3), Vector3(LOOKOUT.x + c.x, ground + h * 0.5 - 0.6, LOOKOUT.z + c.y), OLD_WOOD, &"wood")
+	var foot := Vector2(LOOKOUT.x - 10.5, LOOKOUT.z)
+	ramp(Vector3(foot.x, _cove_height(foot) - 0.05, foot.y), Vector3(LOOKOUT.x - 2.2, LOOKOUT.y - 0.15, LOOKOUT.z), 2.0, OLD_WOOD)
+	for z: float in [-2.1, 2.1]:
+		breakable(Breakable.Kind.RAIL, Vector3(4.2, 0.9, 0.2), LOOKOUT + Vector3(0, 0.45, z), WOOD.lightened(0.1))
+	breakable(Breakable.Kind.RAIL, Vector3(0.2, 0.9, 4.2), LOOKOUT + Vector3(2.1, 0.45, 0), WOOD.lightened(0.1))
+	# A broken stone wall across the middle: cover to fight round.
+	surface = &"rock"
+	for w: Vector4 in [Vector4(-1.0, 3.0, 6.0, 20.0), Vector4(-5.0, -6.0, 4.5, -35.0), Vector4(12.0, 1.0, 3.5, 75.0)]:
+		var at := _cove(Vector2(w.x, w.y), 0.0)
+		block(Vector3(w.z, 1.7, 0.9), at + Vector3(0, 0.75, 0), ROCK.lightened(0.05), w.w)
+	surface = &"wood"
+	for c: Vector2 in [Vector2(3.0, -3.0), Vector2(-11.0, -2.0)]:
+		var base := _cove(c, 0.0)
+		breakable(Breakable.Kind.CRATE, Vector3(1, 1, 1), base + Vector3(-0.55, 0.5, 0), Color(0.82, 0.66, 0.42))
+		breakable(Breakable.Kind.CRATE, Vector3(1, 1, 1), base + Vector3(0.55, 0.5, 0.1), Color(0.76, 0.6, 0.38))
+		breakable(Breakable.Kind.CRATE, Vector3(1, 1, 1), base + Vector3(0.0, 1.5, 0.05), Color(0.8, 0.64, 0.4))
+	for c: Vector2 in [Vector2(9.0, 3.0), Vector2(-15.0, 9.0)]:
+		breakable(Breakable.Kind.BARREL, Vector3(0.8, 1.1, 0.8), _cove(c, 0.55), Color(0.85, 0.16, 0.12))
+	surface = &"sand"
+	# Palms, rocks, bushes, grass and driftwood from Blender.
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 77
+	for c: Vector2 in [Vector2(-12, -10), Vector2(-4, -15), Vector2(6, -16), Vector2(15, -3), Vector2(16, 7), Vector2(4, 13),
+			Vector2(-7, 14), Vector2(-16, 2), Vector2(-1, 0), Vector2(10, 10), Vector2(-14, -14)]:
+		_palm(_cove(c, -0.1), c.x * 3.1 + c.y)
+	var rocks: Array[StringName] = [&"rock_a", &"rock_b", &"rock_c", &"rock_d"]
+	for r: Vector4 in [Vector4(7, -7, 1.8, 0), Vector4(-17, -6, 1.8, 1), Vector4(12, 12, 1.6, 2), Vector4(18, -12, 2.1, 3),
+			Vector4(-3, 16, 1.4, 0), Vector4(-9, 7, 1.5, 2), Vector4(5, 6, 1.0, 1), Vector4(-20, 10, 2.4, 3)]:
+		prop(rocks[int(r.w)], _cove(Vector2(r.x, r.y), -0.4), rng.randf() * 360.0, r.z)
+	for k in 34:
+		var c := Vector2(rng.randf_range(-19, 19), rng.randf_range(-17, 17))
+		if _cove_height(COVE + c) < 0.6:
+			continue
+		prop(&"grass" if k % 3 else &"grass_dry", _cove(c, 0.0), rng.randf() * 360.0, rng.randf_range(0.9, 1.4))
+	for k in 6:
+		var c := Vector2(rng.randf_range(-16, 16), rng.randf_range(-14, 14))
+		prop(&"bush", _cove(c, -0.05), rng.randf() * 360.0, rng.randf_range(1.0, 1.5))
+	for c: Vector2 in [Vector2(-18, -12), Vector2(19, 9)]:
+		prop(&"driftwood", _cove(c, 0.0), rng.randf() * 360.0, 1.1)
+	bounce_pad(_cove(Vector2(-15, 6), 0.0), Vector3(6.0, 0.0, 9.0), 9.0, Color(0.3, 0.85, 1.0))
+
+
+## Palm Cove's ground height at world (x, z): two hills, dunes, the shore
+## sloping into the water.
+func _cove_height(p: Vector2) -> float:
+	var q := p - COVE
+	var d := Vector2(q.x / 22.0, q.y / 20.0).length()
+	var land := 0.3 + (_cove_noise.get_noise_2dv(p) if _cove_noise else 0.0) * 0.35
+	land += 3.7 * exp(-(q - Vector2(7, -7)).length_squared() / 60.0)
+	land += 2.2 * exp(-(q - Vector2(-8, 7)).length_squared() / 40.0)
+	return lerpf(land, -2.6, smoothstep(0.78, 1.1, d))
+
+
+## A point on Palm Cove from its local (x, z), `up` metres above the ground.
+func _cove(local: Vector2, up: float) -> Vector3:
+	var p := COVE + local
+	return Vector3(p.x, _cove_height(p) + up, p.y)
+
+
+## Ground colour: wet sand at the waterline, sand, grass on the hills, rock
+## where it's steep.
+func _cove_paint(at: Vector3, n: Vector3) -> Color:
+	if n.y < 0.8:
+		return ROCK.lerp(SAND, 0.25)
+	if at.y < 0.15:
+		return WET_SAND
+	if at.y > 1.4:
+		return Color(0.45, 0.63, 0.3).lerp(Color(0.55, 0.68, 0.32), clampf(at.y / 4.0, 0.0, 1.0))
+	return SAND
 
 
 ## A rope bridge of breakable planks from the south beach to a rock islet.
@@ -541,7 +646,7 @@ func _palm(base: Vector3, seed_value: float) -> void:
 ## Fins circling in the deep and the shark that strikes.
 func _sharks() -> void:
 	var fin_mesh := _fin_mesh()
-	for path: Vector4 in [Vector4(10, 30, 5.0, 0.5), Vector4(36, 4, 4.0, -0.6), Vector4(-10, -36, 5.0, 0.4), Vector4(-17, 30, 5.0, -0.45)]:
+	for path: Vector4 in [Vector4(10, 30, 5.0, 0.5), Vector4(33.5, 9, 2.5, -0.6), Vector4(61, 25, 5.0, 0.45), Vector4(62, -40, 5.0, -0.5), Vector4(-10, -36, 5.0, 0.4), Vector4(-17, 30, 5.0, -0.45)]:
 		var f := MeshInstance3D.new()
 		f.mesh = fin_mesh
 		f.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -603,7 +708,8 @@ static func wading_factor(depth: float) -> float:
 
 ## Past the sand shelf, below the surface: shark water.
 func in_deep_water(pos: Vector3) -> bool:
-	return pos.y < water_level - 0.6 and not SHELF.has_point(Vector2(pos.x, pos.z))
+	var p := Vector2(pos.x, pos.z)
+	return pos.y < water_level - 0.6 and not SHELF.has_point(p) and not COVE_SHELF.has_point(p)
 
 
 ## Velocity that carries a body from `from` to `to` in `t` seconds under `g`.
@@ -694,7 +800,7 @@ func tick(m: Match, delta: float) -> void:
 func swim_exit(pos: Vector3) -> Vector3:
 	var p := Vector2(pos.x, pos.z)
 	var best := Vector2.INF
-	for r: Rect2 in [SHELF.grow(-1.0), ISLET.grow(-1.0), PIER.grow(-0.6)]:
+	for r: Rect2 in [SHELF.grow(-1.0), ISLET.grow(-1.0), PIER.grow(-0.6), COVE_LAND]:
 		var q := Vector2(clampf(p.x, r.position.x, r.end.x), clampf(p.y, r.position.y, r.end.y))
 		if p.distance_to(q) < p.distance_to(best):
 			best = q
@@ -705,7 +811,7 @@ func dry_spot(pos: Vector3) -> Vector3:
 	if tide <= 0.0:
 		return Vector3.INF
 	var best := Vector3.INF
-	for d in DRY:
+	for d in DRY + [_cove(Vector2(7, -7), 0.1), _cove(Vector2(-8, 7), 0.1)]:
 		if pos.distance_to(d) < pos.distance_to(best):
 			best = d
 	return best

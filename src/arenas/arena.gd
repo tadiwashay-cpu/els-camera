@@ -105,6 +105,70 @@ func _ready() -> void:
 	static_breakables = breakables.size()
 
 
+## Low-poly ground (0.8): `height` maps (x, z) to metres over `rect`, one
+## quad every `cell` metres, flat-shaded triangles coloured by
+## `paint(centre, normal)`; a trimesh collider (walkable, a nav source).
+## Uses the `kind` surface (its photo grain) with the vertex colours.
+func terrain(rect: Rect2, cell: float, height: Callable, paint: Callable, kind: StringName = &"sand") -> StaticBody3D:
+	var nx := int(ceil(rect.size.x / cell))
+	var nz := int(ceil(rect.size.y / cell))
+	var hs := PackedFloat32Array()
+	hs.resize((nx + 1) * (nz + 1))
+	for j in nz + 1:
+		for i in nx + 1:
+			hs[j * (nx + 1) + i] = float(height.call(Vector2(rect.position.x + i * cell, rect.position.y + j * cell)))
+	var at := func(i: int, j: int) -> Vector3:
+		return Vector3(rect.position.x + i * cell, hs[j * (nx + 1) + i], rect.position.y + j * cell)
+	var verts := PackedVector3Array()
+	var normals := PackedVector3Array()
+	var colors := PackedColorArray()
+	for j in nz:
+		for i in nx:
+			var a: Vector3 = at.call(i, j)
+			var b: Vector3 = at.call(i + 1, j)
+			var c: Vector3 = at.call(i + 1, j + 1)
+			var d: Vector3 = at.call(i, j + 1)
+			var tris := [[a, b, c], [a, c, d]] if (i + j) % 2 == 0 else [[a, b, d], [b, c, d]]
+			for t: Array in tris:
+				var p0: Vector3 = t[0]
+				var p1: Vector3 = t[1]
+				var p2: Vector3 = t[2]
+				if (p1 - p0).cross(p2 - p0).y > 0.0:      # Godot's front faces wind clockwise
+					var tmp := p1
+					p1 = p2
+					p2 = tmp
+				var n := (p2 - p0).cross(p1 - p0).normalized()
+				var col: Color = paint.call((p0 + p1 + p2) / 3.0, n)
+				for v: Vector3 in [p0, p1, p2]:
+					verts.append(v)
+					normals.append(n)
+					colors.append(col)
+	var arrays := []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = verts
+	arrays[Mesh.ARRAY_NORMAL] = normals
+	arrays[Mesh.ARRAY_COLOR] = colors
+	var mesh := ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	mesh.surface_set_material(0, surface_material(Color.WHITE, kind, true))
+	var mi := MeshInstance3D.new()
+	mi.name = "Terrain"
+	mi.mesh = mesh
+	add_child(mi)
+	var body := StaticBody3D.new()
+	body.name = "TerrainBody"
+	body.collision_layer = Game.L_WORLD
+	body.collision_mask = 0
+	var cs := CollisionShape3D.new()
+	var shape := ConcavePolygonShape3D.new()
+	shape.set_faces(verts)
+	shape.backface_collision = true      # robust for rays along triangle edges
+	cs.shape = shape
+	body.add_child(cs)
+	nav.add_child(body)
+	return body
+
+
 ## A prop from Blender (Props: palm_a.., rock_a.., bush, driftwood, grass,
 ## starfish) standing at `at`; palms get a trunk to bump into and rocks a
 ## hull, both nav obstacles. Drawn later, one MultiMesh per kind.

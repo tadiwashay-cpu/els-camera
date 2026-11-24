@@ -11,6 +11,9 @@ const VIEWS := {
 		[Vector3(6, 4, 15), Vector3(-4, 0, 28)],
 		[Vector3(14, 4, -14), Vector3(32, 0, -7)],
 		[Vector3(-10, 15, 14), Vector3(-15.6, 12, 6)],
+		[Vector3(36, 18, 16), Vector3(62, 1, -9)],        # Palm Cove from the pier
+		[Vector3(82, 9, 8), Vector3(63, 3, -10)],
+		[Vector3(57, 4, -3), Vector3(68, 6, -15)],        # the lookout
 	],
 	&"harbor_factory": [
 		[Vector3(30, 24, 30), Vector3(-4, 0, -4)],

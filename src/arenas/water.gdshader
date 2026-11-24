@@ -9,6 +9,8 @@ uniform float swell = 0.08;
 uniform float speed = 1.0;
 // Shallow over this rect (x0, z0, x1, z1), deepening over `falloff` metres outside it.
 uniform vec4 shelf = vec4(0.0);
+// A second shallow area (x0, z0, x1, z1; zero size = none).
+uniform vec4 shelf2 = vec4(0.0);
 uniform float falloff = 8.0;
 
 varying vec3 world_pos;
@@ -28,6 +30,10 @@ void fragment() {
 	NORMAL = (VIEW_MATRIX * vec4(n, 0.0)).xyz;
 	vec2 outside = max(max(shelf.xy - p, p - shelf.zw), vec2(0.0));
 	float d = clamp(length(outside) / falloff, 0.0, 1.0);
+	if (shelf2.z > shelf2.x) {
+		vec2 out2 = max(max(shelf2.xy - p, p - shelf2.zw), vec2(0.0));
+		d = min(d, clamp(length(out2) / falloff, 0.0, 1.0));
+	}
 	vec4 c = mix(shallow, deep, d);
 	float fres = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 3.0);
 	ALBEDO = c.rgb + vec3(0.1) * smoothstep(1.45, 1.9, r);

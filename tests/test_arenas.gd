@@ -28,7 +28,7 @@ func _check_layout(path: String) -> Arena:
 	await wait_physics_frames(3)
 	assert_gte(arena.spawn_points.size(), 6, "%s: spawn points" % path)
 	assert_gte(arena.spawner_points.size(), 4, "%s: weapon spawners" % path)
-	assert_eq(arena.pickup_points.size(), 6, "%s: pickup points" % path)
+	assert_gte(arena.pickup_points.size(), 6, "%s: pickup points" % path)
 	for p in arena.spawn_points:
 		assert_true(_ground_below(arena, p), "%s: spawn %s stands on ground" % [path, p])
 		assert_gt(p.y, arena.water_level + 0.3, "%s: spawn %s is above the water" % [path, p])
