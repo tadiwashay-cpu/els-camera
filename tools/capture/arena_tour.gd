@@ -22,6 +22,8 @@ const VIEWS := {
 		[Vector3(-2, 4, -12), Vector3(-6, 4, -28)],
 		[Vector3(14, 3, 8), Vector3(22, 0.5, 14.5)],
 		[Vector3(2, 9, 10), Vector3(-10, 0, -4)],
+		[Vector3(-24, 16, 26), Vector3(-50, 1, 0)],       # West Rail Yard
+		[Vector3(-36, 4, -2), Vector3(-60, 3, -6)],
 	],
 	&"blockout_yard": [
 		[Vector3(30, 22, 30), Vector3(0, 0, 0)],

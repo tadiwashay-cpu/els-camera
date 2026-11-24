@@ -9,6 +9,9 @@ extends Arena
 ##   when a blast or a blaster bolt hits them.
 ##   Twists: a floating barge off the east quay, bounce pads onto it, onto the
 ##   stacked containers and up onto the ship's deck.
+##   West Rail Yard (0.8): the quay carries on west through gaps in the
+##   container wall: tracks with freight wagons, a container pyramid with
+##   stairs, a signal tower, fuel tanks with an oil spill, barriers.
 
 const CONCRETE := Color(0.5, 0.5, 0.52)
 const DARK := Color(0.22, 0.23, 0.26)
@@ -64,6 +67,9 @@ var _t := 0.0
 var _swimmers: Dictionary = {}
 ## The quay you climb back onto (x0, z0, x1, z1).
 const QUAY := Rect2(-28.0, -20.0, 56.0, 44.0)
+const WEST_YARD := Rect2(-70.0, -16.0, 42.0, 36.0)
+const TOWER_TOP := Vector3(-47.5, 5.3, 16.0)
+const PYRAMID_TOP := Vector3(-63.0, 5.2, -9.0)
 
 
 func build() -> void:
@@ -71,7 +77,7 @@ func build() -> void:
 	merge = true
 	surface = &"concrete"
 	kill_y = -6.0
-	bounds = 44.0
+	bounds = 72.0
 	water_level = WATER_Y
 	_look()
 
@@ -82,6 +88,7 @@ func build() -> void:
 		deco(Vector3(0.5, 0.6, 0.5), Vector3(x, 0.3, -19.5), DARK, &"metal")
 	_curbs()
 	_containers()
+	_rail_yard()
 	_warehouse()
 	_ship()
 	_crane()
@@ -107,11 +114,12 @@ func build() -> void:
 
 	spawn_points = [Vector3(-8, 0.1, -16), Vector3(10, 0.1, -11), Vector3(-16, 0.1, 0.5), Vector3(0, 0.1, 3),
 		Vector3(16, 0.1, 18), Vector3(24, 0.1, 17), Vector3(-20, 0.1, 14), Vector3(2, 0.1, 18),
-		Vector3(39, 0.4, 7)]
+		Vector3(39, 0.4, 7), Vector3(-36, 0.1, -12), Vector3(-66.5, 0.1, -3), Vector3(-49, 0.1, -3)]
 	spawner_points = [Vector3(-6, 3.5, -27), Vector3(26.5, 3.0, 22.4), Vector3(-7.5, 0.0, -9.5),
-		Vector3(9, 0.0, 19), Vector3(-20, 0.0, 18), Vector3(20, 0.0, -16), Vector3(40.5, 0.3, 0.5)]
+		Vector3(9, 0.0, 19), Vector3(-20, 0.0, 18), Vector3(20, 0.0, -16), Vector3(40.5, 0.3, 0.5),
+		TOWER_TOP, PYRAMID_TOP]
 	pickup_points = [Vector3(-16, 0.0, -16), Vector3(-1, 0.0, -9), Vector3(20, 0.0, 11), Vector3(-12, 3.5, -31),
-		Vector3(4, 0.0, 11), Vector3(-23, 0.0, 9)]
+		Vector3(4, 0.0, 11), Vector3(-23, 0.0, 9), Vector3(-44, 0.0, 2), Vector3(-66, 0.0, 15)]
 	mystery_point = Vector3(6, 3.5, -30)
 
 	var w := water(Vector2(200, 200), Vector3(0, WATER_Y, 0), Color(0.12, 0.2, 0.22, 0.9), Color(0.05, 0.09, 0.12, 0.96))
@@ -161,7 +169,7 @@ func _containers() -> void:
 			Vector3(-13, -3, 0), Vector3(-4, -4, 90), Vector3(-18, 7.5, 0), Vector3(-8, 8, 0)]:
 		_container(Vector3(c.x, 0.0, c.y), c.z, CONTAINER_COLORS[i % CONTAINER_COLORS.size()])
 		i += 1
-	for z: float in [-12.0, -5.0, 2.0, 9.0, 16.0]:
+	for z: float in [-12.0, 2.0, 16.0]:      # gaps at -5 and 9: the way to the rail yard
 		_container(Vector3(-26.5, 0.0, z), 90.0, CONTAINER_COLORS[i % CONTAINER_COLORS.size()])
 		i += 1
 		if int(z) % 2 == 0:
@@ -179,6 +187,75 @@ func _container(base: Vector3, yaw: float, color: Color) -> void:
 		var off := basis * Vector3(-2.4 + k * 1.2, 0, 0)
 		deco(Vector3(0.12, 2.5, 2.5), centre + off, color.darkened(0.18), &"rust", yaw)
 	deco(Vector3(0.08, 2.4, 2.3), centre + basis * Vector3(3.07, 0, 0), color.darkened(0.3), &"metal", yaw)
+
+
+## The West Rail Yard: more quay west of the container wall. Two tracks
+## with freight wagons, a flat wagon of crates, a container pyramid with a
+## ramp onto its top (a weapon there), a signal tower with a long ramp, fuel tanks by
+## an oil spill, concrete barriers to duck behind.
+func _rail_yard() -> void:
+	surface = &"concrete"
+	block(Vector3(WEST_YARD.size.x, 5, WEST_YARD.size.y), Vector3(WEST_YARD.get_center().x, -2.5, WEST_YARD.get_center().y), CONCRETE.darkened(0.04))
+	deco(Vector3(0.4, 0.06, WEST_YARD.size.y), Vector3(WEST_YARD.position.x + 0.3, 0.03, WEST_YARD.get_center().y), YELLOW, &"paint")
+	surface = &"paint"
+	var c := YELLOW.darkened(0.25)
+	block(Vector3(WEST_YARD.size.x, 0.4, 0.4), Vector3(WEST_YARD.get_center().x, 0.2, WEST_YARD.end.y - 0.2), c)
+	# Tracks: sleepers and rails (looks), running the length of the yard.
+	for x: float in [-40.0, -56.0]:
+		for k in 35:
+			deco(Vector3(2.6, 0.12, 0.35), Vector3(x, 0.06, -15.0 + k * 1.0), Color(0.33, 0.24, 0.17), &"wood")
+		for dx: float in [-0.72, 0.72]:
+			deco(Vector3(0.12, 0.16, 35.5), Vector3(x + dx, 0.16, 2.0), STEEL.darkened(0.2), &"metal")
+	# Freight wagons (box cars): solid cover; stacked crates let you climb on.
+	surface = &"rust"
+	for w: Vector3 in [Vector3(-40.0, -6.0, 0), Vector3(-56.0, 8.0, 1)]:
+		var col := CONTAINER_COLORS[int(w.z) + 1].darkened(0.15)
+		block(Vector3(3.0, 2.8, 10.0), Vector3(w.x, 1.75, w.y), col)
+		for k in 4:
+			deco(Vector3(3.08, 2.6, 0.14), Vector3(w.x, 1.75, w.y - 4.2 + k * 2.8), col.darkened(0.2), &"rust")
+		for dz: float in [-3.5, 3.5]:
+			deco(Vector3(2.4, 0.5, 1.6), Vector3(w.x, 0.3, w.y + dz), DARK, &"metal")
+	# A flat wagon carrying crates.
+	surface = &"metal"
+	block(Vector3(3.0, 1.0, 8.0), Vector3(-40.0, 0.8, 11.0), STEEL.darkened(0.3))
+	surface = &"wood"
+	for k in 3:
+		breakable(Breakable.Kind.CRATE, Vector3(1.4, 1.4, 1.4), Vector3(-40.0, 2.0, 8.6 + k * 2.4), Color(0.74, 0.6, 0.4))
+	breakable(Breakable.Kind.CRATE, Vector3(1, 1, 1), Vector3(-37.8, 0.5, -0.5), Color(0.72, 0.58, 0.38))
+	breakable(Breakable.Kind.CRATE, Vector3(1, 1, 1), Vector3(-37.8, 1.5, -0.4), Color(0.74, 0.6, 0.4))
+	# The container pyramid: two, one on top, and a stair of crates/ramps up.
+	surface = &"rust"
+	_container(Vector3(-63.0, 0.0, -10.4), 0.0, CONTAINER_COLORS[0])
+	_container(Vector3(-63.0, 0.0, -7.6), 0.0, CONTAINER_COLORS[1])
+	_container(Vector3(-63.0, 2.6, -9.0), 0.0, CONTAINER_COLORS[2])
+	surface = &"metal"
+	ramp(Vector3(-50.0, 0.0, -9.0), Vector3(-59.9, 5.2, -9.0), 2.0, STEEL)
+	# The signal tower: a deck on legs, a long ramp up, rails round it.
+	block(Vector3(5.0, 0.3, 5.0), TOWER_TOP - Vector3(0, 0.15, 0), STEEL.darkened(0.2))
+	for cc: Vector2 in [Vector2(-2.3, -2.3), Vector2(2.3, -2.3), Vector2(-2.3, 2.3), Vector2(2.3, 2.3)]:
+		deco(Vector3(0.3, TOWER_TOP.y, 0.3), Vector3(TOWER_TOP.x + cc.x, TOWER_TOP.y * 0.5 - 0.15, TOWER_TOP.z + cc.y), DARK, &"metal")
+	ramp(Vector3(-61.0, 0.0, 16.0), Vector3(-50.0, TOWER_TOP.y - 0.15, 16.0), 2.0, STEEL)
+	for z: float in [-2.4, 2.4]:
+		breakable(Breakable.Kind.RAIL, Vector3(5.0, 0.9, 0.2), TOWER_TOP + Vector3(0, 0.45, z), YELLOW.darkened(0.2))
+	breakable(Breakable.Kind.RAIL, Vector3(0.2, 0.9, 5.0), TOWER_TOP + Vector3(2.4, 0.45, 0), YELLOW.darkened(0.2))
+	glow_box(Vector3(0.5, 0.5, 0.5), TOWER_TOP + Vector3(1.6, 2.4, 1.6), Color(1.0, 0.25, 0.15), 2.5)
+	deco(Vector3(0.15, 2.2, 0.15), TOWER_TOP + Vector3(1.6, 1.1, 1.6), DARK, &"metal")
+	# Fuel tanks by the oil spill (round-ish: a box with bands), barrels.
+	surface = &"metal"
+	for t: Vector2 in [Vector2(-60.0, -0.5), Vector2(-60.0, 4.5)]:
+		block(Vector3(4.0, 3.6, 4.0), Vector3(t.x, 1.8, t.y), Color(0.78, 0.78, 0.74), 45.0)
+		block(Vector3(4.0, 3.6, 4.0), Vector3(t.x, 1.8, t.y), Color(0.78, 0.78, 0.74))
+		for y: float in [0.8, 2.8]:
+			deco(Vector3(4.15, 0.2, 4.15), Vector3(t.x, y, t.y), RUST, &"rust", 22.5)
+	surface = &"wood"
+	for p: Vector3 in [Vector3(-52.5, 0.55, -12.5), Vector3(-57.0, 0.55, -13.8), Vector3(-68.0, 0.55, 2.0)]:
+		breakable(Breakable.Kind.BARREL, Vector3(0.8, 1.1, 0.8), p, Color(0.85, 0.16, 0.12))
+	# Concrete barriers to duck behind.
+	surface = &"concrete"
+	for b: Vector4 in [Vector4(-33.0, 4.0, 0.0, 0), Vector4(-47.0, -12.0, 0.0, 90), Vector4(-48.5, 5.0, 0.0, 20),
+			Vector4(-67.0, 9.0, 0.0, 90), Vector4(-33.5, 15.0, 0.0, 0)]:
+		block(Vector3(3.0, 0.95, 0.65), Vector3(b.x, 0.475, b.y), CONCRETE.lightened(0.12), b.w)
+	bounce_pad(Vector3(-50.0, 0.0, 0.5), PYRAMID_TOP, 3.0)
 
 
 ## The warehouse: open roof, a big door, catwalks along two walls.
@@ -418,7 +495,8 @@ func _oil_and_lamps() -> void:
 	oil_mat.albedo_color = Color(0.03, 0.03, 0.04)
 	oil_mat.metallic = 0.6
 	oil_mat.roughness = 0.04
-	for p: Vector4 in [Vector4(-16, 0, -7, 1.8), Vector4(-7, 0, 1.5, 1.6), Vector4(2.5, 0, -8, 1.6), Vector4(13, 0, 3.5, 2.0)]:
+	for p: Vector4 in [Vector4(-16, 0, -7, 1.8), Vector4(-7, 0, 1.5, 1.6), Vector4(2.5, 0, -8, 1.6), Vector4(13, 0, 3.5, 2.0),
+			Vector4(-55, 0, -10.5, 2.0)]:
 		var mi := MeshInstance3D.new()
 		var cyl := CylinderMesh.new()
 		cyl.top_radius = p.w
@@ -461,7 +539,8 @@ func _oil_and_lamps() -> void:
 		add_child(fire)
 		oil.append({"pos": Vector3(p.x, 0.0, p.z), "r": p.w, "burn": 0.0, "gone": 0.0, "mesh": mi, "fire": fire, "by": null, "tick": 0.0})
 	# Yard lamps: posts with a warm light.
-	for p: Vector3 in [Vector3(-12, 0, -18.8), Vector3(8, 0, -18.8), Vector3(3, 0, 6), Vector3(-24, 0, 22)]:
+	for p: Vector3 in [Vector3(-12, 0, -18.8), Vector3(8, 0, -18.8), Vector3(3, 0, 6), Vector3(-24, 0, 22),
+			Vector3(-44, 0, -15.3), Vector3(-66, 0, 19.3)]:
 		deco(Vector3(0.25, 6, 0.25), p + Vector3.UP * 3.0, DARK, &"metal")
 		deco(Vector3(1.4, 0.15, 0.4), p + Vector3(0.6, 6.0, 0), DARK, &"metal")
 		glow_box(Vector3(0.8, 0.12, 0.3), p + Vector3(0.9, 5.9, 0), Color(1.0, 0.8, 0.5), 1.8)
@@ -731,8 +810,12 @@ func ignite(at: Vector3, radius: float, by: Fighter) -> void:
 
 
 func swim_exit(pos: Vector3) -> Vector3:
-	var r := QUAY.grow(-1.0)
-	return Vector3(clampf(pos.x, r.position.x, r.end.x), 0.0, clampf(pos.z, r.position.y, r.end.y))
+	var best := Vector3.INF
+	for r: Rect2 in [QUAY.grow(-1.0), WEST_YARD.grow(-1.0)]:
+		var q := Vector3(clampf(pos.x, r.position.x, r.end.x), 0.0, clampf(pos.z, r.position.y, r.end.y))
+		if pos.distance_to(q) < pos.distance_to(best):
+			best = q
+	return best
 
 
 func lever_available(clock: float) -> bool:
