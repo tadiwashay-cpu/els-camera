@@ -4,6 +4,37 @@ Versions are `MAJOR.MINOR.PATCH`; the number lives in `project.godot`
 (`config/version`) and shows on the title screen and next to the FPS counter.
 Bump MINOR for a phase or batch of features, PATCH for fixes.
 
+## 0.8.0: Toon look, real textures, organic scenery, bigger maps, wall slams
+
+- **Touch buttons show what they do**: each button has a little picture
+  (ATTACK shows the kind of weapon you hold: sword, hammer, spear, gun,
+  bow, fist, shield; JUMP an arrow, THROW a curved throw, CATCH a cup, DODGE
+  chevrons, LOCK a crosshair, BLOCK a shield, POWER a bolt, SWAP arrows,
+  SKILL a sparkle) with the name small under it. Settings > Button labels
+  can show the picture only.
+- **Toon look** (FR-Legends-like, characters still blocky): light in soft
+  bands instead of a smooth fade, crisp shadow edges, a small hard shine, a
+  thin rim of sunlight, and clean dark outlines round fighters, weapons and
+  power-ups. Settings > Art style > Classic turns it off.
+- **Real textures** (free CC0 photos from Poly Haven): sand, rock,
+  weathered planks, metal plate, rust and concrete add their grain under the
+  toon colours (Medium and High).
+- **Organic scenery made in Blender**: curved palm trees that sway, faceted
+  rocks with sand on top, bushes, driftwood, dune grass, starfish. Beach
+  Island's box palms and rocks are replaced.
+- **Bigger maps**:
+  - Beach Island doubles: **Palm Cove**, a second island of dunes and two
+    grassy hills at the end of the pier, with a lookout on the high hill,
+    a broken stone wall, crates, palms and rocks, and a bounce pad back.
+  - Harbor Factory grows west: the **Rail Yard**, through two new gaps in
+    the container wall: tracks with box cars and a flat wagon of crates, a
+    container pyramid, a signal tower, fuel tanks by an oil spill.
+- **Wall slams**: knocked hard into a wall (or limp after a heavy hit), you
+  take damage from the impact, credited to whoever sent you flying, with
+  dust and a thud; a hard one knocks you flat.
+- Far-away crates, grass and debris aren't drawn, to keep the bigger maps
+  smooth. Fix: Harbor Factory's conveyor crate list error.
+
 ## 0.7.0: First person weapon, power animations, Locker, new look
 
 - **First person, rebuilt**: no more eyes, mouth or body in front of you.

@@ -163,7 +163,7 @@ func _build_ui() -> void:
 	_ui.add_child(_band)
 	_ui.move_child(_band, 0)
 	var ver := Label.new()
-	ver.text = "v%s  ·  first person weapon, locker and new look playtest" % Game.version()
+	ver.text = "v%s  ·  toon look, bigger maps, wall slams playtest" % Game.version()
 	ver.anchor_top = 1.0
 	ver.anchor_bottom = 1.0
 	ver.offset_left = 30

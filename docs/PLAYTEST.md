@@ -1,8 +1,8 @@
-# Playtest guide (v0.7.0: first person weapon, Locker, new look)
+# Playtest guide (v0.8.0: toon look, bigger maps, wall slams)
 
 ## Install
 1. On the tablet open GitHub > this repo > **Releases** > "Block Duelist 3D
-   v0.7.0 (playtest)" and download the APK (or Actions > latest run > Artifacts).
+   v0.8.0 (playtest)" and download the APK (or Actions > latest run > Artifacts).
 2. Tap it, allow "install unknown apps", open **Block Duelist 3D**.
 3. Settings: Graphics on **MEDIUM** for the gates, turn **Show FPS** on.
 
@@ -10,6 +10,13 @@
 
 | # | Do this | Look for |
 |---|---------|----------|
+| T1 | Look at the touch buttons in a match, pick up different weapons | Each button's picture says what it does? ATTACK changes with the weapon? |
+| T2 | Play every arena | The toon look (bands of light, outlines) is the style you wanted? Try Settings > Art style > Classic to compare |
+| T3 | Walk on sand, rocks, the wreck deck, the harbor | Real textures add grain without looking messy? |
+| T4 | Beach Island: walk the pier east to Palm Cove; climb the lookout; take the pad back | Feels like a real island? Palms and rocks look good? Bots follow you there? |
+| T5 | Harbor Factory: go west through the container wall | Rail Yard fun to fight in? Tower and pyramid reachable? |
+| T6 | Heavy-hit bots into walls, get slammed yourself | Slams feel real (thud, dust, damage)? Too strong / too weak? |
+| T7 | 8 bots on the bigger maps, Medium graphics, Show FPS on | FPS still fine? Where does it drop? |
 | N1 | First person (TPP button top right): look around, run, fight with a sword, hammer, spear, gun, bow, shield | No eyes/mouth/body. Weapon floats bottom right; swings cross the screen when they hit? Too big / too small? |
 | N2 | First person: whip the view round fast, sprint | Motion blur feels like a real eye, or too much? (Settings > FPP motion blur) |
 | N3 | First person: walk into a wall | The weapon lifts away instead of poking through |
@@ -47,9 +54,10 @@ Copy this into a GitHub Issue or the chat:
 
 ```
 Device: Redmi Pad 2 (or ...)
-Build: v0.7.0 (from the title screen)
+Build: v0.8.0 (from the title screen)
 
 FEEL (1 bad - 5 great)
+  Button pictures:      Toon look:      Textures:      Palm Cove:      Rail Yard:      Wall slams:
   First person weapon:      FPP blur:      Power casts:
   Locker look:      Upgrades:      New menu look:
   Moving:      Attacking:      Weapons:      Camera:      Bots:

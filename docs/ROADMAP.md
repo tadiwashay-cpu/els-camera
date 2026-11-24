@@ -78,7 +78,8 @@ Later (only if needed):
       no power names on screen, spawn fix
 - [x] 0.7.0: first person rebuilt (floating weapon, Blender FP swings, 90 degree view, motion blur),
       power casts made in Blender, Locker (customisation + upgrades), new menu look, Armory inspect
-- [ ] 0.8.x: toon art style (FR Legends-like), organic environments, much bigger maps
+- [x] 0.8.0: toon art style (FR Legends-like), CC0 photo textures, organic props from Blender,
+      Beach Island + Palm Cove, Harbor + Rail Yard, wall slams, touch button pictures
 - [ ] 0.9.x: real effects (Blender-rendered flipbooks, Effekseer check), mocap from the owner's own clips
 - [ ] Deep Forest, Abyss Submarine Base; 48 more weapons; all 12 powers
 - [x] Customize screen (Locker), coins and unlocks
@@ -97,6 +98,8 @@ Later (only if needed):
 ## Tuning notes (from play-tests)
 _Owner: add what felt off after each test here (or in an Issue)._
 
+- v0.7.0: "tested it and it's great". Asked for pictures on the touch
+  buttons showing what each does (done in 0.8.0).
 - v0.6.0: LAN with friends for an hour: good (Phase 3 gate passed). First
   person showed the fighter's own eyes and mouth: rebuilt in 0.7.0 as a
   floating weapon only.

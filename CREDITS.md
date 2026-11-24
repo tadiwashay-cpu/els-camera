@@ -4,6 +4,9 @@
 - **Fighter rig and all 36 animations**: authored for Block Duelist 3D in
   Blender with `tools/blender/` scripts.
 - **Fighters, weapons, arena**: built from boxes in code (`src/`).
+- **Weapon models and organic props** (palms, rocks, bushes, driftwood, grass,
+  starfish): modelled in code in Blender by `tools/blender/build_weapons.py`
+  and `tools/blender/build_props.py`.
 - **Sound effects**: synthesised at startup by `src/autoload/audio.gd`.
 - **Icon and splash**: rendered from a block fighter by `tools/capture/icon_render.tscn`.
 
