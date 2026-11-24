@@ -49,6 +49,9 @@ func setup(k: Kind, box_size: Vector3, tint: Color, owner_arena: Arena) -> void:
 	collision_mask = 0
 	_mesh = MeshInstance3D.new()
 	_mesh.mesh = _build_mesh()
+	# Far across the (bigger) maps a crate or rail is a speck: skip drawing it.
+	_mesh.visibility_range_end = 50.0
+	_mesh.visibility_range_end_margin = 4.0
 	add_child(_mesh)
 	_shape = CollisionShape3D.new()
 	var box := BoxShape3D.new()

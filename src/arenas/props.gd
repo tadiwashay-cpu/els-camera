@@ -8,6 +8,8 @@ extends RefCounted
 
 const PATH := "res://assets/props/props.glb"
 const SHADER := preload("res://src/shaders/props.gdshader")
+## How far away each kind is still drawn (0 = always).
+const DRAW_RANGE := {&"grass": 38.0, &"grass_dry": 38.0, &"starfish": 30.0, &"bush": 70.0, &"driftwood": 60.0}
 ## id -> [sway, casts shadow, collision ("trunk" | "hull" | "")]
 const INFO := {
 	&"palm_a": [0.35, true, "trunk"], &"palm_b": [0.35, true, "trunk"], &"palm_c": [0.35, true, "trunk"],

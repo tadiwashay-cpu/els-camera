@@ -35,6 +35,7 @@ func _ready() -> void:
 		body.add_child(shape)
 		var mi := MeshInstance3D.new()
 		mi.mesh = _unit
+		mi.visibility_range_end = 45.0
 		mi.material_override = _mat
 		body.add_child(mi)
 		add_child(body)

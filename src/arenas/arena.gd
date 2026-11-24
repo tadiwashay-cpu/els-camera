@@ -224,6 +224,7 @@ func _commit_props() -> void:
 		mmi.name = "Props_%s" % id
 		mmi.multimesh = mm
 		mmi.material_override = Props.material(id)
+		mmi.visibility_range_end = float(Props.DRAW_RANGE.get(id, 0.0))
 		var info: Array = Props.INFO.get(id, [0.0, true, ""])
 		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if bool(info[1]) else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		add_child(mmi)
@@ -473,27 +474,23 @@ func bounce_pad(at: Vector3, land: Vector3, apex: float = 3.0, color: Color = Co
 	dm.height = 0.06
 	dm.radial_segments = 20
 	dm.rings = 1
-	disc.mesh = dm
-	disc.position.y = 0.14
 	var glow := StandardMaterial3D.new()
 	glow.albedo_color = color
 	glow.emission_enabled = true
 	glow.emission = color
 	glow.emission_energy_multiplier = 1.6
-	disc.material_override = glow
-	root.add_child(disc)
-	# Chevrons pointing the way you'll fly.
+	# The glowing disc and the chevrons pointing the way you'll fly: one mesh.
 	var dir := flat.normalized() if flat.length() > 0.1 else Vector3.FORWARD
 	var yaw := atan2(dir.x, dir.z)
+	var st := SurfaceTool.new()
+	st.append_from(dm, 0, Transform3D(Basis.IDENTITY, Vector3(0, 0.14, 0)))
+	var pm := PrismMesh.new()
+	pm.size = Vector3(0.5, 0.26, 0.04)
 	for k in 2:
-		var chev := MeshInstance3D.new()
-		var pm := PrismMesh.new()
-		pm.size = Vector3(0.5, 0.26, 0.04)
-		chev.mesh = pm
-		chev.material_override = glow
-		chev.rotation = Vector3(-PI * 0.5, yaw, 0.0)
-		chev.position = Vector3(0, 0.19, 0) + dir * (-0.15 + 0.32 * k)
-		root.add_child(chev)
+		st.append_from(pm, 0, Transform3D(Basis.from_euler(Vector3(-PI * 0.5, yaw, 0.0)), Vector3(0, 0.19, 0) + dir * (-0.15 + 0.32 * k)))
+	disc.mesh = st.commit()
+	disc.material_override = glow
+	root.add_child(disc)
 	if nav:
 		var link := NavigationLink3D.new()
 		link.bidirectional = false

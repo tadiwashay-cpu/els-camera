@@ -36,7 +36,10 @@ var _out := ""
 func _shot(shot_name: String) -> void:
 	await RenderingServer.frame_post_draw
 	get_viewport().get_texture().get_image().save_png("%s/%s.png" % [_out, shot_name])
-	print("SHOT ", shot_name)
+	var vp := get_viewport().get_viewport_rid()
+	print("SHOT %s draws=%d tris=%d" % [shot_name,
+		RenderingServer.viewport_get_render_info(vp, RenderingServer.VIEWPORT_RENDER_INFO_TYPE_VISIBLE, RenderingServer.VIEWPORT_RENDER_INFO_DRAW_CALLS_IN_FRAME),
+		RenderingServer.viewport_get_render_info(vp, RenderingServer.VIEWPORT_RENDER_INFO_TYPE_VISIBLE, RenderingServer.VIEWPORT_RENDER_INFO_PRIMITIVES_IN_FRAME)])
 
 
 func _wait(seconds: float) -> void:
