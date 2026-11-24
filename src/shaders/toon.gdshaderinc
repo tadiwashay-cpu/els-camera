@@ -7,6 +7,10 @@ global uniform float toon;
 
 void light() {
 	float ndl = dot(NORMAL, LIGHT);
+#ifdef TOON_FOLIAGE
+	// Leaves let light through: their back faces are lit from either side.
+	ndl = mix(ndl, abs(ndl) * 0.7, foliage_back);
+#endif
 	float lambert = clamp(ndl, 0.0, 1.0);
 	float bands = smoothstep(-0.04, 0.06, ndl) * 0.55 + smoothstep(0.42, 0.52, ndl) * 0.3;
 	float att = mix(ATTENUATION, smoothstep(0.35, 0.65, ATTENUATION), toon);

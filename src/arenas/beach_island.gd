@@ -310,9 +310,10 @@ func _details() -> void:
 	for i in OUTCROPS.size():
 		var o := OUTCROPS[i]
 		var yaw := float(i) * 37.0
-		block(Vector3(2.6, 2.4, 2.2), o + Vector3(0, 0.2, 0), ROCK.darkened(0.05 * float(i % 3)), yaw)
-		deco(Vector3(1.5, 0.9, 1.4), o + Vector3(0.35, 1.6, -0.2), ROCK.lightened(0.06), &"rock", yaw + 25.0)
-		deco(Vector3(1.2, 0.8, 1.0), o + Vector3(-1.4, -0.6, 0.9), DARK_ROCK, &"rock", yaw - 30.0)
+		var rocks: Array[StringName] = [&"rock_a", &"rock_b", &"rock_c", &"rock_d"]
+		prop(rocks[i % 4], o + Vector3(0, -0.75, 0), yaw, 2.2)
+		prop(rocks[(i + 1) % 4], o + Vector3(1.3, -0.9, -0.6), yaw + 70.0, 1.2)
+		prop(rocks[(i + 2) % 4], o + Vector3(-1.4, -1.0, 0.9), yaw - 30.0, 1.0)
 		deco(Vector3(2.7, 0.12, 2.3), o + Vector3(0, -0.35, 0), Color(0.3, 0.45, 0.25), &"leaf", yaw)   # weed line
 	# Fishing hut on stilts by the lighthouse rock, with a campfire.
 	surface = &"wood"
@@ -386,9 +387,20 @@ func _details() -> void:
 			else Vector3(rng.randf_range(-21.5, -12.5), 2.5, rng.randf_range(1.5, 10.5))
 		if on_ridge and absf(p.x) < 4.5 or not on_ridge and absf(p.x + 17) < 2.2 and absf(p.z - 6) < 2.2:
 			continue
-		for b in 3:
-			deco(Vector3(0.06, rng.randf_range(0.25, 0.45), 0.06), p + Vector3(b * 0.08 - 0.08, 0.15, rng.randf_range(-0.06, 0.06)),
-				LEAF.lerp(Color(0.6, 0.65, 0.25), rng.randf()), &"leaf", rng.randf() * 90.0, 0.0, rng.randf_range(-15, 15))
+		prop(&"grass" if k % 3 else &"grass_dry", p, rng.randf() * 360.0, rng.randf_range(0.8, 1.3))
+	# Beach life from Blender: dune grass, starfish, driftwood, bushes by the ridge.
+	for k in 26:
+		var p := Vector3(rng.randf_range(-20.5, 20.5), 0.0, rng.randf_range(-12.0, 19.0))
+		if absf(p.x) < 3.0 and absf(p.z) < 3.0:
+			continue
+		prop(&"grass_dry" if k % 2 else &"grass", p, rng.randf() * 360.0, rng.randf_range(0.9, 1.4))
+	for k in 7:
+		prop(&"starfish", Vector3(rng.randf_range(-21.0, 21.0), 0.0, (-13.0 if k % 2 == 0 else 19.5) + rng.randf_range(-1.0, 1.0)), rng.randf() * 360.0)
+	for p: Vector3 in [Vector3(-13.5, 0.0, 18.5), Vector3(16.0, 0.0, -12.5), Vector3(3.0, 0.0, 19.5)]:
+		prop(&"driftwood", p, rng.randf() * 360.0, 1.1)
+	for p: Vector3 in [Vector3(-16.0, 0.0, -12.5), Vector3(-11.0, 0.0, -12.8), Vector3(12.0, 0.0, -12.6), Vector3(19.5, 0.0, -11.0),
+			Vector3(-20.0, 0.0, 12.0)]:
+		prop(&"bush", p, rng.randf() * 360.0, rng.randf_range(0.9, 1.3))
 	for d: Vector4 in [Vector4(-12, -10, 6, 15), Vector4(10, 15, 5, -20), Vector4(-2, 18, 7, 5)]:
 		deco(Vector3(d.z, 0.5, d.z * 0.5), Vector3(d.x, -0.17, d.y), SAND.lightened(0.04), &"sand", d.w, 0.0, 2.0)
 	# Wreck: ribs out of the sand, portholes, barnacles.
@@ -519,22 +531,11 @@ func _tick_life(delta: float) -> void:
 	_boat.rotation = Vector3(sin(_clock_t * 1.2) * 0.04, 0.12, cos(_clock_t * 0.9) * 0.05)
 
 
-## A leaning palm: a trunk you bump into and a crown of drooping leaves.
+## A palm tree from Blender (Props), with a trunk you bump into.
 func _palm(base: Vector3, seed_value: float) -> void:
-	var lean := 6.0 + fmod(absf(seed_value), 8.0)
-	var yaw := fmod(seed_value * 37.0, 360.0)
-	var basis := Basis.from_euler(Vector3(deg_to_rad(lean), deg_to_rad(yaw), 0.0), EULER_ORDER_YXZ)
-	var top := base + basis * Vector3(0, 5.2, 0)
-	surface = &"wood"
-	var trunk := block(Vector3(0.45, 5.4, 0.45), base + basis * Vector3(0, 2.6, 0), Color(0.6, 0.47, 0.32), yaw, lean)
-	trunk.name = "Palm"
-	surface = &"sand"
-	for k in 6:
-		var a := float(k) * 60.0 + yaw
-		var b := Basis.from_euler(Vector3(deg_to_rad(18.0), deg_to_rad(a), 0.0), EULER_ORDER_YXZ)
-		var off := b * Vector3(0, 0, 1.3)
-		deco(Vector3(0.9, 0.12, 2.8), top + off + Vector3.DOWN * 0.35, LEAF.lightened(0.08 * float(k % 2)), &"leaf", a, 18.0)
-	deco(Vector3(0.7, 0.5, 0.7), top, Color(0.45, 0.35, 0.2), &"wood")
+	var ids: Array[StringName] = [&"palm_a", &"palm_b", &"palm_c"]
+	var pick := ids[int(absf(seed_value * 7.0)) % ids.size()]
+	prop(pick, base, fmod(seed_value * 37.0, 360.0), 0.95 + fmod(absf(seed_value), 3.0) * 0.06)
 
 
 ## Fins circling in the deep and the shark that strikes.

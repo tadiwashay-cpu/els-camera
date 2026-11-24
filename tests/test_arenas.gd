@@ -178,3 +178,12 @@ func test_start_spots_never_stack() -> void:
 	var more := Match.start_spots(pts, 12, 5)
 	assert_eq(more.size(), 12)
 	assert_ne(more[9], more[0], "extra fighters stand beside a point, not on it")
+
+
+func test_every_prop_was_built() -> void:
+	for id: StringName in Props.INFO:
+		var m := Props.mesh(id)
+		assert_not_null(m, "%s is in props.glb" % id)
+		if m:
+			assert_lt(m.get_faces().size() / 3, 1600, "%s stays light" % id)
+	assert_gt(Props.hull(&"rock_a", 2.0).points.size(), 8, "rocks get a hull to stand on")

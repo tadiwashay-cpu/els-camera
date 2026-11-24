@@ -45,6 +45,8 @@ var env: Environment
 var debris: DebrisPool
 var breakables: Array[Breakable] = []
 var _materials: Dictionary = {}
+## Organic props waiting to be drawn: id -> Array[Transform3D] (Props).
+var _props: Dictionary = {}
 var _baking := false
 ## Rain makes every themed surface wet.
 var wet := 0.0
@@ -99,7 +101,69 @@ func _ready() -> void:
 	_sky()
 	build()
 	_commit_merged()
+	_commit_props()
 	static_breakables = breakables.size()
+
+
+## A prop from Blender (Props: palm_a.., rock_a.., bush, driftwood, grass,
+## starfish) standing at `at`; palms get a trunk to bump into and rocks a
+## hull, both nav obstacles. Drawn later, one MultiMesh per kind.
+func prop(id: StringName, at: Vector3, yaw_deg: float = 0.0, scale: float = 1.0, tilt_deg: float = 0.0) -> void:
+	var basis := Basis.from_euler(Vector3(deg_to_rad(tilt_deg), deg_to_rad(yaw_deg), 0.0), EULER_ORDER_YXZ).scaled(Vector3.ONE * scale)
+	var xf := Transform3D(basis, at)
+	if not _props.has(id):
+		_props[id] = []
+	(_props[id] as Array).append(xf)
+	var info: Array = Props.INFO.get(id, [0.0, true, ""])
+	match str(info[2]):
+		"trunk":
+			var top := xf * Vector3(0, 4.0, 0)
+			var body := StaticBody3D.new()
+			body.collision_layer = Game.L_WORLD
+			body.collision_mask = 0
+			body.name = "Palm"
+			var cs := CollisionShape3D.new()
+			var cyl := CylinderShape3D.new()
+			cyl.radius = 0.28 * scale
+			cyl.height = at.distance_to(top)
+			cs.shape = cyl
+			body.add_child(cs)
+			body.position = (at + top) * 0.5
+			var up := (top - at).normalized()
+			body.basis = Basis(Quaternion(Vector3.UP, up))
+			nav.add_child(body)
+		"hull":
+			var body := StaticBody3D.new()
+			body.collision_layer = Game.L_WORLD
+			body.collision_mask = 0
+			body.position = at
+			body.rotation_degrees = Vector3(tilt_deg, yaw_deg, 0.0)
+			var cs := CollisionShape3D.new()
+			cs.shape = Props.hull(id, scale)
+			body.add_child(cs)
+			nav.add_child(body)
+
+
+func _commit_props() -> void:
+	for id: StringName in _props:
+		var m := Props.mesh(id)
+		if m == null:
+			continue
+		var list: Array = _props[id]
+		var mm := MultiMesh.new()
+		mm.transform_format = MultiMesh.TRANSFORM_3D
+		mm.mesh = m
+		mm.instance_count = list.size()
+		for i in list.size():
+			mm.set_instance_transform(i, list[i])
+		var mmi := MultiMeshInstance3D.new()
+		mmi.name = "Props_%s" % id
+		mmi.multimesh = mm
+		mmi.material_override = Props.material(id)
+		var info: Array = Props.INFO.get(id, [0.0, true, ""])
+		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if bool(info[1]) else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(mmi)
+	_props.clear()
 
 
 ## Turns the boxes collected by block()/deco() into one mesh per surface.
