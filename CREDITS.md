@@ -20,3 +20,8 @@ Add every downloaded or generated asset here with its source and licence.
 - **Barlow Condensed** (Medium, Bold Italic, Extra Bold Italic) by Jeremy
   Tribby, SIL Open Font License 1.1, from the `@fontsource/barlow-condensed`
   npm package; `assets/ui/fonts/` (licence in `assets/ui/fonts/OFL.txt`).
+- **Surface textures** from [Poly Haven](https://polyhaven.com), CC0 (public
+  domain), downscaled to 512 px in `assets/textures/` and used as grain under
+  the toon colours: sand = Coast Sand 01 (Rob Tuytel), rock = Rock Face (Greg
+  Zaal, Dario Barresi), wood = Old Planks 02, metal = Metal Plate, rust = Green
+  Metal Rust, concrete = Concrete Floor 02 (all Rob Tuytel).

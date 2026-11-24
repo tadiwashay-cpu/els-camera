@@ -139,6 +139,8 @@ func apply_art_style() -> void:
 
 func apply_graphics() -> void:
 	_dyn_scale = 1.0
+	# Photo grain on arena surfaces: Medium and High.
+	RenderingServer.global_shader_parameter_set(&"detail", 0.0 if preset()["name"] == "LOW" else 1.0)
 	Engine.max_fps = int(preset()["fps"])
 	_apply_scale()
 	settings_changed.emit()

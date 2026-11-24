@@ -87,3 +87,7 @@ outline_width={
 "type": "float",
 "value": 0.0022
 }
+detail={
+"type": "float",
+"value": 1.0
+}

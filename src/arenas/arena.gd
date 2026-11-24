@@ -21,6 +21,17 @@ const SURFACES := {
 	&"paint": [0.05, 1.0, 0.0, 0.6], &"leaf": [0.25, 2.0, 0.0, 0.9],
 }
 
+## CC0 photo textures (Poly Haven, assets/textures) laid over a surface
+## kind as grain: [texture, repeats per metre, strength].
+const DETAIL := {
+	&"sand": ["res://assets/textures/sand.jpg", 0.3, 0.7],
+	&"rock": ["res://assets/textures/rock.jpg", 0.4, 0.8],
+	&"wood": ["res://assets/textures/wood.jpg", 0.45, 0.75],
+	&"metal": ["res://assets/textures/metal.jpg", 0.35, 0.55],
+	&"rust": ["res://assets/textures/rust.jpg", 0.4, 0.7],
+	&"concrete": ["res://assets/textures/concrete.jpg", 0.25, 0.6],
+}
+
 var spawn_points: Array[Vector3] = []
 var spawner_points: Array[Vector3] = []
 var pickup_points: Array[Vector3] = []
@@ -197,6 +208,11 @@ func surface_material(color: Color, kind: StringName, vertex: bool = false) -> S
 		m.set_shader_parameter(&"roughness_value", p[3])
 		m.set_shader_parameter(&"wet", wet)
 		m.set_shader_parameter(&"vertex_tint", vertex)
+		if DETAIL.has(kind):
+			var d: Array = DETAIL[kind]
+			m.set_shader_parameter(&"detail_tex", load(d[0]))
+			m.set_shader_parameter(&"detail_scale", d[1])
+			m.set_shader_parameter(&"detail_amount", d[2])
 		_materials[key] = m
 	return _materials[key]
 
